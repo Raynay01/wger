@@ -39,6 +39,7 @@ from rest_framework_simplejwt.views import (
 )
 
 # wger
+from wger.care.api import views as care_api_views
 from wger.core.api import views as core_api_views
 from wger.exercises.api import views as exercises_api_views
 from wger.exercises.sitemap import ExercisesSitemap
@@ -57,6 +58,27 @@ from wger.weight.api import views as weight_api_views
 # REST API
 #
 router = routers.DefaultRouter()
+
+# Care app
+router.register(r'organization', care_api_views.OrganizationViewSet, basename='organization')
+router.register(r'membership', care_api_views.MembershipViewSet, basename='membership')
+router.register(
+    r'professional-registration',
+    care_api_views.ProfessionalRegistrationViewSet,
+    basename='professional-registration',
+)
+router.register(
+    r'care-relationship',
+    care_api_views.CareRelationshipViewSet,
+    basename='care-relationship',
+)
+router.register(r'access-grant', care_api_views.AccessGrantViewSet, basename='access-grant')
+router.register(r'consent', care_api_views.ConsentRecordViewSet, basename='consent')
+router.register(
+    r'multidisciplinary-note',
+    care_api_views.MultidisciplinaryNoteViewSet,
+    basename='multidisciplinary-note',
+)
 
 #
 # Application
@@ -230,6 +252,17 @@ router.register(
 router.register(r'nutritiondiary', nutrition_api_views.LogItemViewSet, basename='nutritiondiary')
 router.register(r'meal', nutrition_api_views.MealViewSet, basename='meal')
 router.register(r'mealitem', nutrition_api_views.MealItemViewSet, basename='mealitem')
+router.register(
+    r'substitution-option',
+    nutrition_api_views.SubstitutionOptionViewSet,
+    basename='substitution-option',
+)
+router.register(
+    r'meal-adherence',
+    nutrition_api_views.MealAdherenceViewSet,
+    basename='meal-adherence',
+)
+router.register(r'water-log', nutrition_api_views.WaterLogViewSet, basename='water-log')
 router.register(r'ingredient-image', nutrition_api_views.ImageViewSet, basename='ingredientimage')
 
 # Weight app
@@ -327,6 +360,7 @@ urlpatterns += [
         core_api_views.VerifyEmailView.as_view(),
         name='userprofile-verify-email',
     ),
+    path('api/v2/care/modules/', care_api_views.ModulesView.as_view(), name='care-modules'),
     path('api/v2/', include(router.urls)),
     path('api/v2/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v2/token/verify', TokenVerifyView.as_view(), name='token_verify'),

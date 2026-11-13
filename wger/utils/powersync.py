@@ -95,6 +95,11 @@ class PowerSyncHandler:
     # JSONField of the table belongs in this set.
     json_fields: frozenset[str] = frozenset()
 
+    # Set for tables that are (part of) a prescription: rows can then only be
+    # changed by whoever may write the prescription they belong to (see
+    # ``can_be_written_by``), not by every user the row is synced to.
+    prescription_guard: bool = False
+
     @property
     def label(self) -> str:
         """Human-readable model name used in log lines and error details."""
@@ -177,6 +182,10 @@ class PowerSyncHandler:
         if entry is None:
             return self._ack_missing('update', payload['id'])
 
+        guard_err = self._check_prescription(entry, user_id)
+        if guard_err is not None:
+            return guard_err
+
         fk_err = self._check_fk(payload, user_id)
         if fk_err is not None:
             return fk_err
@@ -204,6 +213,11 @@ class PowerSyncHandler:
         entry = self._get_or_none(payload, user_id)
         if entry is None:
             return self._ack_missing('delete', payload['id'])
+
+        guard_err = self._check_prescription(entry, user_id)
+        if guard_err is not None:
+            return guard_err
+
         entry.delete()
         logger.debug(f'Deleted {self.label} {payload["id"]} for user {user_id}')
         return None
@@ -235,11 +249,27 @@ class PowerSyncHandler:
     def _check_fk(self, payload: dict[str, Any], user_id: int) -> dict | None:
         if self.viewset_class is None:
             return None
-        if check_fk_ownership(payload, self.viewset_class.get_owner_objects(), user_id):
+        if check_fk_ownership(
+            payload,
+            self.viewset_class.get_owner_objects(),
+            user_id,
+            prescription=self.prescription_guard,
+        ):
             return None
         return {
             'error': 'Forbidden',
             'details': f'{self.label} references an object you do not own',
+        }
+
+    def _check_prescription(self, entry, user_id: int) -> dict | None:
+        if not self.prescription_guard:
+            return None
+        root = entry.get_owner_object()
+        if not hasattr(root, 'can_be_written_by') or root.can_be_written_by(user_id):
+            return None
+        return {
+            'error': 'Forbidden',
+            'details': f'{self.label} belongs to a prescription you cannot change',
         }
 
     def _get_or_none(self, payload: dict[str, Any], user_id: int):

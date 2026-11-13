@@ -32,7 +32,12 @@ from rest_framework import (
 logger = logging.getLogger(__name__)
 
 
-def check_fk_ownership(payload: dict, owner_objects: list[tuple], user_id: int) -> bool:
+def check_fk_ownership(
+    payload: dict,
+    owner_objects: list[tuple],
+    user_id: int,
+    prescription: bool = False,
+) -> bool:
     """
     Validate that FK references in payload belong to the given user.
 
@@ -40,6 +45,11 @@ def check_fk_ownership(payload: dict, owner_objects: list[tuple], user_id: int) 
     owner_objects is a list of (Model, field_name) tuples. For each field present
     in payload, the referenced object is loaded and its ownership is verified via
     get_owner_object().user.
+
+    With ``prescription``, the payload changes a prescription (a meal of a plan,
+    a day of a routine), so a referenced prescription must be writable by the
+    user instead of merely owned: a patient cannot edit what a professional
+    prescribed, and the professional can edit the draft they write for a patient.
 
     Returns True if all checks pass, False otherwise.
     """
@@ -66,6 +76,12 @@ def check_fk_ownership(payload: dict, owner_objects: list[tuple], user_id: int) 
             continue
 
         owner = obj.get_owner_object()
+        if prescription and hasattr(owner, 'can_be_written_by'):
+            if not owner.can_be_written_by(user_id):
+                logger.warning(f'{model_class.__name__} {pk} is not writable by user {user_id}')
+                return False
+            continue
+
         # Ask for the id rather than for ``user``: the latter dereferences the
         # foreign key and loads the whole user row, which this never looks at
         if owner and hasattr(owner, 'user_id') and owner.user_id != user_id:
@@ -83,7 +99,12 @@ class WgerOwnerObjectModelViewSet(viewsets.ModelViewSet):
         if not isinstance(request.data, dict):
             raise exceptions.ValidationError('Request data is not a dictionary')
 
-        if not check_fk_ownership(request.data, self.get_owner_objects(), request.user.pk):
+        if not check_fk_ownership(
+            request.data,
+            self.get_owner_objects(),
+            request.user.pk,
+            prescription=getattr(self, 'prescription_children', False),
+        ):
             raise exceptions.PermissionDenied('You are not allowed to do this')
 
     def create(self, request, *args, **kwargs):

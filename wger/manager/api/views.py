@@ -27,6 +27,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 # wger
+from wger.care.api.prescription import (
+    PrescriptionViewSetMixin,
+    PrescriptionWriteGuardMixin,
+)
+from wger.care.models import OPEN_STATUSES
+from wger.care.prescription import (
+    PrescriptionStatus,
+    visible_prescriptions_q,
+)
 from wger.manager.api.consts import BASE_CONFIG_FILTER_FIELDS
 from wger.manager.api.filtersets import (
     WorkoutLogFilterSet,
@@ -88,9 +97,12 @@ def request_user_or_trainer_q(request):
     return Q(user=request.user)
 
 
-class RoutineViewSet(viewsets.ModelViewSet):
+class RoutineViewSet(PrescriptionViewSetMixin, viewsets.ModelViewSet):
     """
     API endpoint for routine objects
+
+    A trainer creates a routine for a patient by passing ``care_relationship``;
+    it stays a draft, invisible to the patient, until published.
     """
 
     serializer_class = RoutineSerializer
@@ -104,6 +116,9 @@ class RoutineViewSet(viewsets.ModelViewSet):
         'end',
         'is_public',
         'is_template',
+        'status',
+        'care_relationship',
+        'lineage_id',
     )
 
     def get_queryset(self):
@@ -114,9 +129,12 @@ class RoutineViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Routine.objects.none()
 
-        return Routine.objects.filter(
-            request_user_or_trainer_q(request=self.request) | Q(is_public=True)
+        own = request_user_or_trainer_q(request=self.request) & ~Q(
+            author__isnull=False,
+            status=PrescriptionStatus.DRAFT,
         )
+        authored = Q(author=self.request.user, care_relationship__status__in=OPEN_STATUSES)
+        return Routine.objects.filter(own | authored | Q(is_public=True))
 
     def perform_create(self, serializer):
         """
@@ -330,10 +348,12 @@ class WorkoutLogViewSet(WgerOwnerObjectModelViewSet):
         ]
 
 
-class RoutineDayViewSet(WgerOwnerObjectModelViewSet):
+class RoutineDayViewSet(PrescriptionWriteGuardMixin, WgerOwnerObjectModelViewSet):
     """
     API endpoint for routine day objects
     """
+
+    prescription_children = True
 
     serializer_class = DaySerializer
     is_private = True
@@ -356,7 +376,7 @@ class RoutineDayViewSet(WgerOwnerObjectModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Day.objects.none()
 
-        return Day.objects.filter(routine__user=self.request.user)
+        return Day.objects.filter(visible_prescriptions_q(self.request.user, 'routine__'))
 
     @staticmethod
     def get_owner_objects():
@@ -366,10 +386,12 @@ class RoutineDayViewSet(WgerOwnerObjectModelViewSet):
         return [(Routine, 'routine')]
 
 
-class SlotViewSet(WgerOwnerObjectModelViewSet):
+class SlotViewSet(PrescriptionWriteGuardMixin, WgerOwnerObjectModelViewSet):
     """
     API endpoint for routine slot objects
     """
+
+    prescription_children = True
 
     serializer_class = SlotSerializer
     is_private = True
@@ -388,7 +410,7 @@ class SlotViewSet(WgerOwnerObjectModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Slot.objects.none()
 
-        return Slot.objects.filter(day__routine__user=self.request.user)
+        return Slot.objects.filter(visible_prescriptions_q(self.request.user, 'day__routine__'))
 
     @staticmethod
     def get_owner_objects():
@@ -398,10 +420,12 @@ class SlotViewSet(WgerOwnerObjectModelViewSet):
         return [(Day, 'day')]
 
 
-class SlotEntryViewSet(WgerOwnerObjectModelViewSet):
+class SlotEntryViewSet(PrescriptionWriteGuardMixin, WgerOwnerObjectModelViewSet):
     """
     API endpoint for routine slot entry objects
     """
+
+    prescription_children = True
 
     serializer_class = SlotEntrySerializer
     is_private = True
@@ -426,7 +450,9 @@ class SlotEntryViewSet(WgerOwnerObjectModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return SlotEntry.objects.none()
 
-        return SlotEntry.objects.filter(slot__day__routine__user=self.request.user)
+        return SlotEntry.objects.filter(
+            visible_prescriptions_q(self.request.user, 'slot__day__routine__')
+        )
 
     @staticmethod
     def get_owner_objects():
@@ -436,10 +462,12 @@ class SlotEntryViewSet(WgerOwnerObjectModelViewSet):
         return [(Slot, 'slot')]
 
 
-class AbstractConfigViewSet(WgerOwnerObjectModelViewSet):
+class AbstractConfigViewSet(PrescriptionWriteGuardMixin, WgerOwnerObjectModelViewSet):
     """
     API endpoint for weight config objects
     """
+
+    prescription_children = True
 
     is_private = True
     ordering_fields = '__all__'
@@ -468,7 +496,9 @@ class WeightConfigViewSet(AbstractConfigViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return WeightConfig.objects.none()
 
-        return WeightConfig.objects.filter(slot_entry__slot__day__routine__user=self.request.user)
+        return WeightConfig.objects.filter(
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
+        )
 
 
 class MaxWeightConfigViewSet(AbstractConfigViewSet):
@@ -487,7 +517,7 @@ class MaxWeightConfigViewSet(AbstractConfigViewSet):
             return MaxWeightConfig.objects.none()
 
         return MaxWeightConfig.objects.filter(
-            slot_entry__slot__day__routine__user=self.request.user
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
         )
 
 
@@ -507,7 +537,7 @@ class RepetitionsConfigViewSet(AbstractConfigViewSet):
             return RepetitionsConfig.objects.none()
 
         return RepetitionsConfig.objects.filter(
-            slot_entry__slot__day__routine__user=self.request.user
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
         )
 
 
@@ -527,7 +557,7 @@ class MaxRepetitionsConfigViewSet(AbstractConfigViewSet):
             return MaxRepetitionsConfig.objects.none()
 
         return MaxRepetitionsConfig.objects.filter(
-            slot_entry__slot__day__routine__user=self.request.user
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
         )
 
 
@@ -546,7 +576,9 @@ class SetsConfigViewSet(AbstractConfigViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return SetsConfig.objects.none()
 
-        return SetsConfig.objects.filter(slot_entry__slot__day__routine__user=self.request.user)
+        return SetsConfig.objects.filter(
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
+        )
 
 
 class MaxSetsConfigViewSet(AbstractConfigViewSet):
@@ -564,7 +596,9 @@ class MaxSetsConfigViewSet(AbstractConfigViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return MaxSetsConfig.objects.none()
 
-        return MaxSetsConfig.objects.filter(slot_entry__slot__day__routine__user=self.request.user)
+        return MaxSetsConfig.objects.filter(
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
+        )
 
 
 class RestConfigViewSet(AbstractConfigViewSet):
@@ -582,7 +616,9 @@ class RestConfigViewSet(AbstractConfigViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return RestConfig.objects.none()
 
-        return RestConfig.objects.filter(slot_entry__slot__day__routine__user=self.request.user)
+        return RestConfig.objects.filter(
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
+        )
 
 
 class MaxRestConfigViewSet(AbstractConfigViewSet):
@@ -600,7 +636,9 @@ class MaxRestConfigViewSet(AbstractConfigViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return MaxRestConfig.objects.none()
 
-        return MaxRestConfig.objects.filter(slot_entry__slot__day__routine__user=self.request.user)
+        return MaxRestConfig.objects.filter(
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
+        )
 
 
 class RiRConfigViewSet(AbstractConfigViewSet):
@@ -618,7 +656,9 @@ class RiRConfigViewSet(AbstractConfigViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return RiRConfig.objects.none()
 
-        return RiRConfig.objects.filter(slot_entry__slot__day__routine__user=self.request.user)
+        return RiRConfig.objects.filter(
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
+        )
 
 
 class MaxRiRConfigViewSet(AbstractConfigViewSet):
@@ -636,4 +676,6 @@ class MaxRiRConfigViewSet(AbstractConfigViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return MaxRiRConfig.objects.none()
 
-        return MaxRiRConfig.objects.filter(slot_entry__slot__day__routine__user=self.request.user)
+        return MaxRiRConfig.objects.filter(
+            visible_prescriptions_q(self.request.user, 'slot_entry__slot__day__routine__')
+        )

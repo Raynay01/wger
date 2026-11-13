@@ -34,6 +34,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 # wger
+from wger.care.disciplines import Discipline
+from wger.care.prescription import PrescriptionMixin
 from wger.exercises.models import Exercise
 from wger.manager.dataclasses import (
     GroupedLogData,
@@ -57,7 +59,7 @@ from wger.utils.cache import CacheKeyMapper
 logger = logging.getLogger(__name__)
 
 
-class Routine(models.Model):
+class Routine(PrescriptionMixin, models.Model):
     """
     Model for a routine
     """
@@ -153,6 +155,57 @@ class Routine(models.Model):
         Returns the object that has owner information
         """
         return self
+
+    discipline = Discipline.TRAINING
+
+    def build_snapshot(self) -> dict:
+        # wger
+        from wger.manager.api.serializers import RoutineStructureSerializer
+
+        return RoutineStructureSerializer(self).data
+
+    def copy_content_to(self, target) -> None:
+        config_sets = (
+            'weightconfig_set',
+            'maxweightconfig_set',
+            'repetitionsconfig_set',
+            'maxrepetitionsconfig_set',
+            'rirconfig_set',
+            'maxrirconfig_set',
+            'restconfig_set',
+            'maxrestconfig_set',
+            'setsconfig_set',
+            'maxsetsconfig_set',
+        )
+        for label in self.labels.all():
+            label.pk = None
+            label._state.adding = True
+            label.routine = target
+            label.save()
+
+        for day in self.days.all():
+            slots = list(day.slots.all())
+            day.pk = None
+            day._state.adding = True
+            day.routine = target
+            day.save()
+            for slot in slots:
+                entries = list(slot.entries.all())
+                slot.pk = None
+                slot._state.adding = True
+                slot.day = day
+                slot.save()
+                for entry in entries:
+                    configs = [c for name in config_sets for c in getattr(entry, name).all()]
+                    entry.pk = None
+                    entry._state.adding = True
+                    entry.slot = slot
+                    entry.save()
+                    for config in configs:
+                        config.pk = None
+                        config._state.adding = True
+                        config.slot_entry = entry
+                        config.save()
 
     def save(self, *args, **kwargs):
         """The is_public flag cannot be set if the routine is not a template"""

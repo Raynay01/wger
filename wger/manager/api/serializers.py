@@ -21,6 +21,11 @@ from django.utils import timezone
 from rest_framework import serializers
 
 # wger
+from wger.care.api.prescription import (
+    PRESCRIPTION_FIELDS,
+    PRESCRIPTION_READ_ONLY_FIELDS,
+    PrescriptionSerializerMixin,
+)
 from wger.manager.api.consts import BASE_CONFIG_FIELDS
 from wger.manager.api.fields import DecimalOrIntegerField
 from wger.manager.api.validators import validate_requirements
@@ -44,7 +49,7 @@ from wger.manager.models import (
 )
 
 
-class RoutineSerializer(serializers.ModelSerializer):
+class RoutineSerializer(PrescriptionSerializerMixin, serializers.ModelSerializer):
     """
     Routine serializer
     """
@@ -61,9 +66,12 @@ class RoutineSerializer(serializers.ModelSerializer):
             'fit_in_week',
             'is_template',
             'is_public',
+            *PRESCRIPTION_FIELDS,
         )
+        read_only_fields = PRESCRIPTION_READ_ONLY_FIELDS
 
     def validate(self, data):
+        data = super().validate(data)
         start = data.get('start') or getattr(self.instance, 'start', None)
         end = data.get('end') or getattr(self.instance, 'end', None)
         if start and end:
@@ -354,6 +362,9 @@ class SlotEntrySerializer(serializers.ModelSerializer):
             'weight_rounding',
             'order',
             'comment',
+            'tempo',
+            'rpe',
+            'range_of_motion',
             'config',
         )
 
@@ -519,6 +530,7 @@ class WorkoutLogSerializer(serializers.ModelSerializer):
             'weight_target',
             'rir',
             'rir_target',
+            'rpe',
             'rest',
             'rest_target',
             'notes',

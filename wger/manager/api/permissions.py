@@ -41,6 +41,10 @@ class RoutinePermission(permissions.BasePermission):
         if obj.user == request.user:
             return True
 
+        # The professional who prescribed it, while following the patient
+        if obj.author_id is not None and obj.can_be_managed_by(request.user.id):
+            return True
+
         if obj.is_template and getattr(view, 'action', None) not in self.OWNER_ONLY_ACTIONS:
             return request.method in permissions.SAFE_METHODS
 

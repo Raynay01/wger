@@ -25,6 +25,10 @@ from typing import List
 # Django
 from django.conf import settings
 from django.core.cache import cache
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+)
 from django.db import models
 
 # wger
@@ -274,6 +278,27 @@ class SlotEntry(models.Model):
     comment = models.CharField(
         max_length=100,
         blank=True,
+    )
+
+    tempo = models.CharField(
+        max_length=15,
+        blank=True,
+        help_text='Cadence in seconds per phase, e.g. 3-1-1-0',
+    )
+
+    rpe = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal(1)), MaxValueValidator(Decimal(10))],
+        help_text='Target rate of perceived exertion, 1 to 10',
+    )
+
+    range_of_motion = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text='Prescribed range of motion, e.g. full, partial or 0-90°',
     )
 
     type = models.CharField(

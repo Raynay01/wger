@@ -66,3 +66,4 @@ class RoutineHandler(PowerSyncHandler):
     serializer_class = RoutineSerializer
     viewset_class = RoutineViewSet
     supports_create = False
+    prescription_guard = True

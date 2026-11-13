@@ -26,6 +26,8 @@ from django.urls import reverse
 from django.utils.timezone import make_aware
 
 # wger
+from wger.care.disciplines import Discipline
+from wger.care.prescription import PrescriptionMixin
 from wger.measurements.models import Measurement
 from wger.nutrition.consts import ENERGY_FACTOR
 from wger.nutrition.helpers import NutritionalValues
@@ -36,7 +38,7 @@ from wger.utils.uuid import uuid7
 logger = logging.getLogger(__name__)
 
 
-class NutritionPlan(models.Model):
+class NutritionPlan(PrescriptionMixin, models.Model):
     """
     A nutrition plan
     """
@@ -98,6 +100,9 @@ class NutritionPlan(models.Model):
     goal_fiber = models.IntegerField(null=True, default=None)
 
     goal_fat = models.IntegerField(null=True, default=None)
+
+    goal_water_ml = models.PositiveIntegerField(null=True, blank=True, default=None)
+    """Daily water goal, set individually, there is no default goal"""
 
     has_goal_calories = models.BooleanField(
         verbose_name='Use daily calories',
@@ -203,6 +208,61 @@ class NutritionPlan(models.Model):
         Returns the object that has owner information
         """
         return self
+
+    discipline = Discipline.NUTRITION
+
+    def build_snapshot(self) -> dict:
+        return {
+            'description': self.description,
+            'start': self.start,
+            'end': self.end,
+            'goals': {
+                'energy': self.goal_energy,
+                'protein': self.goal_protein,
+                'carbohydrates': self.goal_carbohydrates,
+                'fat': self.goal_fat,
+                'fiber': self.goal_fiber,
+                'water_ml': self.goal_water_ml,
+            },
+            'meals': [
+                {
+                    'name': meal.name,
+                    'time': meal.time,
+                    'order': meal.order,
+                    'items': [
+                        {
+                            'ingredient': item.ingredient_id,
+                            'ingredient_name': item.ingredient.name,
+                            'amount': item.amount,
+                            'weight_unit': item.weight_unit_id,
+                            'order': item.order,
+                        }
+                        for item in meal.mealitem_set.select_related('ingredient')
+                    ],
+                }
+                for meal in self.meal_set.all()
+            ],
+        }
+
+    def copy_content_to(self, target) -> None:
+        for meal in self.meal_set.all():
+            items = list(meal.mealitem_set.all())
+            options = {item.pk: list(item.substitutions.all()) for item in items}
+            meal.pk = None
+            meal._state.adding = True
+            meal.plan = target
+            meal.save()
+            for item in items:
+                item_options = options[item.pk]
+                item.pk = None
+                item._state.adding = True
+                item.meal = meal
+                item.save()
+                for option in item_options:
+                    option.pk = None
+                    option._state.adding = True
+                    option.meal_item = item
+                    option.save()
 
     def get_calories_approximation(self):
         """

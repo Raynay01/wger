@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     'wger.gallery',
     'wger.measurements',
     'wger.trophies',
+    'wger.care',
 
     # reCaptcha support, see https://github.com/praekelt/django-recaptcha
     'django_recaptcha',

@@ -31,11 +31,19 @@ from drf_spectacular.utils import (
     OpenApiParameter,
     extend_schema,
 )
-from rest_framework import viewsets
+from rest_framework import (
+    status,
+    viewsets,
+)
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 # wger
+from wger.care.api.prescription import (
+    PrescriptionViewSetMixin,
+    PrescriptionWriteGuardMixin,
+)
+from wger.care.prescription import visible_prescriptions_q
 from wger.nutrition.api.filtersets import (
     IngredientFilterSet,
     LogItemFilterSet,
@@ -47,11 +55,14 @@ from wger.nutrition.api.serializers import (
     IngredientValuesSerializer,
     IngredientWeightUnitSerializer,
     LogItemSerializer,
+    MealAdherenceSerializer,
     MealItemSerializer,
     MealSerializer,
     NutritionalValuesSerializer,
     NutritionPlanInfoSerializer,
     NutritionPlanSerializer,
+    SubstitutionOptionSerializer,
+    WaterLogSerializer,
 )
 from wger.nutrition.forms import UnitChooserForm
 from wger.nutrition.models import (
@@ -60,8 +71,11 @@ from wger.nutrition.models import (
     IngredientWeightUnit,
     LogItem,
     Meal,
+    MealAdherence,
     MealItem,
     NutritionPlan,
+    SubstitutionOption,
+    WaterLog,
 )
 from wger.utils.pagination import (
     IngredientCursorPagination,
@@ -266,10 +280,13 @@ class IngredientWeightUnitViewSet(viewsets.ReadOnlyModelViewSet):
     )
 
 
-class NutritionPlanViewSet(viewsets.ModelViewSet):
+class NutritionPlanViewSet(PrescriptionViewSetMixin, viewsets.ModelViewSet):
     """
     API endpoint for nutrition plan objects. For a read-only endpoint with all
     the information of nutritional plan(s), see /api/v2/nutritionplaninfo/
+
+    A nutritionist creates a plan for a patient by passing ``care_relationship``;
+    it stays a draft, invisible to the patient, until published.
     """
 
     serializer_class = NutritionPlanSerializer
@@ -279,6 +296,9 @@ class NutritionPlanViewSet(viewsets.ModelViewSet):
         'creation_date',
         'description',
         'has_goal_calories',
+        'status',
+        'care_relationship',
+        'lineage_id',
     )
 
     def get_queryset(self):
@@ -289,7 +309,7 @@ class NutritionPlanViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return NutritionPlan.objects.none()
 
-        return NutritionPlan.objects.filter(user=self.request.user)
+        return NutritionPlan.objects.filter(visible_prescriptions_q(self.request.user))
 
     def perform_create(self, serializer):
         """
@@ -330,7 +350,9 @@ class NutritionPlanInfoViewSet(NutritionPlanViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return NutritionPlan.objects.none()
 
-        return NutritionPlan.objects.filter(user=self.request.user).prefetch_related(
+        return NutritionPlan.objects.filter(
+            visible_prescriptions_q(self.request.user)
+        ).prefetch_related(
             Prefetch(
                 'meal_set',
                 queryset=Meal.objects.prefetch_related(
@@ -347,6 +369,10 @@ class NutritionPlanInfoViewSet(NutritionPlanViewSet):
                                 'ingredient__ingredientweightunit_set',
                                 queryset=IngredientWeightUnit.objects.select_related('ingredient'),
                             ),
+                            Prefetch(
+                                'substitutions',
+                                queryset=SubstitutionOption.objects.select_related('ingredient'),
+                            ),
                         ),
                     ),
                 ),
@@ -354,10 +380,12 @@ class NutritionPlanInfoViewSet(NutritionPlanViewSet):
         )
 
 
-class MealViewSet(WgerOwnerObjectModelViewSet):
+class MealViewSet(PrescriptionWriteGuardMixin, WgerOwnerObjectModelViewSet):
     """
     API endpoint for meal objects
     """
+
+    prescription_children = True
 
     serializer_class = MealSerializer
     is_private = True
@@ -376,7 +404,7 @@ class MealViewSet(WgerOwnerObjectModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Meal.objects.none()
 
-        return Meal.objects.filter(plan__user=self.request.user)
+        return Meal.objects.filter(visible_prescriptions_q(self.request.user, 'plan__'))
 
     def perform_create(self, serializer):
         """
@@ -401,10 +429,12 @@ class MealViewSet(WgerOwnerObjectModelViewSet):
         return Response(serializer.data)
 
 
-class MealItemViewSet(WgerOwnerObjectModelViewSet):
+class MealItemViewSet(PrescriptionWriteGuardMixin, WgerOwnerObjectModelViewSet):
     """
     API endpoint for meal item objects
     """
+
+    prescription_children = True
 
     serializer_class = MealItemSerializer
     is_private = True
@@ -425,7 +455,7 @@ class MealItemViewSet(WgerOwnerObjectModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return MealItem.objects.none()
 
-        return MealItem.objects.filter(meal__plan__user=self.request.user)
+        return MealItem.objects.filter(visible_prescriptions_q(self.request.user, 'meal__plan__'))
 
     def perform_create(self, serializer):
         """
@@ -485,3 +515,89 @@ class LogItemViewSet(WgerOwnerObjectModelViewSet):
         """
         serializer = NutritionalValuesSerializer(self.get_object().get_nutritional_values())
         return Response(serializer.data)
+
+
+class SubstitutionOptionViewSet(PrescriptionWriteGuardMixin, WgerOwnerObjectModelViewSet):
+    """
+    API endpoint for the substitution options of a meal item. Only whoever
+    writes the plan adds them, the patient only reads the approved ones.
+    """
+
+    serializer_class = SubstitutionOptionSerializer
+    is_private = True
+    prescription_children = True
+    filterset_fields = ('meal_item', 'ingredient', 'criterion')
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return SubstitutionOption.objects.none()
+
+        return SubstitutionOption.objects.filter(
+            visible_prescriptions_q(self.request.user, 'meal_item__meal__plan__')
+        )
+
+    @staticmethod
+    def get_owner_objects():
+        return [(MealItem, 'meal_item')]
+
+
+class MealAdherenceViewSet(WgerOwnerObjectModelViewSet):
+    """
+    API endpoint to record whether a prescribed meal was followed on a day.
+    There is one record per meal and day: posting again updates it.
+    """
+
+    serializer_class = MealAdherenceSerializer
+    is_private = True
+    filterset_fields = ('meal', 'date', 'status')
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return MealAdherence.objects.none()
+
+        return MealAdherence.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        self._check_owner_permission(request)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        instance, created = MealAdherence.objects.update_or_create(
+            user=request.user,
+            meal=data['meal'],
+            date=data['date'],
+            defaults={'status': data['status'], 'notes': data.get('notes', '')},
+        )
+        return Response(
+            self.get_serializer(instance).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    @staticmethod
+    def get_owner_objects():
+        return [(Meal, 'meal')]
+
+
+class WaterLogViewSet(WgerOwnerObjectModelViewSet):
+    """
+    API endpoint for the water the user drank
+    """
+
+    serializer_class = WaterLogSerializer
+    is_private = True
+    filterset_fields = {
+        'datetime': ['exact', 'gt', 'gte', 'lt', 'lte'],
+    }
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return WaterLog.objects.none()
+
+        return WaterLog.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @staticmethod
+    def get_owner_objects():
+        return []

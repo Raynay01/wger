@@ -26,6 +26,11 @@ from easy_thumbnails.files import get_thumbnailer
 from rest_framework import serializers
 
 # wger
+from wger.care.api.prescription import (
+    PRESCRIPTION_FIELDS,
+    PRESCRIPTION_READ_ONLY_FIELDS,
+    PrescriptionSerializerMixin,
+)
 from wger.core.api.serializers import (
     LanguageSerializer,
     LicenseSerializer,
@@ -36,8 +41,11 @@ from wger.nutrition.models import (
     IngredientWeightUnit,
     LogItem,
     Meal,
+    MealAdherence,
     MealItem,
     NutritionPlan,
+    SubstitutionOption,
+    WaterLog,
 )
 from wger.utils.api_schema import ThumbnailsSerializer
 from wger.utils.url import make_absolute_url
@@ -225,6 +233,7 @@ class MealItemSerializer(serializers.ModelSerializer):
             'weight_unit',
             'order',
             'amount',
+            'instructions',
         )
 
 
@@ -246,6 +255,27 @@ class LogItemSerializer(serializers.ModelSerializer):
         )
 
 
+class SubstitutionInfoSerializer(serializers.ModelSerializer):
+    """
+    Substitution option, as shown within a meal item
+    """
+
+    ingredient_name = serializers.CharField(source='ingredient.name', read_only=True)
+
+    class Meta:
+        model = SubstitutionOption
+        fields = (
+            'id',
+            'ingredient',
+            'ingredient_name',
+            'weight_unit',
+            'amount',
+            'criterion',
+            'note',
+            'order',
+        )
+
+
 class MealItemInfoSerializer(serializers.ModelSerializer):
     """
     Meal Item info serializer
@@ -261,6 +291,7 @@ class MealItemInfoSerializer(serializers.ModelSerializer):
         source='weight_unit', read_only=True, allow_null=True
     )
     image = IngredientImageSerializer(source='ingredient.image', read_only=True, allow_null=True)
+    substitutions = SubstitutionInfoSerializer(many=True, read_only=True)
 
     class Meta:
         model = MealItem
@@ -275,6 +306,8 @@ class MealItemInfoSerializer(serializers.ModelSerializer):
             'image',
             'order',
             'amount',
+            'instructions',
+            'substitutions',
         )
 
 
@@ -290,7 +323,7 @@ class MealSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Meal
-        fields = ('id', 'plan', 'order', 'time', 'name')
+        fields = ('id', 'plan', 'order', 'time', 'name', 'instructions')
 
 
 class NutritionalValuesSerializer(serializers.Serializer):
@@ -344,12 +377,13 @@ class MealInfoSerializer(serializers.ModelSerializer):
             'order',
             'time',
             'name',
+            'instructions',
             'meal_items',
             'nutritional_values',
         )
 
 
-class NutritionPlanSerializer(serializers.ModelSerializer):
+class NutritionPlanSerializer(PrescriptionSerializerMixin, serializers.ModelSerializer):
     """
     Nutritional plan serializer
     """
@@ -370,8 +404,11 @@ class NutritionPlanSerializer(serializers.ModelSerializer):
             'goal_carbohydrates',
             'goal_fat',
             'goal_fiber',
+            'goal_water_ml',
+            *PRESCRIPTION_FIELDS,
             # 'nutritional_values',
         )
+        read_only_fields = PRESCRIPTION_READ_ONLY_FIELDS
 
 
 class NutritionPlanInfoSerializer(serializers.ModelSerializer):
@@ -380,6 +417,10 @@ class NutritionPlanInfoSerializer(serializers.ModelSerializer):
     """
 
     meals = MealInfoSerializer(source='meal_set', many=True)
+    # Explicit, so that depth does not nest the related rows (e.g. the author's user)
+    author = serializers.PrimaryKeyRelatedField(read_only=True)
+    organization = serializers.PrimaryKeyRelatedField(read_only=True)
+    previous_version = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = NutritionPlan
@@ -396,5 +437,51 @@ class NutritionPlanInfoSerializer(serializers.ModelSerializer):
             'goal_carbohydrates',
             'goal_fat',
             'goal_fiber',
+            'goal_water_ml',
+            *PRESCRIPTION_READ_ONLY_FIELDS,
             'meals',
         )
+
+
+class SubstitutionOptionSerializer(serializers.ModelSerializer):
+    """
+    Substitution option serializer
+    """
+
+    meal_item = serializers.PrimaryKeyRelatedField(queryset=MealItem.objects.all())
+
+    class Meta:
+        model = SubstitutionOption
+        fields = (
+            'id',
+            'meal_item',
+            'ingredient',
+            'weight_unit',
+            'amount',
+            'criterion',
+            'note',
+            'order',
+        )
+
+
+class MealAdherenceSerializer(serializers.ModelSerializer):
+    """
+    Meal adherence serializer
+    """
+
+    meal = serializers.PrimaryKeyRelatedField(queryset=Meal.objects.all())
+
+    class Meta:
+        model = MealAdherence
+        fields = ('id', 'meal', 'date', 'status', 'notes', 'updated')
+        read_only_fields = ('updated',)
+
+
+class WaterLogSerializer(serializers.ModelSerializer):
+    """
+    Water log serializer
+    """
+
+    class Meta:
+        model = WaterLog
+        fields = ('id', 'datetime', 'amount_ml')

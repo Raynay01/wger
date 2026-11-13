@@ -43,6 +43,7 @@ class NutritionPlanHandler(PowerSyncHandler):
     model = NutritionPlan
     serializer_class = NutritionPlanSerializer
     viewset_class = NutritionPlanViewSet
+    prescription_guard = True
 
 
 @register_handler
@@ -57,6 +58,7 @@ class MealHandler(PowerSyncHandler):
     serializer_class = MealSerializer
     viewset_class = MealViewSet
     user_filter = 'plan__user_id'
+    prescription_guard = True
 
     def create_save_kwargs(self, payload, user_id):
         return {'order': payload.get('order', 1)}
@@ -68,6 +70,7 @@ class MealItemHandler(PowerSyncHandler):
     serializer_class = MealItemSerializer
     viewset_class = MealItemViewSet
     user_filter = 'meal__plan__user_id'
+    prescription_guard = True
 
     def create_save_kwargs(self, payload, user_id):
         return {'order': payload.get('order', 1)}

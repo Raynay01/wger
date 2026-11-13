@@ -70,6 +70,10 @@ class Meal(models.Model):
         verbose_name='Name',
         help_text='Give meals a textual description / name such as "Breakfast" or "after workout"',
     )
+    instructions = models.TextField(
+        blank=True,
+        verbose_name='Instructions',
+    )
 
     def __str__(self):
         """

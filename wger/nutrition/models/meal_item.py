@@ -78,6 +78,11 @@ class MealItem(BaseMealItem, models.Model):
         verbose_name='Amount',
         validators=[MinValueValidator(Decimal(1)), MaxValueValidator(Decimal(1000))],
     )
+    instructions = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name='Instructions',
+    )
 
     def __str__(self):
         """

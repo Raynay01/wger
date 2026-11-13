@@ -50,6 +50,15 @@ class WgerPermission(permissions.BasePermission):
         if owner_object and owner_object.user == request.user:
             return True
 
+        # Professional who prescribed it, while following the patient. What
+        # they may change is decided by the prescription itself (drafts only).
+        if (
+            owner_object
+            and hasattr(owner_object, 'can_be_managed_by')
+            and owner_object.can_be_managed_by(request.user.id)
+        ):
+            return True
+
         # 'global' objects only for GET, HEAD or OPTIONS
         if not owner_object and request.method in permissions.SAFE_METHODS:
             return True

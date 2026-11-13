@@ -20,6 +20,7 @@ import datetime
 # Django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator
 from django.db import (
     models,
     transaction,
@@ -199,6 +200,15 @@ class WorkoutLog(models.Model):
     Reps in Reserve, RiR. The amount of reps that could realistically still be
     done in the set.
     """
+
+    rpe = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        validators=[NullMinValueValidator(1), MaxValueValidator(10)],
+        null=True,
+        blank=True,
+    )
+    """Rate of perceived exertion, 1 to 10"""
 
     rir_target = models.DecimalField(
         max_digits=2,
