@@ -1,0 +1,200 @@
+export type Discipline = 'training' | 'physio' | 'nutrition';
+
+export type Paginated<T> = { count: number; next: string | null; results: T[] };
+
+export type Organization = {
+  id: string;
+  name: string;
+  kind: 'solo' | 'clinic' | 'team';
+  document: string;
+  is_active: boolean;
+  my_role: string | null;
+};
+
+export type Registration = {
+  id: string;
+  discipline: Discipline;
+  council: string;
+  number: string;
+  region: string;
+  status: 'pending' | 'verified' | 'rejected';
+};
+
+export type Relationship = {
+  id: string;
+  organization: string;
+  organization_name: string;
+  professional: number;
+  professional_name: string;
+  patient: number | null;
+  patient_name: string | null;
+  discipline: Discipline;
+  status: 'invited' | 'active' | 'paused' | 'ended';
+  invited_email: string;
+  invitation_token: string | null;
+  created: string;
+  started: string | null;
+  my_role: 'professional' | 'patient';
+};
+
+export type Grant = {
+  id: string;
+  relationship: string;
+  scope: string;
+  granted_at: string;
+  revoked_at: string | null;
+};
+
+export type Note = {
+  id: string;
+  relationship: string;
+  patient: number;
+  author: string;
+  discipline: Discipline;
+  category: string;
+  text: string;
+  visible_to_patient: boolean;
+  created: string;
+};
+
+export type Prescription = {
+  id: string | number;
+  status: 'draft' | 'published' | 'superseded' | 'archived';
+  version: number;
+  lineage_id: string | null;
+  author: number | null;
+  care_relationship: string | null;
+  published_at: string | null;
+  previous_version: string | number | null;
+};
+
+export type NutritionPlan = Prescription & {
+  id: string;
+  description: string;
+  start: string;
+  end: string | null;
+  goal_energy: number | null;
+  goal_protein: number | null;
+  goal_carbohydrates: number | null;
+  goal_fat: number | null;
+  goal_fiber: number | null;
+  goal_water_ml: number | null;
+};
+
+export type Values = {
+  energy: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
+  fiber: number | null;
+};
+
+export type MealItemInfo = {
+  id: string;
+  ingredient: number;
+  ingredient_obj: { name: string; energy: number };
+  amount: string;
+  weight_unit: number | null;
+  instructions: string;
+  substitutions: { id: string; ingredient: number; ingredient_name: string; amount: string; criterion: string; note: string }[];
+};
+
+export type MealInfo = {
+  id: string;
+  name: string;
+  time: string | null;
+  order: number;
+  instructions: string;
+  meal_items: MealItemInfo[];
+  nutritional_values: Values;
+};
+
+export type PlanInfo = NutritionPlan & { meals: MealInfo[] };
+
+export type Routine = Prescription & {
+  id: number;
+  name: string;
+  description: string;
+  start: string;
+  end: string;
+};
+
+export type Protocol = Prescription & {
+  id: string;
+  name: string;
+  description: string;
+  start: string;
+  end: string | null;
+  pain_moments: string[];
+  pain_alert_threshold: number;
+  pain_alert_increase: number;
+};
+
+export type ProtocolExercise = {
+  id: string;
+  protocol: string;
+  exercise: number | null;
+  name: string;
+  sets: number | null;
+  repetitions: number | null;
+  duration_seconds: number | null;
+  load: string;
+  frequency_per_week: number | null;
+  location: 'home' | 'gym' | 'clinic';
+  instructions: string;
+  video_url: string;
+  order: number;
+};
+
+export type MyDay = {
+  date: string;
+  mode: 'guided' | 'self';
+  modules: Discipline[];
+  combined_view: boolean;
+  training: null | {
+    routine: null | { id: number; name: string; author: number | null };
+    day: null | {
+      date: string;
+      label: string | null;
+      day: null | { id: number; name: string; is_rest: boolean; description: string };
+      slots: { comment: string; sets: { exercise: number; text_repr: string; sets: number }[]; exercises: number[] }[];
+    };
+    session_done: boolean;
+  };
+  nutrition: null | {
+    plan: null | { id: string; description: string; author: number | null };
+    goals: null | Record<'energy' | 'protein' | 'carbohydrates' | 'fat' | 'fiber', number | null>;
+    meals: {
+      id: string;
+      name: string;
+      time: string | null;
+      instructions: string;
+      planned: Values;
+      items: { ingredient: number; name: string; amount: string; weight_unit: number | null; instructions: string; substitutions: number }[];
+      adherence: 'full' | 'partial' | 'skipped' | null;
+    }[];
+    logged: Values | null;
+    remaining: Record<string, number> | null;
+    water: { total_ml: number; goal_ml: number | null };
+  };
+  physio: null | {
+    protocols: {
+      id: string;
+      name: string;
+      pain_moments: string[];
+      exercises: {
+        id: string;
+        name: string;
+        sets: number | null;
+        repetitions: number | null;
+        duration_seconds: number | null;
+        load: string;
+        location: string;
+        video_url: string;
+        instructions: string;
+        done: boolean;
+      }[];
+    }[];
+    pain: { moment: string; value: number; datetime: string; protocol: string | null }[];
+  };
+};
