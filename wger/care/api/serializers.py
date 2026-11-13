@@ -308,6 +308,13 @@ class ModulesSerializer(serializers.Serializer):
     combined_view = serializers.BooleanField()
 
 
+class MyDaySerializer(ModulesSerializer):
+    date = serializers.DateField()
+    training = serializers.DictField(allow_null=True)
+    nutrition = serializers.DictField(allow_null=True)
+    physio = serializers.DictField(allow_null=True)
+
+
 class SharedDataSerializer(serializers.Serializer):
     scopes = serializers.ListField(child=serializers.CharField())
     data = serializers.DictField()

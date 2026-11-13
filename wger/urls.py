@@ -361,6 +361,7 @@ urlpatterns += [
         name='userprofile-verify-email',
     ),
     path('api/v2/care/modules/', care_api_views.ModulesView.as_view(), name='care-modules'),
+    path('api/v2/care/my-day/', care_api_views.MyDayView.as_view(), name='care-my-day'),
     path('api/v2/', include(router.urls)),
     path('api/v2/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v2/token/verify', TokenVerifyView.as_view(), name='token_verify'),

@@ -50,6 +50,7 @@ from wger.care.api.serializers import (
     MembershipSerializer,
     ModulesSerializer,
     MultidisciplinaryNoteSerializer,
+    MyDaySerializer,
     OrganizationSerializer,
     ProfessionalRegistrationSerializer,
     SharedDataSerializer,
@@ -69,6 +70,7 @@ from wger.care.models import (
     RelationshipStatus,
     SharingScope,
 )
+from wger.care.my_day import my_day
 
 
 CONSENT_VERSION = '1'
@@ -559,6 +561,29 @@ class MultidisciplinaryNoteViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         self._check_author(instance)
         instance.delete()
+
+
+class MyDayView(APIView):
+    """
+    The patient's day: today's training and meals, with what was logged
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        parameters=[OpenApiParameter('date', str, description='Day, defaults to today')],
+        responses=MyDaySerializer,
+    )
+    def get(self, request):
+        raw = request.query_params.get('date')
+        if raw:
+            try:
+                day = datetime.date.fromisoformat(raw)
+            except ValueError:
+                raise exceptions.ValidationError({'date': _('Use the format YYYY-MM-DD.')})
+        else:
+            day = timezone.localdate(timezone=request.user.userprofile.zone_info)
+        return Response(MyDaySerializer(my_day(request.user, day)).data)
 
 
 class ModulesView(APIView):
