@@ -47,6 +47,7 @@ from wger.gallery.api import views as gallery_api_views
 from wger.manager.api import views as manager_api_views
 from wger.measurements.api import views as measurements_api_views
 from wger.nutrition.api import views as nutrition_api_views
+from wger.physio.api import views as physio_api_views
 from wger.trophies.api import views as trophies_api_views
 from wger.utils import oidc_auth
 from wger.utils.api_schema import CachedSchemaGenerator
@@ -78,6 +79,29 @@ router.register(
     r'multidisciplinary-note',
     care_api_views.MultidisciplinaryNoteViewSet,
     basename='multidisciplinary-note',
+)
+
+# Physio app
+router.register(
+    r'physio-protocol',
+    physio_api_views.PhysioProtocolViewSet,
+    basename='physio-protocol',
+)
+router.register(
+    r'protocol-exercise',
+    physio_api_views.ProtocolExerciseViewSet,
+    basename='protocol-exercise',
+)
+router.register(r'pain-record', physio_api_views.PainRecordViewSet, basename='pain-record')
+router.register(
+    r'exercise-record',
+    physio_api_views.ExerciseRecordViewSet,
+    basename='exercise-record',
+)
+router.register(
+    r'functional-assessment',
+    physio_api_views.FunctionalAssessmentViewSet,
+    basename='functional-assessment',
 )
 
 #
