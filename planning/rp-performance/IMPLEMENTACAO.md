@@ -17,6 +17,7 @@
 | Nutrição: orientações por refeição e item, substituições, adesão por refeição, hidratação, meta de água | Pronto | `wger/nutrition` |
 | Treino: RPE alvo, cadência, amplitude; RPE realizado | Pronto (campos; o motor de progressão continua usando RIR) | `wger/manager` |
 | Fisioterapia: protocolos, exercícios com dosagem e vídeo, dor 0 a 10 por momento, alertas, exercícios realizados, avaliações funcionais | Pronto | `wger/physio` |
+| LGPD: exportar todos os dados (JSON) e pedir a exclusão da conta | Pronto. O pedido encerra os acompanhamentos na hora; a exclusão é feita pelo administrador no admin do Django, que bloqueia enquanto houver registros clínicos de profissionais (avaliações, observações) | `wger/care/export.py`, `wger/care/deletion.py` |
 
 Testes: 59 novos testes em `wger/care/tests` e `wger/physio/tests`. A suíte completa (2.569 testes) passa, exceto `test_sync_exercises`, que depende de acesso a `wger.de` (bloqueado nesta sessão; falha igual sem as mudanças).
 
@@ -77,7 +78,8 @@ O mesmo vale para treino (`/api/v2/routine/`, vínculo `training`) e fisioterapi
 - Anamnese e avaliação nutricional, antropometria, cálculo de necessidades energéticas.
 - Periodização (macro e mesociclos), vídeos de execução enviados pelo aluno.
 - Agenda e calendário integrado, chat com mídia.
-- RP Intelligence (Fase 5), assinaturas e pagamentos (Fase 6), exportação e exclusão de dados (LGPD), Row Level Security.
+- RP Intelligence (Fase 5), assinaturas e pagamentos (Fase 6), Row Level Security.
+- Política de guarda de prontuário: decidir com um advogado o que fazer com avaliações e observações clínicas quando o paciente pede a exclusão (hoje a exclusão fica bloqueada até essa decisão).
 - Traduções em português: as novas mensagens estão nos arquivos `.po`, traduzidas via Weblate. Em um fork próprio, as traduções `pt_BR` podem ser feitas direto no arquivo.
 
 ### Infraestrutura e legal

@@ -28,6 +28,7 @@ from wger.care.models import (
     AccessGrant,
     CareRelationship,
     ConsentRecord,
+    DataRequest,
     Membership,
     MultidisciplinaryNote,
     Organization,
@@ -301,6 +302,22 @@ class MultidisciplinaryNoteSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_('The relationship of a note cannot be changed.'))
         if value.professional_id != self.context['request'].user.id or not value.is_open:
             raise serializers.ValidationError(_('You do not follow this patient.'))
+        return value
+
+
+class DataRequestSerializer(serializers.ModelSerializer):
+    confirm = serializers.BooleanField(write_only=True)
+
+    class Meta:
+        model = DataRequest
+        fields = ['id', 'kind', 'status', 'created', 'completed_at', 'notes', 'confirm']
+        read_only_fields = ['kind', 'status', 'created', 'completed_at', 'notes']
+
+    def validate_confirm(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                _('Please confirm that you want to delete your account.')
+            )
         return value
 
 

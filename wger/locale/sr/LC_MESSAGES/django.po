@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-13 22:43+0000\n"
+"POT-Creation-Date: 2026-11-13 22:55+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -27,7 +27,7 @@ msgstr ""
 msgid "You do not follow this patient in this discipline."
 msgstr ""
 
-#: care/api/prescription.py:93 care/api/serializers.py:207
+#: care/api/prescription.py:93 care/api/serializers.py:208
 msgid "You need a council registration for this discipline."
 msgstr ""
 
@@ -55,108 +55,116 @@ msgstr ""
 msgid "Only published versions can be archived."
 msgstr ""
 
-#: care/api/serializers.py:80 care/api/serializers.py:196
+#: care/api/serializers.py:81 care/api/serializers.py:197
 msgid "This field is required."
 msgstr ""
 
-#: care/api/serializers.py:84
+#: care/api/serializers.py:85
 msgid "There is no user with this email address."
 msgstr ""
 
-#: care/api/serializers.py:88
+#: care/api/serializers.py:89
 msgid "This user is already a member of the organization."
 msgstr ""
 
-#: care/api/serializers.py:106
+#: care/api/serializers.py:107
 msgid "Use the two letter code of the state."
 msgstr ""
 
-#: care/api/serializers.py:113
+#: care/api/serializers.py:114
 msgid "The discipline of a registration cannot be changed."
 msgstr ""
 
-#: care/api/serializers.py:121
+#: care/api/serializers.py:122
 msgid "You already have a registration for this discipline."
 msgstr ""
 
-#: care/api/serializers.py:187
+#: care/api/serializers.py:188
 msgid "Use the actions to change the status of a relationship."
 msgstr ""
 
-#: care/api/serializers.py:199
+#: care/api/serializers.py:200
 msgid "You cannot follow yourself as a patient."
 msgstr ""
 
-#: care/api/serializers.py:203
+#: care/api/serializers.py:204
 msgid "You cannot follow patients in this organization."
 msgstr ""
 
-#: care/api/serializers.py:225
+#: care/api/serializers.py:226
 msgid "You already follow or invited this patient."
 msgstr ""
 
-#: care/api/serializers.py:237
+#: care/api/serializers.py:238
 msgid "You need to agree to be followed by this professional."
 msgstr ""
 
-#: care/api/serializers.py:252
+#: care/api/serializers.py:253
 msgid "You can only share your own data."
 msgstr ""
 
-#: care/api/serializers.py:256
+#: care/api/serializers.py:257
 msgid "This professional does not follow you anymore."
 msgstr ""
 
-#: care/api/serializers.py:263
+#: care/api/serializers.py:264
 msgid "You already share this."
 msgstr ""
 
-#: care/api/serializers.py:301
+#: care/api/serializers.py:302
 msgid "The relationship of a note cannot be changed."
 msgstr ""
 
-#: care/api/serializers.py:303
+#: care/api/serializers.py:304
 msgid "You do not follow this patient."
 msgstr ""
 
-#: care/api/views.py:155
+#: care/api/serializers.py:319
+msgid "Please confirm that you want to delete your account."
+msgstr ""
+
+#: care/api/views.py:162
 msgid "An organization needs at least one owner."
 msgstr ""
 
-#: care/api/views.py:266 care/api/views.py:300 care/api/views.py:329
+#: care/api/views.py:273 care/api/views.py:307 care/api/views.py:336
 msgid "This invitation is not open anymore."
 msgstr ""
 
-#: care/api/views.py:269
+#: care/api/views.py:276
 msgid "The invitation was sent a few minutes ago, please wait a moment."
 msgstr ""
 
-#: care/api/views.py:272
+#: care/api/views.py:279
 msgid "The email could not be sent, please try again later."
 msgstr ""
 
-#: care/api/views.py:307
+#: care/api/views.py:314
 msgid "This professional already follows you."
 msgstr ""
 
-#: care/api/views.py:340
+#: care/api/views.py:347
 msgid "Only active relationships can be paused."
 msgstr ""
 
-#: care/api/views.py:350
+#: care/api/views.py:357
 msgid "Only paused relationships can be resumed."
 msgstr ""
 
-#: care/api/views.py:364
+#: care/api/views.py:371
 msgid "This relationship has already ended."
 msgstr ""
 
-#: care/api/views.py:401 care/api/views.py:609
+#: care/api/views.py:408 care/api/views.py:616
 msgid "Use the format YYYY-MM-DD."
 msgstr ""
 
-#: care/api/views.py:575
+#: care/api/views.py:582
 msgid "A valid integer is required."
+msgstr ""
+
+#: care/api/views.py:677
+msgid "Only pending requests can be cancelled."
 msgstr ""
 
 #: care/disciplines.py:26 core/templates/navigation.html:28
@@ -188,6 +196,30 @@ msgstr ""
 #: care/invitations.py:83
 #, python-format
 msgid "%(professional)s invited you to %(app)s"
+msgstr ""
+
+#: care/models/data_request.py:26
+msgid "Data export"
+msgstr ""
+
+#: care/models/data_request.py:27
+msgid "Account deletion"
+msgstr ""
+
+#: care/models/data_request.py:31 care/models/registration.py:29
+msgid "Pending"
+msgstr ""
+
+#: care/models/data_request.py:32
+msgid "Done"
+msgstr ""
+
+#: care/models/data_request.py:33
+msgid "Cancelled"
+msgstr ""
+
+#: care/models/data_request.py:34 care/models/registration.py:31
+msgid "Rejected"
 msgstr ""
 
 #: care/models/grant.py:33
@@ -306,16 +338,8 @@ msgstr ""
 msgid "Reception"
 msgstr ""
 
-#: care/models/registration.py:29
-msgid "Pending"
-msgstr ""
-
 #: care/models/registration.py:30
 msgid "Verified"
-msgstr ""
-
-#: care/models/registration.py:31
-msgid "Rejected"
 msgstr ""
 
 #: care/models/registration.py:59

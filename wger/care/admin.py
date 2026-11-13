@@ -14,15 +14,21 @@
 # along with Workout Manager.  If not, see <http://www.gnu.org/licenses/>.
 
 # Django
-from django.contrib import admin
+from django.contrib import (
+    admin,
+    messages,
+)
 from django.utils import timezone
 
 # wger
+from wger.care.deletion import execute_deletion
 from wger.care.models import (
     AccessGrant,
     AccessLog,
     CareRelationship,
     ConsentRecord,
+    DataRequest,
+    DataRequestStatus,
     Membership,
     Organization,
     ProfessionalRegistration,
@@ -91,3 +97,37 @@ class AccessLogAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(DataRequest)
+class DataRequestAdmin(admin.ModelAdmin):
+    """
+    Data subject requests. Deletions are executed here, after checking whether
+    professionals have to keep clinical records about the person.
+    """
+
+    list_display = ('created', 'user_reference', 'kind', 'status', 'completed_at')
+    list_filter = ('kind', 'status')
+    search_fields = ('user_reference',)
+    readonly_fields = ('user', 'user_reference', 'kind', 'created', 'completed_at')
+    actions = ['run_deletion', 'reject']
+
+    @admin.action(description='Delete the accounts of the selected requests')
+    def run_deletion(self, request, queryset):
+        for data_request in queryset:
+            done, reason = execute_deletion(data_request)
+            if done:
+                self.message_user(request, f'{data_request.user_reference}: account deleted')
+            else:
+                self.message_user(
+                    request,
+                    f'{data_request.user_reference}: not deleted. {reason}',
+                    level=messages.WARNING,
+                )
+
+    @admin.action(description='Reject the selected requests (write the reason in the notes)')
+    def reject(self, request, queryset):
+        queryset.filter(status=DataRequestStatus.PENDING).update(
+            status=DataRequestStatus.REJECTED,
+            completed_at=timezone.now(),
+        )

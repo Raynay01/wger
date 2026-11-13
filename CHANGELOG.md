@@ -46,6 +46,12 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   endpoint.
 * New web app in `rp-web/` (Next.js) for patients and professionals, see its
   README.
+* Data subject rights (LGPD): `/api/v2/care/my-data/` exports all personal
+  data of the user as JSON, including who read what they shared.
+  `/api/v2/data-request/` records a deletion request, which ends the
+  follow-ups at once; the platform admin deletes the account in the Django
+  admin, which refuses while professionals hold clinical records about the
+  person. Requests stay as evidence after the deletion.
 * The set descriptions ("3 Sets", "RiR", "rest") are translatable again.
 * Physiotherapy: protocols with exercises (`/api/v2/physio-protocol/`,
   `/api/v2/protocol-exercise/`), pain records on the 0-10 scale with alerts for

@@ -405,4 +405,64 @@ class Migration(migrations.Migration):
                 fields=('user', 'discipline'), name='unique_registration_per_discipline'
             ),
         ),
+        migrations.CreateModel(
+            name='DataRequest',
+            fields=[
+                (
+                    'id',
+                    models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False),
+                ),
+                (
+                    'user_reference',
+                    models.CharField(
+                        help_text='Username at the time of the request, kept after a deletion',
+                        max_length=150,
+                    ),
+                ),
+                (
+                    'kind',
+                    models.CharField(
+                        choices=[
+                            ('export', 'Data export'),
+                            ('deletion', 'Account deletion'),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                (
+                    'status',
+                    models.CharField(
+                        choices=[
+                            ('pending', 'Pending'),
+                            ('done', 'Done'),
+                            ('cancelled', 'Cancelled'),
+                            ('rejected', 'Rejected'),
+                        ],
+                        default='pending',
+                        max_length=10,
+                    ),
+                ),
+                ('created', models.DateTimeField(auto_now_add=True)),
+                ('completed_at', models.DateTimeField(blank=True, null=True)),
+                (
+                    'notes',
+                    models.TextField(
+                        blank=True, help_text='Reason of a rejection or other remarks'
+                    ),
+                ),
+                (
+                    'user',
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='data_requests',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+            ],
+            options={
+                'ordering': ['-created'],
+            },
+        ),
     ]

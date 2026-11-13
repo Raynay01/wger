@@ -30,6 +30,7 @@ from drf_spectacular.utils import (
 from rest_framework import (
     exceptions,
     mixins,
+    status,
     viewsets,
 )
 from rest_framework.decorators import action
@@ -39,6 +40,8 @@ from rest_framework.views import APIView
 
 # wger
 from wger.care import (
+    deletion,
+    export,
     invitations,
     policy,
     sharing,
@@ -48,6 +51,7 @@ from wger.care.api.serializers import (
     AccessGrantSerializer,
     CareRelationshipSerializer,
     ConsentRecordSerializer,
+    DataRequestSerializer,
     MembershipSerializer,
     ModulesSerializer,
     MultidisciplinaryNoteSerializer,
@@ -63,6 +67,9 @@ from wger.care.models import (
     CareRelationship,
     ConsentKind,
     ConsentRecord,
+    DataRequest,
+    DataRequestKind,
+    DataRequestStatus,
     Membership,
     MembershipRole,
     MultidisciplinaryNote,
@@ -610,6 +617,68 @@ class MyDayView(APIView):
         else:
             day = timezone.localdate(timezone=request.user.userprofile.zone_info)
         return Response(MyDaySerializer(my_day(request.user, day)).data)
+
+
+class MyDataView(APIView):
+    """
+    All personal data of the user as a JSON file (LGPD access and portability)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: dict})
+    def get(self, request):
+        DataRequest.objects.create(
+            user=request.user,
+            user_reference=request.user.username,
+            kind=DataRequestKind.EXPORT,
+            status=DataRequestStatus.DONE,
+            completed_at=timezone.now(),
+        )
+        response = Response(export.export_user_data(request.user))
+        response['Content-Disposition'] = (
+            f'attachment; filename="{export.export_filename(request.user)}"'
+        )
+        return response
+
+
+class DataRequestViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    Data subject requests of the user. Creating one asks for the deletion of
+    the account: the follow-ups end at once, the platform team deletes the
+    account afterwards.
+    """
+
+    serializer_class = DataRequestSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return DataRequest.objects.none()
+        return DataRequest.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data_request = deletion.request_deletion(request.user)
+        return Response(self.get_serializer(data_request).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(request=None, responses=DataRequestSerializer)
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk):
+        """Withdraw a pending deletion request. Ended follow-ups stay ended."""
+        data_request = self.get_object()
+        if data_request.status != DataRequestStatus.PENDING:
+            raise exceptions.ValidationError(_('Only pending requests can be cancelled.'))
+        data_request.status = DataRequestStatus.CANCELLED
+        data_request.completed_at = timezone.now()
+        data_request.save()
+        return Response(self.get_serializer(data_request).data)
 
 
 class ModulesView(APIView):

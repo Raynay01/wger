@@ -4,7 +4,7 @@ App web do Kinutri (treino, reabilitação e nutrição) para pacientes e profis
 deste repositório. Next.js 16 (App Router), React 19 e Tailwind CSS 4, tudo em português.
 
 - **Paciente** (`/app`): Meu Dia (treino, refeições, metas, água e fisioterapia do dia), convites com consentimento,
-  compartilhamento por escopo e evolução.
+  compartilhamento por escopo, evolução e privacidade (baixar os dados, pedir a exclusão da conta).
 - **Profissional** (`/pro`): organização e registro no conselho, convites, ficha do paciente (prescrições, diário,
   registros de treino e dor, dados compartilhados, observações), construtores de dieta, treino e protocolo,
   publicação e versões, e alertas de dor.

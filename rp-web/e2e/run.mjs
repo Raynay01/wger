@@ -316,6 +316,25 @@ try {
   await ana.getByText(/\/ 2200 kcal/).waitFor();
   log('Ana passou a ver a meta da nova versão');
 
+  // LGPD: export and deletion request
+  await ana.goto(`${WEB}/app/privacidade`);
+  const [download] = await Promise.all([ana.waitForEvent('download'), ana.getByRole('link', { name: 'Baixar arquivo (JSON)' }).click()]);
+  const exported = JSON.parse(await (await import('node:fs/promises')).readFile(await download.path(), 'utf8'));
+  assert(download.suggestedFilename().startsWith(`dados-${users.ana}`), 'nome do arquivo exportado');
+  assert(exported.nutrition.NutritionPlan.length === 2, 'as duas versões da dieta na exportação');
+  assert(exported.physio.PainRecord.length === 2, 'registros de dor na exportação');
+  assert(exported.care.reads_of_your_shared_data.length > 0, 'acessos aos dados compartilhados na exportação');
+  log('Ana baixou os seus dados (dietas, dor e quem acessou o que ela compartilhou)');
+
+  await visitor.goto(`${WEB}/app/privacidade`);
+  await visitor.getByLabel('Digite EXCLUIR para confirmar').fill('excluir');
+  await visitor.getByRole('button', { name: 'Pedir a exclusão da conta' }).click();
+  await visitor.getByText('Pedido de exclusão registrado.').waitFor();
+  await visitor.getByRole('button', { name: 'Desistir da exclusão' }).waitFor();
+  await bruno.goto(`${WEB}/pro`);
+  assert(!(await bruno.getByRole('link', { name: /Dani Nutrição · desde/ }).isVisible()), 'Dani saiu da lista do nutricionista');
+  log('Dani pediu a exclusão: o acompanhamento terminou na hora e o pedido ficou em análise');
+
   assert(errors.length === 0, `erros no navegador: ${errors.join(' | ')}`);
   console.log('\nTudo certo. Capturas em e2e/screenshots/');
 } catch (error) {
