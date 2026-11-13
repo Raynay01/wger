@@ -4,6 +4,8 @@
 # ruff: noqa: F403
 
 # wger
+import os
+
 from .settings_global import *
 
 DEBUG = True
@@ -117,6 +119,26 @@ DATABASES = {
     'default': DBCONFIG_SQLITE,
 }
 
+
+# Google login for the web app, with the OAuth client from the Google Cloud console
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+if GOOGLE_CLIENT_ID:
+    INSTALLED_APPS += ['allauth.socialaccount.providers.google']
+    SOCIALACCOUNT_PROVIDERS = {
+        'google': {
+            'APPS': [
+                {
+                    'client_id': GOOGLE_CLIENT_ID,
+                    'secret': os.environ.get('GOOGLE_CLIENT_SECRET', ''),
+                    'key': '',
+                },
+            ],
+            'SCOPE': ['profile', 'email'],
+        },
+    }
+
+# The web app (rp-web) calls the API from another port in development
+CSRF_TRUSTED_ORIGINS += ['http://localhost:3000', 'http://127.0.0.1:3000']
 
 # Import other local settings that are not in version control
 try:

@@ -288,6 +288,27 @@ AXES_IPWARE_META_PRECEDENCE_ORDER = env.list(
 WGER_SOCIAL_PROVIDERS = env.list('WGER_SOCIAL_PROVIDERS', default=[])
 # allauth.socialaccount itself is always installed (see settings_global.py) so
 # its models stay importable. Only the per-provider apps are env-gated.
+
+# Google login ("Entrar com Google"). The OAuth client comes from the Google
+# Cloud console; the web app sends Google's ID token to the headless API.
+GOOGLE_CLIENT_ID = env.str('GOOGLE_CLIENT_ID', '')
+if GOOGLE_CLIENT_ID:
+    if 'google' not in WGER_SOCIAL_PROVIDERS:
+        WGER_SOCIAL_PROVIDERS.append('google')
+    SOCIALACCOUNT_PROVIDERS = {
+        'google': {
+            'APPS': [
+                {
+                    'client_id': GOOGLE_CLIENT_ID,
+                    'secret': env.str('GOOGLE_CLIENT_SECRET', ''),
+                    'key': '',
+                },
+            ],
+            'SCOPE': ['profile', 'email'],
+            'AUTH_PARAMS': {'access_type': 'online'},
+        },
+    }
+
 if WGER_SOCIAL_PROVIDERS:
     INSTALLED_APPS += [f'allauth.socialaccount.providers.{p}' for p in WGER_SOCIAL_PROVIDERS]
 

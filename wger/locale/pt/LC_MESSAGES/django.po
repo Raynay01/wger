@@ -18,8 +18,7 @@ msgstr ""
 "POT-Creation-Date: 2026-11-13 22:06+0000\n"
 "PO-Revision-Date: 2026-04-21 18:09+0000\n"
 "Last-Translator: Ninguém Mesmo <weblate@rasparta.org>\n"
-"Language-Team: Portuguese <https://hosted.weblate.org/projects/wger/web/pt/"
-">\n"
+"Language-Team: Portuguese <https://hosted.weblate.org/projects/wger/web/pt/>\n"
 "Language: pt\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -29,141 +28,138 @@ msgstr ""
 
 #: care/api/prescription.py:78
 msgid "A prescription cannot be moved to another patient."
-msgstr ""
+msgstr "Uma prescrição não pode ser transferida para outro paciente."
 
 #: care/api/prescription.py:89 physio/api/serializers.py:161
 msgid "You do not follow this patient in this discipline."
-msgstr ""
+msgstr "Você não acompanha este paciente nesta especialidade."
 
 #: care/api/prescription.py:93 care/api/serializers.py:205
 msgid "You need a council registration for this discipline."
-msgstr ""
+msgstr "Você precisa de registro no conselho desta especialidade."
 
 #: care/api/prescription.py:131
 msgid "You cannot change this prescription."
-msgstr ""
+msgstr "Você não pode alterar esta prescrição."
 
 #: care/api/prescription.py:149
 msgid "Published versions are kept as history."
-msgstr ""
+msgstr "Versões publicadas são mantidas como histórico."
 
 #: care/api/prescription.py:165
 msgid "Only drafts can be published."
-msgstr ""
+msgstr "Somente rascunhos podem ser publicados."
 
 #: care/api/prescription.py:176
 msgid "This version is still a draft."
-msgstr ""
+msgstr "Esta versão ainda é um rascunho."
 
 #: care/api/prescription.py:185
 msgid "There already is a draft for this prescription."
-msgstr ""
+msgstr "Já existe um rascunho para esta prescrição."
 
 #: care/api/prescription.py:195
 msgid "Only published versions can be archived."
-msgstr ""
+msgstr "Somente versões publicadas podem ser arquivadas."
 
 #: care/api/serializers.py:80 care/api/serializers.py:194
 msgid "This field is required."
-msgstr ""
+msgstr "Este campo é obrigatório."
 
 #: care/api/serializers.py:84
 msgid "There is no user with this email address."
-msgstr ""
+msgstr "Não existe usuário com este e-mail."
 
 #: care/api/serializers.py:88
 msgid "This user is already a member of the organization."
-msgstr ""
+msgstr "Este usuário já é membro da organização."
 
 #: care/api/serializers.py:106
 msgid "Use the two letter code of the state."
-msgstr ""
+msgstr "Use a sigla de duas letras do estado."
 
 #: care/api/serializers.py:113
 msgid "The discipline of a registration cannot be changed."
-msgstr ""
+msgstr "A especialidade de um registro não pode ser alterada."
 
 #: care/api/serializers.py:121
 msgid "You already have a registration for this discipline."
-msgstr ""
+msgstr "Você já tem um registro para esta especialidade."
 
 #: care/api/serializers.py:185
 msgid "Use the actions to change the status of a relationship."
-msgstr ""
+msgstr "Use as ações para mudar a situação de um acompanhamento."
 
 #: care/api/serializers.py:197
 msgid "You cannot follow yourself as a patient."
-msgstr ""
+msgstr "Você não pode acompanhar a si mesmo como paciente."
 
 #: care/api/serializers.py:201
 msgid "You cannot follow patients in this organization."
-msgstr ""
+msgstr "Você não pode acompanhar pacientes nesta organização."
 
 #: care/api/serializers.py:223
-#, fuzzy
 #| msgid "You are not allowed to access this page"
 msgid "You already follow or invited this patient."
-msgstr "Você não tem permissão para acessar essa página"
+msgstr "Você já acompanha ou convidou este paciente."
 
 #: care/api/serializers.py:235
 msgid "You need to agree to be followed by this professional."
-msgstr ""
+msgstr "Você precisa concordar em ser acompanhado por este profissional."
 
 #: care/api/serializers.py:250
 msgid "You can only share your own data."
-msgstr ""
+msgstr "Você só pode compartilhar os seus próprios dados."
 
 #: care/api/serializers.py:254
 msgid "This professional does not follow you anymore."
-msgstr ""
+msgstr "Este profissional não acompanha mais você."
 
 #: care/api/serializers.py:261
 msgid "You already share this."
-msgstr ""
+msgstr "Você já compartilha isto."
 
 #: care/api/serializers.py:299
 msgid "The relationship of a note cannot be changed."
-msgstr ""
+msgstr "O acompanhamento de uma observação não pode ser alterado."
 
 #: care/api/serializers.py:301
-#, fuzzy
 #| msgid "You are not allowed to access this page"
 msgid "You do not follow this patient."
-msgstr "Você não tem permissão para acessar essa página"
+msgstr "Você não acompanha este paciente."
 
 #: care/api/views.py:154
 msgid "An organization needs at least one owner."
-msgstr ""
+msgstr "Uma organização precisa de pelo menos um proprietário."
 
 #: care/api/views.py:272 care/api/views.py:301
 msgid "This invitation is not open anymore."
-msgstr ""
+msgstr "Este convite não está mais aberto."
 
 #: care/api/views.py:279
 msgid "This professional already follows you."
-msgstr ""
+msgstr "Este profissional já acompanha você."
 
 #: care/api/views.py:312
 msgid "Only active relationships can be paused."
-msgstr ""
+msgstr "Somente acompanhamentos ativos podem ser pausados."
 
 #: care/api/views.py:322
 msgid "Only paused relationships can be resumed."
-msgstr ""
+msgstr "Somente acompanhamentos pausados podem ser retomados."
 
 #: care/api/views.py:336
-#, fuzzy
 #| msgid "This e-mail address is already in use."
 msgid "This relationship has already ended."
-msgstr "Este endereço de e-mail já está sendo usado."
+msgstr "Este acompanhamento já foi encerrado."
 
 #: care/api/views.py:373 care/api/views.py:583
 msgid "Use the format YYYY-MM-DD."
-msgstr ""
+msgstr "Use o formato AAAA-MM-DD."
 
 #: care/api/views.py:549
 msgid "A valid integer is required."
-msgstr ""
+msgstr "Informe um número inteiro válido."
 
 #: care/disciplines.py:26 core/templates/navigation.html:28
 #: software/templates/features.html:461
@@ -172,7 +168,7 @@ msgstr "Treinamento"
 
 #: care/disciplines.py:27
 msgid "Physiotherapy"
-msgstr ""
+msgstr "Fisioterapia"
 
 #: care/disciplines.py:28 core/templates/navigation.html:146
 #: software/templates/features.html:471
@@ -181,95 +177,89 @@ msgstr "Nutrição"
 
 #: care/models/grant.py:33
 msgid "Training days, times and frequency"
-msgstr ""
+msgstr "Dias, horários e frequência de treino"
 
 #: care/models/grant.py:34
 msgid "Completed training sessions"
-msgstr ""
+msgstr "Treinos realizados"
 
 #: care/models/grant.py:35
-#, fuzzy
 #| msgid "Nutritional data"
 msgid "Nutrition goals and meal times"
-msgstr "Dados nutricionais"
+msgstr "Metas nutricionais e horários das refeições"
 
 #: care/models/grant.py:36
 msgid "Food diary summary"
-msgstr ""
+msgstr "Resumo do diário alimentar"
 
 #: care/models/grant.py:37
 msgid "Pain records summary"
-msgstr ""
+msgstr "Resumo dos registros de dor"
 
 #: care/models/grant.py:38
 msgid "Body weight and measurements"
-msgstr ""
+msgstr "Peso e medidas corporais"
 
 #: care/models/grant.py:39
 msgid "Multidisciplinary notes"
-msgstr ""
+msgstr "Observações multidisciplinares"
 
 #: care/models/grant.py:81
-#, fuzzy
 #| msgid "Terms of service"
 msgid "Terms of use and privacy policy"
-msgstr "Termos de uso"
+msgstr "Termos de uso e política de privacidade"
 
 #: care/models/grant.py:82
 msgid "Processing of health data"
-msgstr ""
+msgstr "Tratamento de dados de saúde"
 
 #: care/models/grant.py:83
 msgid "Follow-up by a professional"
-msgstr ""
+msgstr "Acompanhamento por um profissional"
 
 #: care/models/grant.py:84
 msgid "Sharing between professionals"
-msgstr ""
+msgstr "Compartilhamento entre profissionais"
 
 #: care/models/grant.py:85
 msgid "Summaries generated by artificial intelligence"
-msgstr ""
+msgstr "Resumos gerados por inteligência artificial"
 
 #: care/models/grant.py:86
-#, fuzzy
 #| msgid "Notification language"
 msgid "Notifications via WhatsApp"
-msgstr "Notificação de idioma"
+msgstr "Notificações pelo WhatsApp"
 
 #: care/models/note.py:29
-#, fuzzy
 #| msgid "General manager"
 msgid "General"
-msgstr "Gerente Geral"
+msgstr "Geral"
 
 #: care/models/note.py:30
-#, fuzzy
 #| msgid "Distance"
 msgid "Guidance"
-msgstr "Distância"
+msgstr "Orientação"
 
 #: care/models/note.py:31
-#, fuzzy
 #| msgid "Repetitions"
 msgid "Restriction"
-msgstr "Repeticões"
+msgstr "Restrição"
 
 #: care/models/note.py:32
 msgid "Alert"
-msgstr ""
+msgstr "Alerta"
 
 #: care/models/organization.py:26
 msgid "Independent professional"
-msgstr ""
+msgstr "Profissional independente"
 
 #: care/models/organization.py:27 physio/models/protocol.py:47
 msgid "Clinic"
-msgstr ""
+msgstr "Clínica"
 
 #: care/models/organization.py:28
 msgid "Multidisciplinary team"
-msgstr ""
+msgstr "Equipe multidisciplinar"
 
 #: care/models/organization.py:41 core/models/rep_unit.py:47
 #: core/models/weight_unit.py:42 core/templates/user/overview.html:266
@@ -284,11 +274,11 @@ msgstr "Nome"
 
 #: care/models/organization.py:44
 msgid "Kind"
-msgstr ""
+msgstr "Tipo"
 
 #: care/models/organization.py:51
 msgid "CPF or CNPJ"
-msgstr ""
+msgstr "CPF ou CNPJ"
 
 #: care/models/organization.py:68 gym/models/gym.py:65
 #: gym/templates/gym/member_list.html:126
@@ -296,88 +286,82 @@ msgid "Owner"
 msgstr "Dono"
 
 #: care/models/organization.py:69
-#, fuzzy
 #| msgid "Administration"
 msgid "Administrator"
-msgstr "Administração"
+msgstr "Administrador"
 
 #: care/models/organization.py:70
-#, fuzzy
 #| msgid "Profession"
 msgid "Professional"
-msgstr "Profissão"
+msgstr "Profissional"
 
 #: care/models/organization.py:71
-#, fuzzy
 #| msgid "Description"
 msgid "Reception"
-msgstr "descrição"
+msgstr "Recepção"
 
 #: care/models/registration.py:29
 msgid "Pending"
 msgstr "Pendente"
 
 #: care/models/registration.py:30
-#, fuzzy
 #| msgid "Verified email"
 msgid "Verified"
-msgstr "E-mail verificado"
+msgstr "Verificado"
 
 #: care/models/registration.py:31
 msgid "Rejected"
-msgstr ""
+msgstr "Recusado"
 
 #: care/models/registration.py:59
 msgid "Council"
-msgstr ""
+msgstr "Conselho"
 
 #: care/models/registration.py:61
 msgid "Registration number"
-msgstr ""
+msgstr "Número de registro"
 
 #: care/models/registration.py:64
-#, fuzzy
 #| msgid "Status"
 msgid "State"
 msgstr "Estado"
 
 #: care/models/registration.py:66
 msgid "Two letter code of the state, e.g. SP"
-msgstr ""
+msgstr "Sigla do estado, por exemplo SP"
 
 #: care/models/relationship.py:30
 msgid "Invited"
-msgstr ""
+msgstr "Convidado"
 
 #: care/models/relationship.py:31 core/templates/user/overview.html:311
 msgid "Active"
 msgstr "Ativo"
 
 #: care/models/relationship.py:32
-#, fuzzy
 #| msgid "Pause!"
 msgid "Paused"
-msgstr "Pausa!"
+msgstr "Pausado"
 
 #: care/models/relationship.py:33
 msgid "Ended"
-msgstr ""
+msgstr "Encerrado"
 
 #: care/prescription.py:49
 msgid "Draft"
-msgstr ""
+msgstr "Rascunho"
 
 #: care/prescription.py:50
 msgid "Published"
-msgstr ""
+msgstr "Publicado"
 
 #: care/prescription.py:51
 msgid "Superseded"
-msgstr ""
+msgstr "Substituído"
 
 #: care/prescription.py:52
 msgid "Archived"
-msgstr ""
+msgstr "Arquivado"
 
 #: config/models/gym_config.py:46 gym/templates/gym/list.html:56
 msgid "Default gym"
@@ -388,8 +372,8 @@ msgid ""
 "Select the default gym for this installation. This will assign all new "
 "registered users to this gym and update all existing users without a gym."
 msgstr ""
-"Selecione o ginásio por defeito para essa instalação. Isto atribuirá todos "
-"os novos utilizadores a este ginásio e atualizará todos os utilizadores "
+"Selecione o ginásio por defeito para essa instalação. Isto atribuirá todos os"
+" novos utilizadores a este ginásio e atualizará todos os utilizadores "
 "existentes sem um ginásio."
 
 #: config/views/gym_config.py:46 core/templates/language/view.html:64
@@ -529,8 +513,7 @@ msgstr "Confirmar"
 
 #: core/forms.py:323
 #, python-brace-format
-msgid ""
-"Your account has no password. Type the username \"{username}\" to confirm."
+msgid "Your account has no password. Type the username \"{username}\" to confirm."
 msgstr ""
 
 #: core/forms.py:339
@@ -640,8 +623,8 @@ msgid ""
 "Default duration in weeks of workouts not in a schedule. Used for email "
 "workout reminders."
 msgstr ""
-"Duração padrão em semanas dos treinos não agendados. Usado para enviar e-"
-"mail de aviso de treino."
+"Duração padrão em semanas dos treinos não agendados. Usado para enviar e-mail"
+" de aviso de treino."
 
 #: core/models/profile.py:184
 msgid "Notification language"
@@ -652,8 +635,8 @@ msgid ""
 "Language to use when sending you email notifications, e.g. email reminders "
 "for workouts. This does not affect the language used on the website."
 msgstr ""
-"Idioma usado durante o envio de e-mail de notificação, por exemplo, e-mail "
-"de lembrete de treinos. Isso não afeta o idioma usado no site."
+"Idioma usado durante o envio de e-mail de notificação, por exemplo, e-mail de"
+" lembrete de treinos. Isso não afeta o idioma usado no site."
 
 #: core/models/profile.py:219 gym/views/export.py:65
 msgid "Age"
@@ -776,8 +759,8 @@ msgstr "Um erro ocorreu"
 #: core/templates/500.html:8
 msgid ""
 "There was an error on the server while processing your request. Try "
-"refreshing your browser and if that doesn't help, please try again at a "
-"later time. If the problem persists, you can seek help in ways listed below:"
+"refreshing your browser and if that doesn't help, please try again at a later"
+" time. If the problem persists, you can seek help in ways listed below:"
 msgstr ""
 "Houve um erro no servidor ao processar sua solicitação. Tente atualizar seu "
 "navegador e, se isso não ajudar, por favor, tente novamente mais tarde. Se o "
@@ -803,8 +786,8 @@ msgid ""
 "Your email verification code is listed below. Please enter it in your open "
 "browser window."
 msgstr ""
-"O teu código de verificação de email está listado abaixo. Por favor, "
-"introduz na janela aberta do navegador."
+"O teu código de verificação de email está listado abaixo. Por favor, introduz"
+" na janela aberta do navegador."
 
 #: core/templates/account/email/email_confirmation_message.html:100
 msgid "Please click the button below to confirm your email address."
@@ -824,11 +807,11 @@ msgid_plural ""
 "The link is valid for %(expire_hours)s hours (until %(date)s, %(time)s). You "
 "can request a new one from your profile settings."
 msgstr[0] ""
-"A ligação é válida por %(expire_hours)s horas (até %(date)s, %(time)s). "
-"Podes requisitar outro nas configurações do perfil."
+"A ligação é válida por %(expire_hours)s horas (até %(date)s, %(time)s). Podes"
+" requisitar outro nas configurações do perfil."
 msgstr[1] ""
-"A ligação é válida por %(expire_hours)s horas (até %(date)s, %(time)s). "
-"Podes requisitar outro nas configurações do perfil."
+"A ligação é válida por %(expire_hours)s horas (até %(date)s, %(time)s). Podes"
+" requisitar outro nas configurações do perfil."
 
 #: core/templates/account/email/email_confirmation_message.html:119
 msgid "If the button doesn't work, copy and paste this link into your browser:"
@@ -860,8 +843,8 @@ msgstr "Endereço de e-mail"
 #: core/templates/account/email_change.html:9
 msgid ""
 "Your email address is used for password resets and, optionally, workout "
-"reminders. A new address only becomes active once you confirm it via the "
-"link sent to it."
+"reminders. A new address only becomes active once you confirm it via the link"
+" sent to it."
 msgstr ""
 
 #: core/templates/account/email_change.html:20
@@ -939,8 +922,8 @@ msgstr "Mudar senha"
 #, python-format
 msgid ""
 "The password reset link was invalid, possibly because it has already been "
-"used.  Please request a <a href=\"%(passwd_reset_url)s\">new password reset</"
-"a>."
+"used.  Please request a <a href=\"%(passwd_reset_url)s\">new password "
+"reset</a>."
 msgstr ""
 
 #: core/templates/account/password_reset_from_key_done.html:4
@@ -977,14 +960,12 @@ msgstr "Voltar a \"%(target)s\""
 #, python-format
 msgid ""
 "You are\n"
-"                browsing the site as the user \"%(current_user)s\", all "
-"actions are performed on\n"
+"                browsing the site as the user \"%(current_user)s\", all actions are performed on\n"
 "                their data.\n"
 "            "
 msgstr ""
 "You are\n"
-"                Nvagando no site como utilizador \"%(current_user)s\", todas "
-"as ações agirão sobre\n"
+"                Nvagando no site como utilizador \"%(current_user)s\", todas as ações agirão sobre\n"
 "                os seus dados.\n"
 "            "
 
@@ -1326,21 +1307,19 @@ msgstr ""
 #, python-format
 msgid ""
 "\n"
-"                There is currently <strong>%(counter)s</strong> active JWT "
-"session\n"
+"                There is currently <strong>%(counter)s</strong> active JWT session\n"
 "            "
 msgid_plural ""
 "\n"
-"                There are currently <strong>%(counter)s</strong> active JWT "
-"sessions\n"
+"                There are currently <strong>%(counter)s</strong> active JWT sessions\n"
 "            "
 msgstr[0] ""
 msgstr[1] ""
 
 #: core/templates/user/api_key.html:139
 msgid ""
-"Revoking JWT sessions logs out every device that obtained a refresh token "
-"via the JWT login endpoint."
+"Revoking JWT sessions logs out every device that obtained a refresh token via"
+" the JWT login endpoint."
 msgstr ""
 
 #: core/templates/user/api_key.html:144 core/templates/user/preferences.html:67
@@ -1394,8 +1373,8 @@ msgstr ""
 
 #: core/templates/user/app_auth_handoff.html:16
 msgid ""
-"If nothing happens, tap the button below. Make sure the wger app is "
-"installed on this device."
+"If nothing happens, tap the button below. Make sure the wger app is installed"
+" on this device."
 msgstr ""
 
 #: core/templates/user/app_auth_handoff.html:23
@@ -1459,13 +1438,11 @@ msgstr "Você tem certeza?"
 #, python-format
 msgid ""
 "This action will delete the user account \"%(username)s\".\n"
-"It will also  irrevocably remove all the data associated with it (workouts, "
-"logs, etc.)\n"
+"It will also  irrevocably remove all the data associated with it (workouts, logs, etc.)\n"
 "and can't be undone. "
 msgstr ""
 "Esta ação irá apagar a conta do utilizador \"%(username)s\".\n"
-"Isso irá irrevogavelmente remover todos os dados associados com esta conta "
-"(treinos, registros, etc.)\n"
+"Isso irá irrevogavelmente remover todos os dados associados com esta conta (treinos, registros, etc.)\n"
 "e não poderá ser desfeito. "
 
 #: core/templates/user/overview.html:24 core/templates/user/overview.html:74
@@ -1749,13 +1726,13 @@ msgstr "Editar {0}"
 
 #: core/views/misc.py:73
 msgid ""
-"We have created sample workout, workout schedules, weight logs, (body) "
-"weight and nutrition plan entries so you can better see what  this site can "
-"do. Feel free to edit or delete them!"
+"We have created sample workout, workout schedules, weight logs, (body) weight"
+" and nutrition plan entries so you can better see what  this site can do. "
+"Feel free to edit or delete them!"
 msgstr ""
 "Nós criamos exemplos de treinos, agenda de treinos, registros de peso, peso "
-"(corporal) e plano de nutrição para que você possa ver melhor o que este "
-"site pode fazer. Sinta-se à vontade para os editar ou apagá-los!"
+"(corporal) e plano de nutrição para que você possa ver melhor o que este site"
+" pode fazer. Sinta-se à vontade para os editar ou apagá-los!"
 
 #: core/views/oidc.py:130
 #, python-brace-format
@@ -2291,13 +2268,11 @@ msgstr "Informação"
 #: gym/templates/gym/new_user.html:50
 msgid ""
 "Please write down the user password or save the exported\n"
-"file, which contains all the user data, and keep it in a safe place. The "
-"password\n"
+"file, which contains all the user data, and keep it in a safe place. The password\n"
 "cannot be recovered later."
 msgstr ""
 "Por favor, anote a palavra-passe do utilizador ou salve o ficheiro\n"
-"exportado, que contém todos os dados do utilizador, e mantenha-o num lugar "
-"seguro. A palavra-passe\n"
+"exportado, que contém todos os dados do utilizador, e mantenha-o num lugar seguro. A palavra-passe\n"
 "não poderá ser recuperada posteriormente."
 
 #: gym/templates/gym/new_user.html:57
@@ -2777,8 +2752,7 @@ msgid ""
 "never produce reminders."
 msgstr ""
 "Irá receber regularmente lembretes até adicionar um novo treino.\n"
-"Alternativamente pode adicionar treinos a um cronograma recorrente, a ser "
-"que tais cronogramas\n"
+"Alternativamente pode adicionar treinos a um cronograma recorrente, a ser que tais cronogramas\n"
 "não produzem lembretes."
 
 #: manager/templates/routines/email_reminder.tpl:12
@@ -2803,10 +2777,8 @@ msgid ""
 "Your last weight entry is from %(date)s (%(days)s days ago).\n"
 "Please click the link to access the application and enter a new one."
 msgstr ""
-"A sua última atualização de massa corporal é de %(date)s (%(days)s dias "
-"atrás).\n"
-"Por favor, clique no link para acessar a aplicação e entrar com um novo "
-"valor."
+"A sua última atualização de massa corporal é de %(date)s (%(days)s dias atrás).\n"
+"Por favor, clique no link para acessar a aplicação e entrar com um novo valor."
 
 #: manager/templates/workout/email_weight_reminder.tpl:8
 msgid ""
@@ -2848,8 +2820,8 @@ msgid ""
 "Additional calories to add to the base rate (to substract, enter a negative "
 "number)"
 msgstr ""
-"Calorias adicionais para adicionar à taxa básica (para subtrair, entre com "
-"um número negativo)"
+"Calorias adicionais para adicionar à taxa básica (para subtrair, entre com um"
+" número negativo)"
 
 #: nutrition/forms.py:227
 msgid "grams (g)"
@@ -2877,41 +2849,38 @@ msgstr "Porção"
 
 #: nutrition/models/substitution.py:37
 msgid "Same energy"
-msgstr ""
+msgstr "Mesma energia"
 
 #: nutrition/models/substitution.py:38
-#, fuzzy
 #| msgid "Macronutrients"
 msgid "Same main macronutrient"
-msgstr "Macronutrientes"
+msgstr "Mesmo macronutriente principal"
 
 #: nutrition/models/substitution.py:39
-#, fuzzy
 #| msgid "Delete nutrition plan"
 msgid "Defined by the nutritionist"
-msgstr "Apagar plano de nutrição"
+msgstr "Definida pelo nutricionista"
 
 #: nutrition/models/substitution.py:40
-#, fuzzy
 #| msgid "Preferences"
 msgid "Preference"
-msgstr "Preferências"
+msgstr "Preferência"
 
 #: nutrition/models/substitution.py:41
 msgid "Availability"
-msgstr ""
+msgstr "Disponibilidade"
 
 #: nutrition/models/tracking.py:34
 msgid "Followed"
-msgstr ""
+msgstr "Seguiu"
 
 #: nutrition/models/tracking.py:35
 msgid "Partially followed"
-msgstr ""
+msgstr "Seguiu parcialmente"
 
 #: nutrition/models/tracking.py:36
 msgid "Not followed"
-msgstr ""
+msgstr "Não seguiu"
 
 #: nutrition/templates/ingredient/email_new.tpl:1
 #, python-format
@@ -2950,17 +2919,13 @@ msgstr ""
 msgid ""
 "After you submit the form, the administrators will be notified.\n"
 "Once it is reviewed, it will be added to the database. Till this happens,\n"
-"it will not be visible in the overview or the search. In case you added your "
-"email\n"
-"when you registered, you will get notified when the process is completed "
-"sucessfully."
+"it will not be visible in the overview or the search. In case you added your email\n"
+"when you registered, you will get notified when the process is completed sucessfully."
 msgstr ""
 "Depois que você submeter o formulário, o administrador será notificado.\n"
 "Uma vez revisto, ele será adicionado ao banco de dados. Até isso acontecer,\n"
-"ele não será visível na visão geral ou na busca. No caso de você ter "
-"adicionado\n"
-"o seu e-mail quando se cadastrou, você será notificado quando o processo for "
-"completado com sucesso."
+"ele não será visível na visão geral ou na busca. No caso de você ter adicionado\n"
+"o seu e-mail quando se cadastrou, você será notificado quando o processo for completado com sucesso."
 
 #: nutrition/templates/ingredient/overview.html:32
 #: nutrition/templates/ingredient/overview.html:104
@@ -3072,8 +3037,7 @@ msgstr "Taxa metabólica basal"
 #: nutrition/templates/rate/form.html:26
 msgid ""
 "The basal metabolic rate is the amount of energy expended daily\n"
-"at rest. This is the minimum energy needed for the body to function, without "
-"any\n"
+"at rest. This is the minimum energy needed for the body to function, without any\n"
 "additional physical activity."
 msgstr ""
 "A taxa metabólica basal é o quantidade de energia gasta diariamente\n"
@@ -3117,15 +3081,12 @@ msgstr "Calcular a ingestão de calorias básica"
 #: nutrition/templates/rate/form.html:88
 msgid ""
 "The total calories are the actual total calories per day. This\n"
-"might include e.g. a surplus or deficit if you are bulking or cutting. "
-"Alternatively\n"
+"might include e.g. a surplus or deficit if you are bulking or cutting. Alternatively\n"
 "you might just enter yourself the amount of calories if you know the value."
 msgstr ""
 "O total de calorias é o atual total de calorias por dia. Isto\n"
-"pode incluir, por exemplo, um sobressalente ou deficite se você está "
-"aumentando \n"
-"ou cortando. Alternativament você pode informar a quantidade de calorias se "
-"você souber o valor."
+"pode incluir, por exemplo, um sobressalente ou deficite se você está aumentando \n"
+"ou cortando. Alternativament você pode informar a quantidade de calorias se você souber o valor."
 
 #: nutrition/templates/rate/form.html:102
 msgid "Transfer basic intake to total daily calories"
@@ -3191,42 +3152,37 @@ msgid "Delete?"
 msgstr "Apagar?"
 
 #: physio/api/serializers.py:68
-#, fuzzy
 #| msgid "The start time cannot be after the end time."
 msgid "The end date cannot be before the start date."
-msgstr "A hora de início não pode ser depois da hora de término."
+msgstr "A data de término não pode ser anterior à de início."
 
 #: physio/api/serializers.py:154
 msgid "The patient of an assessment cannot be changed."
-msgstr ""
+msgstr "O paciente de uma avaliação não pode ser alterado."
 
 #: physio/api/serializers.py:167
 msgid "This must be an object."
-msgstr ""
+msgstr "Isto precisa ser um objeto."
 
 #: physio/models/protocol.py:37
-#, fuzzy
 #| msgid "Improve the exercises"
 msgid "Before the exercises"
-msgstr "Melhora os exercícios"
+msgstr "Antes dos exercícios"
 
 #: physio/models/protocol.py:38
-#, fuzzy
 #| msgid "Improve the exercises"
 msgid "During the exercises"
-msgstr "Melhora os exercícios"
+msgstr "Durante os exercícios"
 
 #: physio/models/protocol.py:39
-#, fuzzy
 #| msgid "Improve the exercises"
 msgid "After the exercises"
-msgstr "Melhora os exercícios"
+msgstr "Depois dos exercícios"
 
 #: physio/models/protocol.py:40
-#, fuzzy
 #| msgid "Another sample day"
 msgid "On the next day"
-msgstr "Outro dia de exemplo"
+msgstr "No dia seguinte"
 
 #: physio/models/protocol.py:41 physio/models/protocol.py:291
 msgid "Other"
@@ -3234,45 +3190,42 @@ msgstr "Outro"
 
 #: physio/models/protocol.py:45
 msgid "Home"
-msgstr ""
+msgstr "Casa"
 
 #: physio/models/protocol.py:286
-#, fuzzy
 #| msgid "Make a donation"
 msgid "Range of motion"
-msgstr "Faz um donativo"
+msgstr "Amplitude de movimento"
 
 #: physio/models/protocol.py:287
-#, fuzzy
 #| msgid "Street"
 msgid "Strength"
-msgstr "Rua"
+msgstr "Força"
 
 #: physio/models/protocol.py:288
 msgid "Functional test"
-msgstr ""
+msgstr "Teste funcional"
 
 #: physio/models/protocol.py:289
 msgid "Questionnaire"
-msgstr ""
+msgstr "Questionário"
 
 #: physio/models/protocol.py:290
 msgid "Balance"
-msgstr ""
+msgstr "Equilíbrio"
 
 #: physio/models/protocol.py:295
 msgid "Not applicable"
-msgstr ""
+msgstr "Não se aplica"
 
 #: physio/models/protocol.py:296
 msgid "Left"
-msgstr ""
+msgstr "Esquerdo"
 
 #: physio/models/protocol.py:297
-#, fuzzy
 #| msgid "Weight"
 msgid "Right"
-msgstr "Peso"
+msgstr "Direito"
 
 #: software/templates/about_us.html:9
 msgid ""
@@ -3282,9 +3235,9 @@ msgid ""
 "access."
 msgstr ""
 "wger ajuda-o a monitorizar os seus treinos, a gerir a sua nutrição e a "
-"atingir os seus objetivos. Oferecemo-lo como software livre, de código "
-"aberto que pode ser hospedado por si e também como uma opção conveniente e "
-"gratuita na nuvem para acesso fácil."
+"atingir os seus objetivos. Oferecemo-lo como software livre, de código aberto"
+" que pode ser hospedado por si e também como uma opção conveniente e gratuita"
+" na nuvem para acesso fácil."
 
 #: software/templates/about_us.html:18
 msgid "Open Source & free to use ❤️"
@@ -3298,12 +3251,12 @@ msgid ""
 "runs entirely on this open-source foundation. We believe powerful fitness "
 "tools should be accessible to everyone."
 msgstr ""
-"wger é desenvolvido segundo os princípios do software de código aberto. O "
-"seu código está disponível publicamente, é desenvolvido pela nossa "
-"comunidade assegurando transparência e dando-lhe controle sobre os seus "
-"dados (especialmente se hospedado por si). A versão na nuvem baseia-se "
-"inteiramente neste fundamento de código aberto. Acreditamos que ferramentas "
-"de treino poderosas devem estar acessíveis a toda a gente."
+"wger é desenvolvido segundo os princípios do software de código aberto. O seu"
+" código está disponível publicamente, é desenvolvido pela nossa comunidade "
+"assegurando transparência e dando-lhe controle sobre os seus dados "
+"(especialmente se hospedado por si). A versão na nuvem baseia-se inteiramente"
+" neste fundamento de código aberto. Acreditamos que ferramentas de treino "
+"poderosas devem estar acessíveis a toda a gente."
 
 #: software/templates/about_us.html:30
 msgid "How you can help"
@@ -3410,8 +3363,8 @@ msgid ""
 "Thank you for being part of the community! We appreciate your usage, "
 "feedback, and any support you can offer."
 msgstr ""
-"Obrigado por ser parte da comunidade! Apreciamos a sua utilização, feedback "
-"e qualquer suporte que possa oferecer."
+"Obrigado por ser parte da comunidade! Apreciamos a sua utilização, feedback e"
+" qualquer suporte que possa oferecer."
 
 #: software/templates/about_us.html:155
 msgid "Our goal"
@@ -3423,14 +3376,14 @@ msgid ""
 "comprehensive and complete list of exercises and ingredients, all released "
 "under a free license."
 msgstr ""
-"O objetivo é construir um gestor de treino incrível e flexível juntamente "
-"com uma lista completa e abrangente de exercícios e ingredientes, tudo "
-"publicado sob uma licença livre."
+"O objetivo é construir um gestor de treino incrível e flexível juntamente com"
+" uma lista completa e abrangente de exercícios e ingredientes, tudo publicado"
+" sob uma licença livre."
 
 #: software/templates/features.html:11
 msgid ""
-"wger Workout Manager is a free, open source web application that manages "
-"your exercises and workouts."
+"wger Workout Manager is a free, open source web application that manages your"
+" exercises and workouts."
 msgstr ""
 "wger Workout Manager é uma aplicação web gratuita de código aberto que "
 "gerencia os seus exercícios e treinos."
@@ -3527,8 +3480,8 @@ msgstr ""
 
 #: software/templates/features.html:223
 msgid ""
-"Get automatically calculated nutritional values (energy, protein, "
-"carbs, ...) for both individual meals and your entire weekly plan"
+"Get automatically calculated nutritional values (energy, protein, carbs, ...)"
+" for both individual meals and your entire weekly plan"
 msgstr ""
 "Obtenha valores nutricionais calculados automaticamente (energia, proteínas, "
 "carboidratos, ...) tanto para refeições individuais como para todo o seu "
@@ -3580,8 +3533,8 @@ msgid ""
 "We don't use ads, don't sell your personal info, and we share the code under "
 "a free and open-source license."
 msgstr ""
-"Não usamos anúncios, não vendemos suas informações pessoais, e "
-"compartilhamos o código sob uma licença livre e de código aberto."
+"Não usamos anúncios, não vendemos suas informações pessoais, e compartilhamos"
+" o código sob uma licença livre e de código aberto."
 
 #: software/templates/features.html:324
 msgid "Pitch in and help make wger even better!"
@@ -3609,8 +3562,8 @@ msgstr "Monte um servidor privado para sua academia"
 
 #: software/templates/features.html:388
 msgid ""
-"Don't want your data on an online service? Set up a wger instance on your "
-"own server for free!"
+"Don't want your data on an online service? Set up a wger instance on your own"
+" server for free!"
 msgstr ""
 "Não quer seus dados em um serviço online? Monte de graça uma instância do "
 "wger no seu próprio servidor!"
@@ -3741,17 +3694,13 @@ msgstr ""
 #: weight/templates/import_csv_form.html:18
 msgid ""
 "You can copy and paste from your spreadsheet into the text input,\n"
-"the system will try to guess the format to import. The only things to "
-"consider is\n"
-"that the first column is the <strong>date</strong>, the second the "
-"<strong>weight</strong>.\n"
+"the system will try to guess the format to import. The only things to consider is\n"
+"that the first column is the <strong>date</strong>, the second the <strong>weight</strong>.\n"
 "All further columns are ignored. There is a 1000 row limit.\n"
 msgstr ""
 "Podes importar duma folha de cálculo para o campo de texto,\n"
-"o sistema tentará identificar o formato para importação. A única coisa a "
-"considerar é\n"
-"que a primeira coluna deve ser a <strong>data</strong>, a segunda o "
-"<strong>peso</strong>.\n"
+"o sistema tentará identificar o formato para importação. A única coisa a considerar é\n"
+"que a primeira coluna deve ser a <strong>data</strong>, a segunda o <strong>peso</strong>.\n"
 "Todas as demais colunas serão ignoradas. Há um limite de 1000 linhas.\n"
 
 #: weight/templates/import_csv_form.html:24
@@ -3785,21 +3734,15 @@ msgstr "Os seguintes valores não puderam ser convertidos."
 #: weight/templates/import_csv_preview.html:31
 msgid ""
 "These values could not be converted to a weight log entry.\n"
-"    The reasons for this could be anything from an unrecognised date or "
-"number\n"
-"    format, a problem with the encoding or something else. Please check "
-"that\n"
-"    there are no obvious errors in the list (and correct them if there "
-"are!)\n"
+"    The reasons for this could be anything from an unrecognised date or number\n"
+"    format, a problem with the encoding or something else. Please check that\n"
+"    there are no obvious errors in the list (and correct them if there are!)\n"
 "    and try to import the list again."
 msgstr ""
 "Esses valores não podem ser convertidos para um registro de peso.\n"
-"A razão para isso pode ser qualquer coisa desde um formato de data ou "
-"número\n"
-"não reconhecido, um problema com o encoding ou alguma outra coisa. Por "
-"favor\n"
-"verifique se não há nenhuma razão óbvia listada para o erro (e corrija-o se "
-"houver!)\n"
+"A razão para isso pode ser qualquer coisa desde um formato de data ou número\n"
+"não reconhecido, um problema com o encoding ou alguma outra coisa. Por favor\n"
+"verifique se não há nenhuma razão óbvia listada para o erro (e corrija-o se houver!)\n"
 "e tente enviar a lista novamente."
 
 #: weight/templates/import_csv_preview.html:37
@@ -3821,16 +3764,13 @@ msgstr "Importar todas os registros convertidos com sucesso"
 #: weight/templates/import_csv_preview.html:59
 msgid ""
 "Continue here if you want to import into your weight log all\n"
-"entries that were successfully converted. All entries that produced an "
-"error\n"
+"entries that were successfully converted. All entries that produced an error\n"
 "will simply be ignored. It's up to you to decide whether they are useful\n"
 "(unrecognised entries) or not (e.g. headers, comments, etc.)."
 msgstr ""
 "Continue aqui se você deseja importar no seu registro de peso todos\n"
-"os registros que foram convertidos com sucesso. Todos os registros que "
-"produziram \n"
-"um erro serão simplesmente ignorados. Depende de você decidir se ele são "
-"úteis \n"
+"os registros que foram convertidos com sucesso. Todos os registros que produziram \n"
+"um erro serão simplesmente ignorados. Depende de você decidir se ele são úteis \n"
 "(registros irreconhecíveis) ou não (ex.: cabeçalhos, comentários, etc.)."
 
 #: weight/templates/import_csv_preview.html:69
@@ -3874,8 +3814,8 @@ msgstr "Re-submeter"
 
 #, python-format
 #~ msgid ""
-#~ "You're receiving this e-mail because you requested a password reset for "
-#~ "your user account at %(site_name)s."
+#~ "You're receiving this e-mail because you requested a password reset for your "
+#~ "user account at %(site_name)s."
 #~ msgstr ""
 #~ "Recebeu este e-mail por requisitar a redefinição da palavra-passe da sua "
 #~ "conta de utilizador no %(site_name)s."
@@ -3930,28 +3870,23 @@ msgstr "Re-submeter"
 #~ msgid ""
 #~ "Check to also show ingredients in English while creating\n"
 #~ "a nutritional plan. These ingredients are extracted from a list provided\n"
-#~ "by the US Department of Agriculture. It is extremely complete, with "
-#~ "around\n"
-#~ "7000 entries, but can be somewhat overwhelming and make the search "
-#~ "difficult."
+#~ "by the US Department of Agriculture. It is extremely complete, with around\n"
+#~ "7000 entries, but can be somewhat overwhelming and make the search difficult."
 #~ msgstr ""
 #~ "Marque também para mostrar ingredientes em inglês enquanto\n"
-#~ "cria o plano nutricional. Esses ingredientes são extraídos de uma lista "
-#~ "mantida\n"
-#~ "pelo Departamento de Agricultura dos EUA. Ela é extremamente completa, "
-#~ "com aproximadamente\n"
+#~ "cria o plano nutricional. Esses ingredientes são extraídos de uma lista mantida\n"
+#~ "pelo Departamento de Agricultura dos EUA. Ela é extremamente completa, com aproximadamente\n"
 #~ "7000 itens, mas pode ser um pouco grande e tornar a pesquisa complicada."
 
 #~ msgid "Allow external access"
 #~ msgstr "Permite acesso externo"
 
 #~ msgid ""
-#~ "Allow external users to access your workouts and logs in a read-only "
-#~ "mode. You need to set this before you can share links e.g. to social "
-#~ "media."
+#~ "Allow external users to access your workouts and logs in a read-only mode. "
+#~ "You need to set this before you can share links e.g. to social media."
 #~ msgstr ""
-#~ "Permite acesso externo de leitura aos treinos e logs. Você precisa ligar "
-#~ "para poder compartilhar links."
+#~ "Permite acesso externo de leitura aos treinos e logs. Você precisa ligar para"
+#~ " poder compartilhar links."
 
 #~ msgid "Your API key"
 #~ msgstr "Sua API key"
@@ -4094,11 +4029,11 @@ msgstr "Re-submeter"
 #~ msgstr "Modelo de treino"
 
 #~ msgid ""
-#~ "Marking a workout as a template will freeze it and allow you to make "
-#~ "copies of it"
+#~ "Marking a workout as a template will freeze it and allow you to make copies "
+#~ "of it"
 #~ msgstr ""
-#~ "Marcar um treino como modelo irá congelá-lo e permitir que você faça "
-#~ "cópias dele"
+#~ "Marcar um treino como modelo irá congelá-lo e permitir que você faça cópias "
+#~ "dele"
 
 #~ msgid "Public template"
 #~ msgstr "Modelo público"
@@ -4107,12 +4042,11 @@ msgstr "Re-submeter"
 #~ msgstr "Um modelo público está disponível para outros utilizadores"
 
 #~ msgid "Any notes you might want to save about this workout session."
-#~ msgstr ""
-#~ "Qualquer nota que você queira salvar sobre esta sessão de treinamento."
+#~ msgstr "Qualquer nota que você queira salvar sobre esta sessão de treinamento."
 
 #~ msgid ""
-#~ "Your impression about this workout session. Did you exercise as well as "
-#~ "you could?"
+#~ "Your impression about this workout session. Did you exercise as well as you "
+#~ "could?"
 #~ msgstr ""
 #~ "Sua impressão sobre esta sessão de treino. Você conseguir realizar os "
 #~ "exercícios da melhor for que você poderia?"
@@ -4167,11 +4101,11 @@ msgstr "Re-submeter"
 #~ "\"pós-treino\""
 
 #~ msgid ""
-#~ "A description of the goal of the plan, e.g. \"Gain mass\" or \"Prepare "
-#~ "for summer\""
+#~ "A description of the goal of the plan, e.g. \"Gain mass\" or \"Prepare for "
+#~ "summer\""
 #~ msgstr ""
-#~ "Uma descrição do objetivo do plano, e.x. \"Ganhar mass\" ou \"Preparação "
-#~ "para o verão\""
+#~ "Uma descrição do objetivo do plano, e.x. \"Ganhar mass\" ou \"Preparação para"
+#~ " o verão\""
 
 #~ msgid "Use daily calories"
 #~ msgstr "Utilizar as calorias diária"
@@ -4180,9 +4114,9 @@ msgstr "Re-submeter"
 #~ "Tick the box if you want to mark this plan as having a goal amount of "
 #~ "calories. You can use the calculator or enter the value yourself."
 #~ msgstr ""
-#~ "Marque a caixa se você quiser marcar este plano como tendo por objetivo "
-#~ "uma quantidade de calorias. Você pode usar a calculadora ou entrar o "
-#~ "valor diretamente."
+#~ "Marque a caixa se você quiser marcar este plano como tendo por objetivo uma "
+#~ "quantidade de calorias. Você pode usar a calculadora ou entrar o valor "
+#~ "diretamente."
 
 #~ msgid "Weight entry"
 #~ msgstr "Registro de peso"
@@ -4208,14 +4142,13 @@ msgstr "Re-submeter"
 #~ msgstr "Calcular"
 
 #, python-brace-format
-#~ msgid ""
-#~ "The total energy ({self.energy}kcal) is not the approximate sum of the "
+#~ msgid "The total energy ({self.energy}kcal) is not the approximate sum of the "
 #~ msgstr "A energia total ({self.energy}kcal) não é a soma aproximada de. "
 
 #~ msgid ""
-#~ "Tick the box if you want to set this image as the main one for the "
-#~ "exercise (will be shown e.g. in the search). The first image is "
-#~ "automatically marked by the system."
+#~ "Tick the box if you want to set this image as the main one for the exercise "
+#~ "(will be shown e.g. in the search). The first image is automatically marked "
+#~ "by the system."
 #~ msgstr ""
 #~ "Marque a caixa se você quiser marcar esta imagem com a principal para o "
 #~ "exercício (irá ser mostrada, por exemplo, na busca). A primeira imagem é "
@@ -4231,24 +4164,23 @@ msgstr "Re-submeter"
 #~ msgstr "Sobre nós"
 
 #~ msgid ""
-#~ "Thank you for using wger! wger is a collaborative open source project, "
-#~ "made by fitness enthusiasts from around the world."
+#~ "Thank you for using wger! wger is a collaborative open source project, made "
+#~ "by fitness enthusiasts from around the world."
 #~ msgstr ""
-#~ "Obrigado por usar o wger! wger é um projeto colaborativo de código "
-#~ "aberto, feito por entusiastas do fitness de todo o mundo."
+#~ "Obrigado por usar o wger! wger é um projeto colaborativo de código aberto, "
+#~ "feito por entusiastas do fitness de todo o mundo."
 
 #~ msgid ""
-#~ "Get in touch if something didn't behave as expected or if there is a "
-#~ "feature that you feel is missing."
+#~ "Get in touch if something didn't behave as expected or if there is a feature "
+#~ "that you feel is missing."
 #~ msgstr ""
-#~ "Entre em contato se algo não se comportar conforme o esperado ou se "
-#~ "houver um recurso que você sente que está faltando."
+#~ "Entre em contato se algo não se comportar conforme o esperado ou se houver um"
+#~ " recurso que você sente que está faltando."
 
 #~ msgid "Say hi!"
 #~ msgstr "Diga oi!"
 
-#~ msgid ""
-#~ "If you want to chat with us, hop on the Discord server and get in touch"
+#~ msgid "If you want to chat with us, hop on the Discord server and get in touch"
 #~ msgstr ""
 #~ "Se você quiser conversar conosco, entre no servidor Discord e entre em "
 #~ "contato"
@@ -4258,11 +4190,11 @@ msgstr "Re-submeter"
 #~ "Nos siga no mastodon para receber atualizações e novidades sobre o projeto"
 
 #~ msgid ""
-#~ "This application is translated on weblate. If you also want to help, "
-#~ "click the link and start translating"
+#~ "This application is translated on weblate. If you also want to help, click "
+#~ "the link and start translating"
 #~ msgstr ""
-#~ "Este aplicativo é traduzido em weblate. Se você também quiser ajudar, "
-#~ "clique no link e comece a traduzir"
+#~ "Este aplicativo é traduzido em weblate. Se você também quiser ajudar, clique "
+#~ "no link e comece a traduzir"
 
 #~ msgid "Source code"
 #~ msgstr "Código fonte"
@@ -4271,8 +4203,7 @@ msgstr "Re-submeter"
 #~ msgstr "Obtenha o código fonte deste aplicativo e seu servidor no github"
 
 #~ msgid ""
-#~ "Buy us a coffee to help the project, pay for server costs, and keep us "
-#~ "fueled"
+#~ "Buy us a coffee to help the project, pay for server costs, and keep us fueled"
 #~ msgstr ""
 #~ "Pague um café para ajudar o projeto, pagar o custo dos servidores e nos "
 #~ "manter empolgados"
@@ -4303,7 +4234,6 @@ msgstr "Re-submeter"
 #~ msgstr "Adicionar uma entrada para peso"
 
 #, fuzzy
-#~| msgid "Placeholder image for exercise"
 #~ msgid "Placeholder image for translation"
 #~ msgstr "Espaço reservado para imagem do exercício"
 
@@ -4311,17 +4241,13 @@ msgstr "Re-submeter"
 #~ msgid ""
 #~ "Generate an API key if you want to interact with wger via\n"
 #~ "the <a href=\"%(url)s\" rel=\"nofollow\">REST API</a> it provides (for\n"
-#~ "public resources such as the exercises or ingredients, you don't need to "
-#~ "provide\n"
-#~ "anything). You must pass this information in the header in the format "
-#~ "shown below."
+#~ "public resources such as the exercises or ingredients, you don't need to provide\n"
+#~ "anything). You must pass this information in the header in the format shown below."
 #~ msgstr ""
 #~ "Crie uma API key se você quiser interagir com wger via\n"
 #~ "a <a href=\"%(url)s\" rel=\"nofollow\">API REST</a> (para \n"
-#~ "recursos públicos como exercícios ou ingredientes, você não precisa "
-#~ "fornecer\n"
-#~ " nada). Você deve passar esta informação no header da requisição no "
-#~ "formato abaixo."
+#~ "recursos públicos como exercícios ou ingredientes, você não precisa fornecer\n"
+#~ " nada). Você deve passar esta informação no header da requisição no formato abaixo."
 
 #~ msgid "For security reasons, you should only access the API via HTTPS."
 #~ msgstr "POr razões de segurança, você deve acessar a API somente por HTTPS."
@@ -4336,18 +4262,18 @@ msgstr "Re-submeter"
 #~ msgstr "Nome do treino"
 
 #~ msgid ""
-#~ "A short description or goal of the workout. For example 'Focus on back' "
-#~ "or 'Week 1 of program xy'."
+#~ "A short description or goal of the workout. For example 'Focus on back' or "
+#~ "'Week 1 of program xy'."
 #~ msgstr ""
-#~ "Uma descrição curta ou objetivo do treino. Por exemplo 'Focar nas costas' "
-#~ "ou 'Semana 1 do programa XY'."
+#~ "Uma descrição curta ou objetivo do treino. Por exemplo 'Focar nas costas' ou "
+#~ "'Semana 1 do programa XY'."
 
 #~ msgid ""
-#~ "You can search for more than one exercise, they will be grouped together "
-#~ "for a superset."
+#~ "You can search for more than one exercise, they will be grouped together for "
+#~ "a superset."
 #~ msgstr ""
-#~ "Pode pesquisar para mais de um exercício, eles irão ser agrupados juntos "
-#~ "num superconjunto."
+#~ "Pode pesquisar para mais de um exercício, eles irão ser agrupados juntos num "
+#~ "superconjunto."
 
 #~ msgid "Table"
 #~ msgstr "Tabela"
@@ -4359,8 +4285,8 @@ msgstr "Re-submeter"
 #~ msgstr "com comentários"
 
 #~ msgid ""
-#~ "A description of what is done on this day (e.g. \"Pull day\") or what "
-#~ "body parts are trained (e.g. \"Arms and abs\")"
+#~ "A description of what is done on this day (e.g. \"Pull day\") or what body "
+#~ "parts are trained (e.g. \"Arms and abs\")"
 #~ msgstr ""
 #~ "Uma descrição do que é feito neste dia (ex.: \"Dia de Flexões\") ou que "
 #~ "partes do corpo são treinadas (ex.: \"Braços e abdominal\")"
@@ -4368,17 +4294,16 @@ msgstr "Re-submeter"
 #~ msgid "Day"
 #~ msgstr "Dia"
 
-#~ msgid ""
-#~ "Name or short description of the schedule. For example 'Program XYZ'."
+#~ msgid "Name or short description of the schedule. For example 'Program XYZ'."
 #~ msgstr "Nome ou descrição curta da agenda. Por exemplo 'Programa XYZ'."
 
 #~ msgid "Schedule active"
 #~ msgstr "Agenda ativa"
 
 #~ msgid ""
-#~ "Tick the box if you want to mark this schedule as your active one (will "
-#~ "be shown e.g. on your dashboard). All other schedules will then be marked "
-#~ "as inactive"
+#~ "Tick the box if you want to mark this schedule as your active one (will be "
+#~ "shown e.g. on your dashboard). All other schedules will then be marked as "
+#~ "inactive"
 #~ msgstr ""
 #~ "Marque a caixa se você quiser marcar esta imagem com a principal para o "
 #~ "exercício (irá ser mostrada, por exemplo, na busca). A primeira imagem é "
@@ -4388,11 +4313,11 @@ msgstr "Re-submeter"
 #~ msgstr "É um loop"
 
 #~ msgid ""
-#~ "Tick the box if you want to repeat the schedules in a loop (i.e. A, B, C, "
-#~ "A, B, C, and so on)"
+#~ "Tick the box if you want to repeat the schedules in a loop (i.e. A, B, C, A, "
+#~ "B, C, and so on)"
 #~ msgstr ""
-#~ "Marque a caixa se você quiser repetir a agenda em loop (isto é A, B, C, "
-#~ "A, B, C, e assim por diante)"
+#~ "Marque a caixa se você quiser repetir a agenda em loop (isto é A, B, C, A, B,"
+#~ " C, e assim por diante)"
 
 #~ msgid "schedule"
 #~ msgstr "Cronograma"
@@ -4458,8 +4383,7 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "A new workout session (impression, notes, time) will\n"
-#~ "be created if there isn't already one for the selected date. If there is, "
-#~ "it\n"
+#~ "be created if there isn't already one for the selected date. If there is, it\n"
 #~ "will simply be edited. Weight entries are always added."
 #~ msgstr ""
 #~ "Uma nova sessão de treino (impressão, notas, tempo) será\n"
@@ -4476,7 +4400,6 @@ msgstr "Re-submeter"
 #~ msgstr "Nenhum horário encontrado."
 
 #, fuzzy
-#~| msgid "Add one now."
 #~ msgid "Add one now"
 #~ msgstr "Adicionar um agora."
 
@@ -4488,35 +4411,23 @@ msgstr "Re-submeter"
 #~ "        sequência."
 
 #, fuzzy
-#~| msgid ""
-#~| "You can indicate how long you want to do each workout\n"
-#~| "        before jumping to the next. It is also possible to create a "
-#~| "loop, so you\n"
-#~| "        always do the same workouts in succession, e.g. A > B > C > A > "
-#~| "B > C and so on."
 #~ msgid ""
 #~ "You can indicate how long you want to do each workout\n"
-#~ "        before jumping to the next. It is also possible to create a loop, "
-#~ "so you\n"
-#~ "        always do the same workouts in succession, e.g. A > B > C > A > B "
-#~ "> C and so\n"
+#~ "        before jumping to the next. It is also possible to create a loop, so you\n"
+#~ "        always do the same workouts in succession, e.g. A > B > C > A > B > C and so\n"
 #~ "        on."
 #~ msgstr ""
 #~ "Você pode indicar por quanto tempo quer fazer cada treino\n"
-#~ "        antes de pular para o próximo. Também é possível criar um loop, "
-#~ "para que\n"
-#~ "        sempre faça os mesmos treinos em sequência, p. ex. A > B > C > A "
-#~ "> B > C e assim por diante."
+#~ "        antes de pular para o próximo. Também é possível criar um loop, para que\n"
+#~ "        sempre faça os mesmos treinos em sequência, p. ex. A > B > C > A > B > C e assim por diante."
 
 #~ msgid ""
 #~ "The currently active schedule will remain active (and be\n"
-#~ "        shown e.g. in your dashboard) till it reaches the last workout or "
-#~ "till you\n"
+#~ "        shown e.g. in your dashboard) till it reaches the last workout or till you\n"
 #~ "        deactivate it, if it is a loop."
 #~ msgstr ""
 #~ "O cronograma atual permanecerá ativo (e será\n"
-#~ "        mostrado, por exemplo, no seu dashboard) até que ele chegue no "
-#~ "último treino ou até você\n"
+#~ "        mostrado, por exemplo, no seu dashboard) até que ele chegue no último treino ou até você\n"
 #~ "        desativá-lo, caso seja um loop."
 
 #~ msgid "Add schedule"
@@ -4529,8 +4440,8 @@ msgstr "Re-submeter"
 #~ "This schedule is a loop and will go through the workouts above till you "
 #~ "deactivate it"
 #~ msgstr ""
-#~ "Este cronograma é um laço de repetição e irá percorrer os treinos acima "
-#~ "até que você desative-o"
+#~ "Este cronograma é um laço de repetição e irá percorrer os treinos acima até "
+#~ "que você desative-o"
 
 #~ msgid "Weeks"
 #~ msgstr "Semanas"
@@ -4557,13 +4468,11 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "Add as many workouts to the schedule as you want. You can\n"
-#~ "            edit the order by dragging and dropping them. It's also "
-#~ "possible to add one workout more\n"
+#~ "            edit the order by dragging and dropping them. It's also possible to add one workout more\n"
 #~ "            than once."
 #~ msgstr ""
 #~ "Adicione quantos treinos desejar ao cronograma. Você pode\n"
-#~ "            editar a ordem arrastando e soltando. Também é possível "
-#~ "adicionar um treino mais\n"
+#~ "            editar a ordem arrastando e soltando. Também é possível adicionar um treino mais\n"
 #~ "            que uma vez."
 
 #~ msgid "Export calendar file"
@@ -4573,25 +4482,15 @@ msgstr "Re-submeter"
 #~ msgstr "Exporte este cronograma com um ficheiro de calendário."
 
 #, fuzzy
-#~| msgid ""
-#~| "You can then import the file it into your calendar\n"
-#~| "                        application for example google calendar, outlook "
-#~| "or iCal. This will create\n"
-#~| "                        an appointment for each training day with the "
-#~| "appropriate exercises."
 #~ msgid ""
 #~ "You can then import the file it into your calendar\n"
-#~ "                        application for example google calendar, outlook "
-#~ "or iCal. This will create\n"
-#~ "                        an appointment for each training day with the "
-#~ "appropriate\n"
+#~ "                        application for example google calendar, outlook or iCal. This will create\n"
+#~ "                        an appointment for each training day with the appropriate\n"
 #~ "                        exercises."
 #~ msgstr ""
 #~ "Pode então importar o arquivo na sua aplicação\n"
-#~ "                        de calendário, como, por exemplo o Google "
-#~ "Calendar, Outlook ou iCal. Isso irá criar\n"
-#~ "                        um evento para cada dia de treino, com os "
-#~ "exercícios apropriados."
+#~ "                        de calendário, como, por exemplo o Google Calendar, Outlook ou iCal. Isso irá criar\n"
+#~ "                        um evento para cada dia de treino, com os exercícios apropriados."
 
 #~ msgid "Download as PDF"
 #~ msgstr "Baixe como PDF"
@@ -4602,13 +4501,11 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "If you do the same repetitions for all sets,\n"
-#~ "you can just enter one value: e.g. for 4 sets just enter one \"10\" for "
-#~ "the repetitions, this\n"
+#~ "you can just enter one value: e.g. for 4 sets just enter one \"10\" for the repetitions, this\n"
 #~ "automatically becomes \"4 x 10\"."
 #~ msgstr ""
 #~ "Se você fizer as mesmas repetições para todos os conjuntos,\n"
-#~ "você pode entrar com um valor: ex. para 4 conjuntos entre um \"10\" para "
-#~ "repetições, isto\n"
+#~ "você pode entrar com um valor: ex. para 4 conjuntos entre um \"10\" para repetições, isto\n"
 #~ "automaticamente tornará \"4 x 10\"."
 
 #~ msgid "Update"
@@ -4626,8 +4523,8 @@ msgstr "Re-submeter"
 #~ msgid ""
 #~ "Images show combined muscles as trained by the exercises on the workout."
 #~ msgstr ""
-#~ "As imagens mostram os músculos combinados como treinados pelos exercícios "
-#~ "no treino."
+#~ "As imagens mostram os músculos combinados como treinados pelos exercícios no "
+#~ "treino."
 
 #~ msgid "Use this template"
 #~ msgstr "Compartilha a página"
@@ -4728,8 +4625,7 @@ msgstr "Re-submeter"
 #~ msgstr ""
 #~ "Use o formulário para calcular o seu IMC (Índice de Massa Copórea).\n"
 #~ "Se você preencheu os dados na seção de peso, o último registr será\n"
-#~ "usado automaticamente. De outra forma o peso que você registrou aqui será "
-#~ "salvo\n"
+#~ "usado automaticamente. De outra forma o peso que você registrou aqui será salvo\n"
 #~ "como um novo registro."
 
 #~ msgid "Please make sure your height is within the appropriate range."
@@ -4743,12 +4639,10 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "If a license has been localized, e.g. the Creative Commons\n"
-#~ "            licenses for the different countries, add them as separate "
-#~ "entries here."
+#~ "            licenses for the different countries, add them as separate entries here."
 #~ msgstr ""
 #~ "Se uma licença for dependente da localização, como as licenças Creative\n"
-#~ "             Commons para os differentes países, adicione-as como "
-#~ "entradas separadas aqui."
+#~ "             Commons para os differentes países, adicione-as como entradas separadas aqui."
 
 #~ msgid "Add weight log"
 #~ msgstr "Registrar peso"
@@ -4791,8 +4685,7 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "If on a single day there is more than one entry with the\n"
-#~ "same number of repetitions, but different weights, only the entry with "
-#~ "the\n"
+#~ "same number of repetitions, but different weights, only the entry with the\n"
 #~ "higher weight is shown in the diagram."
 #~ msgstr ""
 #~ "Se num dia houver mais que um registo com o\n"
@@ -4801,13 +4694,11 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "Note that only entries with a weight unit (kg or lb) and\n"
-#~ "repetitions are charted, other combinations such as time or until "
-#~ "failure\n"
+#~ "repetitions are charted, other combinations such as time or until failure\n"
 #~ "are ignored here."
 #~ msgstr ""
-#~ "Note que somente as entradas com uma unidade de peso (kg ou lb) "
-#~ "erepetições são traçadas, outras combinações como tempo ou até falharsão "
-#~ "ignoradas aqui."
+#~ "Note que somente as entradas com uma unidade de peso (kg ou lb) erepetições "
+#~ "são traçadas, outras combinações como tempo ou até falharsão ignoradas aqui."
 
 #~ msgid "Add ingredient"
 #~ msgstr "Adicione um ingrediente"
@@ -4832,11 +4723,10 @@ msgstr "Re-submeter"
 
 #, python-brace-format
 #~ msgid ""
-#~ "The user {request.user.username} submitted a new ingredient \"{self."
-#~ "name}\"."
+#~ "The user {request.user.username} submitted a new ingredient \"{self.name}\"."
 #~ msgstr ""
-#~ "O utilizador {request.user.username} submeteu um novo ingrediente \"{self."
-#~ "name}\"."
+#~ "O utilizador {request.user.username} submeteu um novo ingrediente "
+#~ "\"{self.name}\"."
 
 #~ msgid "Submission date"
 #~ msgstr "Data de submissão"
@@ -4846,13 +4736,12 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "This user submitted ingredient is pending a decision to be\n"
-#~ "included in the database. Till then, it will not be shown in the overview "
-#~ "or\n"
+#~ "included in the database. Till then, it will not be shown in the overview or\n"
 #~ "the search."
 #~ msgstr ""
-#~ "Este utilizador submeteu um ingrediente que está com decisão pendente "
-#~ "sobre a inclusão no banco de dados. Até então, não será mostrado na visão "
-#~ "geral ou na busca."
+#~ "Este utilizador submeteu um ingrediente que está com decisão pendente sobre a"
+#~ " inclusão no banco de dados. Até então, não será mostrado na visão geral ou "
+#~ "na busca."
 
 #~ msgid "Accept"
 #~ msgstr "Aceito"
@@ -4886,11 +4775,11 @@ msgstr "Re-submeter"
 #~ msgstr "Este treino é parte de um plano:"
 
 #~ msgid ""
-#~ "The current workout is selected from your active schedule or, if you "
-#~ "don't have one, simply by date."
+#~ "The current workout is selected from your active schedule or, if you don't "
+#~ "have one, simply by date."
 #~ msgstr ""
-#~ "O treino atual é selecionado a partir de sua programação ativa ou, se "
-#~ "você não tiver, simplesmente por data."
+#~ "O treino atual é selecionado a partir de sua programação ativa ou, se você "
+#~ "não tiver, simplesmente por data."
 
 #~ msgid "Share this page"
 #~ msgstr "Compartilha a página"
@@ -4899,8 +4788,7 @@ msgstr "Re-submeter"
 #~ "Before you share links on social media you need to allow external\n"
 #~ "                            access."
 #~ msgstr ""
-#~ "Antes de compartilhar links nas redes sociais você precisa permitir "
-#~ "acesso\n"
+#~ "Antes de compartilhar links nas redes sociais você precisa permitir acesso\n"
 #~ "                            externo."
 
 #~ msgid "That's done here"
@@ -4909,11 +4797,11 @@ msgstr "Re-submeter"
 #, python-brace-format
 #~ msgid ""
 #~ "The total energy ({energy}kcal) is not the approximate sum of the energy "
-#~ "provided by protein, carbohydrates and fat ({energy_calculated}kcal +/-"
-#~ "{energy_approx}%)"
+#~ "provided by protein, carbohydrates and fat ({energy_calculated}kcal "
+#~ "+/-{energy_approx}%)"
 #~ msgstr ""
-#~ "A energia total ({energy}kcal) não é a soma aproximada da energia "
-#~ "fornecida por proteínas, carboidratos e gordura ({energy_calculated}kcal "
+#~ "A energia total ({energy}kcal) não é a soma aproximada da energia fornecida "
+#~ "por proteínas, carboidratos e gordura ({energy_calculated}kcal "
 #~ "+/-{energy_approx}%)"
 
 #~ msgid "ingredient name"
@@ -4938,12 +4826,12 @@ msgstr "Re-submeter"
 #~ msgstr "Adicione uma nova entrada diária"
 
 #~ msgid ""
-#~ "Click to add an entry to your nutrition diary for today. You can either "
-#~ "log a meal as you defined it, or entry any number of custom entries."
+#~ "Click to add an entry to your nutrition diary for today. You can either log a"
+#~ " meal as you defined it, or entry any number of custom entries."
 #~ msgstr ""
-#~ "Clique aqui para adicionar uma anotação ao seu diário alimentar. Você "
-#~ "pode registrar uma refeição como você a definiu ou inserir um número de "
-#~ "entradas personalizadas."
+#~ "Clique aqui para adicionar uma anotação ao seu diário alimentar. Você pode "
+#~ "registrar uma refeição como você a definiu ou inserir um número de entradas "
+#~ "personalizadas."
 
 #~ msgid "Add custom diary entry"
 #~ msgstr "Adicionar entrada de diário personalizada"
@@ -5020,8 +4908,7 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "You have selected that this nutritional plan has a\n"
-#~ "            goal amount of calories. Use the calculator or enter the "
-#~ "value\n"
+#~ "            goal amount of calories. Use the calculator or enter the value\n"
 #~ "            yourself."
 #~ msgstr ""
 #~ "Você selecionou que este plano de nutrição possui\n"
@@ -5031,8 +4918,8 @@ msgstr "Re-submeter"
 #~ "If you find the ingredient list too short, you might want to activate the "
 #~ "preference to also show English ingredients."
 #~ msgstr ""
-#~ "Se você achar a lista de ingredientes muito curta, você talvez queira "
-#~ "ativar a preferência para visualizar os ingrediente em inglês."
+#~ "Se você achar a lista de ingredientes muito curta, você talvez queira ativar "
+#~ "a preferência para visualizar os ingrediente em inglês."
 
 #~ msgid "Edit nutrition plan"
 #~ msgstr "Edite plano de nutrição"
@@ -5056,9 +4943,6 @@ msgstr "Re-submeter"
 #~ msgstr "Este conteúdo está disponível sob as seguintes licenças:"
 
 #, fuzzy, python-format
-#~| msgid ""
-#~| "%(name_original)s is too similar to existing exercise "
-#~| "\"%(exercise_name)s\""
 #~ msgid "%(name)s is too similar to existing exercise \"%(exercise_name)s\""
 #~ msgstr ""
 #~ "%(name_original)s é muito semelhante ao exercício existente "
@@ -5099,56 +4983,55 @@ msgstr "Re-submeter"
 #~ msgstr "Suas vantagens"
 
 #~ msgid ""
-#~ "wger Workout Manager is a free, open source web application that manages "
-#~ "your exercises, workouts and nutrition. It started as a pet project of "
-#~ "mine to replace my growing collection of different spreadsheets, but it "
-#~ "has become something other people could also find useful."
+#~ "wger Workout Manager is a free, open source web application that manages your"
+#~ " exercises, workouts and nutrition. It started as a pet project of mine to "
+#~ "replace my growing collection of different spreadsheets, but it has become "
+#~ "something other people could also find useful."
 #~ msgstr ""
-#~ "O wger Workout Manager é uma aplicação web gratuita e de código aberto "
-#~ "que gira os seus exercícios, exercícios e nutrição. Começou como um "
-#~ "projeto do meu animal de estimação para substituir a minha crescente "
-#~ "coleção de planilhas diferentes, mas tornou-se algo que outras pessoas "
-#~ "também poderiam achar útil."
+#~ "O wger Workout Manager é uma aplicação web gratuita e de código aberto que "
+#~ "gira os seus exercícios, exercícios e nutrição. Começou como um projeto do "
+#~ "meu animal de estimação para substituir a minha crescente coleção de "
+#~ "planilhas diferentes, mas tornou-se algo que outras pessoas também poderiam "
+#~ "achar útil."
 
 #~ msgid ""
-#~ "You can create and manage flexible workout routines for any goals you "
-#~ "have. Select exactly which exercises you'll do and how many repetitions, "
-#~ "time or distance you want to do them. You can also combine different "
-#~ "workouts into a schedule."
+#~ "You can create and manage flexible workout routines for any goals you have. "
+#~ "Select exactly which exercises you'll do and how many repetitions, time or "
+#~ "distance you want to do them. You can also combine different workouts into a "
+#~ "schedule."
 #~ msgstr ""
-#~ "Pode criar e gerir rotinas de treino flexíveis para quaisquer objetivos "
-#~ "que tenha. Selecione exatamente quais exercícios fará e quantas "
-#~ "repetições, horas ou distância deseja fazer. Também pode combinar "
-#~ "diferentes exercícios numa programação."
+#~ "Pode criar e gerir rotinas de treino flexíveis para quaisquer objetivos que "
+#~ "tenha. Selecione exatamente quais exercícios fará e quantas repetições, horas"
+#~ " ou distância deseja fazer. Também pode combinar diferentes exercícios numa "
+#~ "programação."
 
 #~ msgid ""
 #~ "Create your personal diet plan by creating as many meals with as many "
 #~ "different ingredients as you need. The application will calculate the "
-#~ "nutritional values (total energy, protein, carbohydrates, and so on) "
-#~ "about the whole plan as well as the indivual meals."
+#~ "nutritional values (total energy, protein, carbohydrates, and so on) about "
+#~ "the whole plan as well as the indivual meals."
 #~ msgstr ""
 #~ "Crie o seu plano de dieta pessoal criando quantas refeições com quantos "
-#~ "ingredientes você precisar. A aplicação irá calcular os valores "
-#~ "nutricionais (total de energia, proteina, carboidratos, assim por diante) "
-#~ "sobre o plano total como também para cada refeição individual."
+#~ "ingredientes você precisar. A aplicação irá calcular os valores nutricionais "
+#~ "(total de energia, proteina, carboidratos, assim por diante) sobre o plano "
+#~ "total como também para cada refeição individual."
 
 #~ msgid "Diary"
 #~ msgstr "Diário"
 
 #~ msgid ""
 #~ "Enter the weights and repetitions you did for each exercise to generate "
-#~ "diagrams that let you see at a glance how well you are doing. The raw "
-#~ "numbers are of course still accessible."
+#~ "diagrams that let you see at a glance how well you are doing. The raw numbers"
+#~ " are of course still accessible."
 #~ msgstr ""
-#~ "Informe os pesos e repetições que você fez para cada exercício para gerar "
-#~ "os diagramas que possa ver rapidamente o quão bem você está o seu "
-#~ "desempenho. Os números brutos ainda estão acessíveis."
+#~ "Informe os pesos e repetições que você fez para cada exercício para gerar os "
+#~ "diagramas que possa ver rapidamente o quão bem você está o seu desempenho. Os"
+#~ " números brutos ainda estão acessíveis."
 
 #~ msgid ""
 #~ "You can also enter notes and a general impression (great, neutral, etc.)"
 #~ msgstr ""
-#~ "Você pode também informar notas e uma impressão geral (ótimo, neutro, "
-#~ "etc.)"
+#~ "Você pode também informar notas e uma impressão geral (ótimo, neutro, etc.)"
 
 #~ msgid "Among many others"
 #~ msgstr "Entre muitos outros"
@@ -5157,52 +5040,50 @@ msgstr "Re-submeter"
 #~ msgstr "Rastreador de peso"
 
 #~ msgid ""
-#~ "Keep track of your progress with the body weight chart. This makes it "
-#~ "easy to see if you are reaching your goals or need to adjust something."
+#~ "Keep track of your progress with the body weight chart. This makes it easy to"
+#~ " see if you are reaching your goals or need to adjust something."
 #~ msgstr ""
-#~ "Acompanheo o progresso com o gráfico de peso corporal. Isto torna fácil "
-#~ "de ver se você está atingindo os seus objetivs ou precisa ajustar algo."
+#~ "Acompanheo o progresso com o gráfico de peso corporal. Isto torna fácil de "
+#~ "ver se você está atingindo os seus objetivs ou precisa ajustar algo."
 
 #~ msgid ""
 #~ "Get an overview of how and when you trained as well as how you personally "
-#~ "felt you performed. Access all your individual diary entries with one "
-#~ "click."
+#~ "felt you performed. Access all your individual diary entries with one click."
 #~ msgstr ""
 #~ "Obtenha uma visão geral de como e quando você treinou assim como você "
-#~ "pessoalmente sentiu a sua performance. Acesso todos os seus registros "
-#~ "diários com um click."
+#~ "pessoalmente sentiu a sua performance. Acesso todos os seus registros diários"
+#~ " com um click."
 
 #~ msgid "Exercise database"
 #~ msgstr "Banco de dados de exercícios"
 
 #~ msgid ""
-#~ "The exercise database contains more than hundred exercises from which you "
-#~ "can choose when creating a workout. You can view them by category and "
-#~ "equipment used or muscles trained."
+#~ "The exercise database contains more than hundred exercises from which you can"
+#~ " choose when creating a workout. You can view them by category and equipment "
+#~ "used or muscles trained."
 #~ msgstr ""
-#~ "O banco de dados de exercício contém mais de centenas de exercícios dos "
-#~ "quais você pode escolher quando criar um exercício. Você pode visualizá-"
-#~ "los por categoria e equipamentos usados ou músculos treinados."
+#~ "O banco de dados de exercício contém mais de centenas de exercícios dos quais"
+#~ " você pode escolher quando criar um exercício. Você pode visualizá-los por "
+#~ "categoria e equipamentos usados ou músculos treinados."
 
 #~ msgid "Gym management"
 #~ msgstr "Gestão de academia"
 
 #~ msgid ""
-#~ "Use the application for your gym to manage its members, their workouts "
-#~ "and attendance. You can manage the members' contracts, keep notes and "
-#~ "upload any files you might need."
+#~ "Use the application for your gym to manage its members, their workouts and "
+#~ "attendance. You can manage the members' contracts, keep notes and upload any "
+#~ "files you might need."
 #~ msgstr ""
 #~ "Use a aplicação para a sua academia gerir os seus alunos, os treinos e "
 #~ "frequências deles. Pode gerir os contratos dos alunos, manter anotações e "
 #~ "salvar quaisquer ficheiros que possa necessitar."
 
 #~ msgid ""
-#~ "wger provides a REST API with full read and write access to all data so "
-#~ "you can integrate your own application and tools."
+#~ "wger provides a REST API with full read and write access to all data so you "
+#~ "can integrate your own application and tools."
 #~ msgstr ""
-#~ "Wger fornece uma API REST com acesso completo de leitura e gravação a "
-#~ "todos os dados para que você possa integrar sua própria aplicação e "
-#~ "ferramentas."
+#~ "Wger fornece uma API REST com acesso completo de leitura e gravação a todos "
+#~ "os dados para que você possa integrar sua própria aplicação e ferramentas."
 
 #, python-format
 #~ msgid "100%% Free <br>and <br>Open Source"
@@ -5216,17 +5097,13 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "Use the configuration to select in what languages the\n"
-#~ "exercises and ingredients will be shown for the current language (for "
-#~ "example\n"
-#~ "the exercises should be shown in languages A, B and C; the ingredients "
-#~ "only\n"
+#~ "exercises and ingredients will be shown for the current language (for example\n"
+#~ "the exercises should be shown in languages A, B and C; the ingredients only\n"
 #~ "in A)."
 #~ msgstr ""
 #~ "Use a configuração para selecionar em qual idioma os\n"
-#~ "exercícios e ingredientes serão mostrados para o idioma atual (por "
-#~ "exemplo,\n"
-#~ "os exercícios devem ser mostrados nas linguagens A, B, C; os ingredientes "
-#~ "somente\n"
+#~ "exercícios e ingredientes serão mostrados para o idioma atual (por exemplo,\n"
+#~ "os exercícios devem ser mostrados nas linguagens A, B, C; os ingredientes somente\n"
 #~ "no A)."
 
 #~ msgctxt "as in sorted by category"
@@ -5292,8 +5169,7 @@ msgstr "Re-submeter"
 #~ "It is now available on the exercise and muscle overview and can be\n"
 #~ "added to workouts. You can access it on this address:"
 #~ msgstr ""
-#~ "Está disponível agora na visãop geral do exercício ou do músculo e pode "
-#~ "ser\n"
+#~ "Está disponível agora na visãop geral do exercício ou do músculo e pode ser\n"
 #~ "adicionado aos treinos. Você pode acessa-lo neste endereço:"
 
 #~ msgid "Submitting an exercise"
@@ -5308,20 +5184,14 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "After you submit the form, the administrators will be notified.\n"
-#~ "Once it is reviewed, it will be added to the database. Till this "
-#~ "happens,\n"
-#~ "it will not be visible in the overview or the search. In case you added "
-#~ "your email\n"
-#~ "when you registered, you will get notified when the process is completed "
-#~ "successfully."
+#~ "Once it is reviewed, it will be added to the database. Till this happens,\n"
+#~ "it will not be visible in the overview or the search. In case you added your email\n"
+#~ "when you registered, you will get notified when the process is completed successfully."
 #~ msgstr ""
 #~ "Depois de submeter o formulário, o administrador será notificado.\n"
-#~ "Uma vez que seja revisado, ele será adicionado ao banco de dados. Até "
-#~ "isto acontecer,\n"
-#~ "ele não será visível na visão geral ou na pesquisa. Caso você tenha "
-#~ "adicionado seu email\n"
-#~ "quando você se registrou, você será notificado quando o processo for "
-#~ "completo com sucesso."
+#~ "Uma vez que seja revisado, ele será adicionado ao banco de dados. Até isto acontecer,\n"
+#~ "ele não será visível na visão geral ou na pesquisa. Caso você tenha adicionado seu email\n"
+#~ "quando você se registrou, você será notificado quando o processo for completo com sucesso."
 
 #~ msgid "Correcting an exercise"
 #~ msgstr "Corrige um exercício"
@@ -5392,14 +5262,13 @@ msgstr "Re-submeter"
 #~ msgid ""
 #~ "No exercises for this muscle. Add or edit an exercise and set the muscle."
 #~ msgstr ""
-#~ "Não há exercícios para este músculo. Adicione ou edite um exercício e "
-#~ "defina o músculo."
+#~ "Não há exercícios para este músculo. Adicione ou edite um exercício e defina "
+#~ "o músculo."
 
 #~ msgid "Add exercise"
 #~ msgstr "Adicionar exercício"
 
-#~ msgid ""
-#~ "Thank you. Once the changes are reviewed the exercise will be updated."
+#~ msgid "Thank you. Once the changes are reviewed the exercise will be updated."
 #~ msgstr "Obrigado, uma vez revisadas, as mudanças serão feitas."
 
 #, python-brace-format
@@ -5476,12 +5345,10 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "If you want to further help and improve this project,\n"
-#~ "you might also be interested <a href=\"%(contribute)s\">in contributing</"
-#~ "a>."
+#~ "you might also be interested <a href=\"%(contribute)s\">in contributing</a>."
 #~ msgstr ""
 #~ "Se você quiser ajudar ainda mais este projeto,\n"
-#~ "você provavelmente estará interessado <a href=\"%(contribute)s\">em "
-#~ "contribuir</a>."
+#~ "você provavelmente estará interessado <a href=\"%(contribute)s\">em contribuir</a>."
 
 #~ msgid "Feedback form"
 #~ msgstr "Formulário de feedback"
@@ -5491,8 +5358,7 @@ msgstr "Re-submeter"
 #~ "if you want an answer, you need to include some way to contact you."
 #~ msgstr ""
 #~ "Um simples formulário de contato. Lembre-se que\n"
-#~ "se você quiser uma resposta, você precisa incluir algum meio de contactar "
-#~ "você."
+#~ "se você quiser uma resposta, você precisa incluir algum meio de contactar você."
 
 #~ msgid "Twitter"
 #~ msgstr "Twitter"
@@ -5521,21 +5387,15 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "wger Workout Manager is build by volunteers,\n"
-#~ "the development process is open and freely accessible to anybody "
-#~ "interested.\n"
+#~ "the development process is open and freely accessible to anybody interested.\n"
 #~ "If you are new to the free software world, we recommend to take a\n"
-#~ "look <a href=\"http://schlitt.info/opensource/"
-#~ "blog/0541_10_golden_rules_for_starting_with_open_source.html\">this\n"
-#~ "article</a> which summarizes they way open source projects work very "
-#~ "well. "
+#~ "look <a href=\"http://schlitt.info/opensource/blog/0541_10_golden_rules_for_starting_with_open_source.html\">this\n"
+#~ "article</a> which summarizes they way open source projects work very well. "
 #~ msgstr ""
 #~ "wger Gestor de Treinos é desenvolvido por voluntários,\n"
-#~ "o processo de desenvolvimento é aberto e livremente acessível a qualquer "
-#~ "interessado.\n"
-#~ "Se você é novo ao mundo do software livre, nós recomendamos que você dê "
-#~ "uma\n"
-#~ "olhada <a href=\"http://schlitt.info/opensource/"
-#~ "blog/0541_10_golden_rules_for_starting_with_open_source.html\">neste\n"
+#~ "o processo de desenvolvimento é aberto e livremente acessível a qualquer interessado.\n"
+#~ "Se você é novo ao mundo do software livre, nós recomendamos que você dê uma\n"
+#~ "olhada <a href=\"http://schlitt.info/opensource/blog/0541_10_golden_rules_for_starting_with_open_source.html\">neste\n"
 #~ "artigo</a> que resume muito bem como os projetos open source trabalham. "
 
 #~ msgid ""
@@ -5553,48 +5413,33 @@ msgstr "Re-submeter"
 #~ msgid ""
 #~ "Simply use the site and tell your friends\n"
 #~ "how useful it is! ;) . When you find something that you specially liked,\n"
-#~ "could need some improvements or just doesn't work, tell us! This might "
-#~ "not sound\n"
+#~ "could need some improvements or just doesn't work, tell us! This might not sound\n"
 #~ "like much, but is incredibly important!"
 #~ msgstr ""
 #~ "Simplesmente use o site e conte para seus amigos\n"
-#~ "o quão útil ele é! ;) . Quando você encontrar algo que você realmente "
-#~ "gostar,\n"
-#~ "que precise ser melhorado ou somente não funcione, nos conte! Isto pode "
-#~ "não parecer\n"
+#~ "o quão útil ele é! ;) . Quando você encontrar algo que você realmente gostar,\n"
+#~ "que precise ser melhorado ou somente não funcione, nos conte! Isto pode não parecer\n"
 #~ "muito, mas é incrívelmente importante!"
 
 #~ msgid ""
 #~ "Submit those cool exercises that you absolutely\n"
-#~ "love and do every week but are not in the list yet. If you think some "
-#~ "description\n"
+#~ "love and do every week but are not in the list yet. If you think some description\n"
 #~ "is too short or some other detail is missing or could be improved, tell!"
 #~ msgstr ""
 #~ "Submete esses exercícios bacanas que você realmente\n"
-#~ "adora e faz toda semana mas ainda não estão na lista. Se você achar que "
-#~ "alguma descrição\n"
-#~ "está muito simples ou está faltando algum detalhes, sinta-se à vontade "
-#~ "para melhorar, nos dizendo a respeito!"
+#~ "adora e faz toda semana mas ainda não estão na lista. Se você achar que alguma descrição\n"
+#~ "está muito simples ou está faltando algum detalhes, sinta-se à vontade para melhorar, nos dizendo a respeito!"
 
 #, fuzzy
-#~| msgid ""
-#~| "Do you want to use wger in your own language?\n"
-#~| "Do you think the current translation could be improved?\n"
-#~| "The translations are easily managed and edited online, if you are "
-#~| "interested,\n"
-#~| "go to the transifex site, request access and we will set everything\n"
-#~| "up. "
 #~ msgid ""
 #~ "Do you want to use wger in your own language?\n"
 #~ "Do you think the current translation could be improved?\n"
-#~ "The translations are easily managed and edited online, if you are "
-#~ "interested,\n"
+#~ "The translations are easily managed and edited online, if you are interested,\n"
 #~ "visit the link and start translating."
 #~ msgstr ""
 #~ "Você que usar o wger no seu próprio idioma?\n"
 #~ "Você acha que o estado atual da tradução pde ser melhorado?\n"
-#~ "As traduções são fácilmente gerenciados e editadas online, se você "
-#~ "estiver interessado,\n"
+#~ "As traduções são fácilmente gerenciados e editadas online, se você estiver interessado,\n"
 #~ "vá até o site transifex, solicite acesso e nós iremos preparar tudo\n"
 #~ "para você trabalhar."
 
@@ -5605,10 +5450,8 @@ msgstr "Re-submeter"
 #~ "on this."
 #~ msgstr ""
 #~ "Obviamente, você está altamente encorajado à clonar o\n"
-#~ "repositório e começar a hackear! Uma vez que esteja pronto, envie um pull "
-#~ "request e nós\n"
-#~ "iremos mostr-a-lo ao mundo. De uma olhada no guia do desenvolvedor para "
-#~ "mais detalhes\n"
+#~ "repositório e começar a hackear! Uma vez que esteja pronto, envie um pull request e nós\n"
+#~ "iremos mostr-a-lo ao mundo. De uma olhada no guia do desenvolvedor para mais detalhes\n"
 #~ "sobre isto."
 
 #~ msgid "Reporting a problem"
@@ -5616,21 +5459,15 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "\n"
-#~ "No software is perfect. For some severe errors, an email will be "
-#~ "automatically sent, but\n"
-#~ "not always, so I depend on you reporting everything that didn't behave as "
-#~ "expected.\n"
-#~ "Please describe in as much detail as you can what you were doing when the "
-#~ "error\n"
+#~ "No software is perfect. For some severe errors, an email will be automatically sent, but\n"
+#~ "not always, so I depend on you reporting everything that didn't behave as expected.\n"
+#~ "Please describe in as much detail as you can what you were doing when the error\n"
 #~ "happened.\n"
 #~ msgstr ""
 #~ "\n"
-#~ "Nenhum software é perfeito. Para alguns erros graves, um e-mail será "
-#~ "enviado \n"
-#~ "automaticamente, mas nem sempre, então eu dependo que você reporte tudo "
-#~ "que não se comporte da maneira esperada.\n"
-#~ "Por favor, descreva o problema com o máximo de detalhes relevantes "
-#~ "possível, como o que \n"
+#~ "Nenhum software é perfeito. Para alguns erros graves, um e-mail será enviado \n"
+#~ "automaticamente, mas nem sempre, então eu dependo que você reporte tudo que não se comporte da maneira esperada.\n"
+#~ "Por favor, descreva o problema com o máximo de detalhes relevantes possível, como o que \n"
 #~ "você estava fazendo quando o error ocorreu.\n"
 
 #~ msgid "report problem to the issue tracker"
@@ -5641,22 +5478,17 @@ msgstr "Re-submeter"
 
 #~ msgid ""
 #~ "\n"
-#~ "The issue tracker can also be used to document enhancements to the "
-#~ "software.\n"
+#~ "The issue tracker can also be used to document enhancements to the software.\n"
 #~ "If you have some suggestions or think a feature is missing, feel\n"
-#~ "free to open a ticket. This can be anything from a slight change to a "
-#~ "whole\n"
+#~ "free to open a ticket. This can be anything from a slight change to a whole\n"
 #~ "new section of the site. Please keep in mind that not all wishes can be\n"
 #~ "implemented."
 #~ msgstr ""
 #~ "\n"
-#~ "O issue tracker pode ser usado também para documentar as melhorias "
-#~ "desejadas.\n"
+#~ "O issue tracker pode ser usado também para documentar as melhorias desejadas.\n"
 #~ "Se você tiver alguma sugestão ou estiver achando que alguma \n"
-#~ "funcionalidade está faltando, sinta-se à vontade para abrir um chamado. "
-#~ "Pode ser \n"
-#~ "qualquer coisas desde uma pequena mudança até uma nova seção no site. Por "
-#~ "favor,\n"
+#~ "funcionalidade está faltando, sinta-se à vontade para abrir um chamado. Pode ser \n"
+#~ "qualquer coisas desde uma pequena mudança até uma nova seção no site. Por favor,\n"
 #~ "tenha em mente que nem todos os desejos serão implementados."
 
 #~ msgid "report wish to the issue tracker"
@@ -5677,29 +5509,23 @@ msgstr "Re-submeter"
 #~ msgid ""
 #~ "wger Workout Manager is Free/Libre Open Source\n"
 #~ "Software (FLOSS)."
-#~ msgstr ""
-#~ "wger Gestor de Treinos é um software Free/Libre Open Source (FLOSS)."
+#~ msgstr "wger Gestor de Treinos é um software Free/Libre Open Source (FLOSS)."
 
 #~ msgid ""
 #~ "wger Workout Manager is released under the <strong>Affero GNU\n"
-#~ "General Public License (AGPL)  Version 3+</strong> and can (under the "
-#~ "conditions\n"
-#~ "of the license) be used, modified and distributed (also with "
-#~ "modifications)\n"
+#~ "General Public License (AGPL)  Version 3+</strong> and can (under the conditions\n"
+#~ "of the license) be used, modified and distributed (also with modifications)\n"
 #~ "without restrictions."
 #~ msgstr ""
 #~ "wger Gestor de Treinos é lançado sob a licença <strong>Affero GNU\n"
-#~ "General Public License (AGPL) versão 3+</strong> e pode (sob certas "
-#~ "condições\n"
-#~ "da licença) ser usado, modificado e distribuido (juntamente com as "
-#~ "modificações)\n"
+#~ "General Public License (AGPL) versão 3+</strong> e pode (sob certas condições\n"
+#~ "da licença) ser usado, modificado e distribuido (juntamente com as modificações)\n"
 #~ "sem restrições."
 
 #~ msgid ""
 #~ "A copy the license text is contained in every wger Workout\n"
 #~ "Manager release (LICENSE.txt) and can be read online on the website of\n"
-#~ "<a href='https://www.gnu.org/licenses/agpl-3.0.en.html'>the GNU project</"
-#~ "a>."
+#~ "<a href='https://www.gnu.org/licenses/agpl-3.0.en.html'>the GNU project</a>."
 #~ msgstr ""
 #~ "Uma cópia do texto da licença está em cada versão do wger Gestor de "
 #~ "Exercícios (LICENSE.txt) e pode ser lida online no website do <a "
@@ -5717,8 +5543,7 @@ msgstr "Re-submeter"
 #~ msgid ""
 #~ "Default duration in seconds of pauses used by the timer in the gym mode."
 #~ msgstr ""
-#~ "Duração padrão em segundos das pausas usado pelo cronômetro no modo "
-#~ "academia."
+#~ "Duração padrão em segundos das pausas usado pelo cronômetro no modo academia."
 
 #~ msgid "The goal or description of the new workout."
 #~ msgstr "O objetivo ou descrição do novo treino."
