@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import { Logo, Notice } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
+import { safeNext } from '@/lib/redirect';
 import { DevLoginForm } from './DevLoginForm';
 import { GoogleButton } from './GoogleButton';
 
 export const metadata: Metadata = { title: 'Entrar' };
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string }> }) {
-  const { erro } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ erro?: string; next?: string }> }) {
+  const { erro, next: rawNext } = await searchParams;
+  const next = safeNext(rawNext);
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
   const devLogin = process.env.KINUTRI_DEV_LOGIN === '1';
 
@@ -21,14 +23,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div className="mt-6 flex flex-col gap-4">
           {erro && <Notice tone="error">{erro}</Notice>}
           {googleClientId ? (
-            <GoogleButton clientId={googleClientId} />
+            <GoogleButton clientId={googleClientId} next={next} />
           ) : (
             <Notice>O login com Google ainda não foi configurado neste servidor.</Notice>
           )}
           {devLogin && (
             <details className="rounded-xl border border-navy-100 p-3 text-sm" open={!googleClientId}>
               <summary className="cursor-pointer font-medium text-navy-700">Acesso de desenvolvimento</summary>
-              <DevLoginForm />
+              <DevLoginForm next={next} />
             </details>
           )}
         </div>

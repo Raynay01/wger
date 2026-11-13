@@ -80,6 +80,12 @@ export async function invitePatient(formData: FormData) {
   redirect(`/pro/pacientes/novo?convite=${id}`);
 }
 
+/** Emails the invitation, only when the professional asks for it */
+export async function sendInvitationEmail(formData: FormData) {
+  await attempt(formData, () => api(`care-relationship/${text(formData, 'id')}/send-email/`, { method: 'POST' }));
+  redirect(withParam(back(formData), 'enviado', '1'));
+}
+
 export async function relationshipAction(formData: FormData) {
   const action = text(formData, 'action');
   if (!['pause', 'resume', 'end'].includes(action)) {

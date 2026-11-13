@@ -27,6 +27,13 @@ Configuração do Google:
 `KINUTRI_DEV_LOGIN=1` mostra também um formulário de usuário e senha, para desenvolvimento e testes. Não use em
 produção.
 
+## Convites por e-mail
+
+Criar um convite não envia nada. O profissional envia quando quiser, pelo botão "Enviar convite por e-mail"
+(reenvio no máximo a cada 10 minutos), ou copia o link do convite e manda por outro canal. O e-mail sai pelo
+servidor de e-mail configurado no Django (variáveis de SMTP do wger) e o link aponta para `WEB_APP_URL`
+(ex.: `https://app.kinutri.com.br`). Em desenvolvimento os e-mails só aparecem no terminal do Django.
+
 ## Rodar localmente
 
 ```bash

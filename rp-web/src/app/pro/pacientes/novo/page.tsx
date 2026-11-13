@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { ErrorFromQuery } from '@/components/ErrorFromQuery';
+import { SendInvitation } from '@/components/SendInvitation';
 import { Button, Card, Field, inputClass, Notice } from '@/components/ui';
 import { api } from '@/lib/api';
 import { PROFESSION_LABELS } from '@/lib/brand';
@@ -10,8 +11,8 @@ import { invitePatient } from '../../actions';
 
 export const metadata: Metadata = { title: 'Convidar paciente' };
 
-export default async function InvitePage({ searchParams }: { searchParams: Promise<{ erro?: string; convite?: string }> }) {
-  const { erro, convite } = await searchParams;
+export default async function InvitePage({ searchParams }: { searchParams: Promise<{ erro?: string; convite?: string; enviado?: string }> }) {
+  const { erro, convite, enviado } = await searchParams;
   const { organizations, registrations } = await professionalContext();
   const disciplines = registrations.filter(r => r.status !== 'rejected').map(r => r.discipline);
 
@@ -31,10 +32,14 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
 
       {invited && (
         <Card title="Convite criado">
-          <p className="text-sm text-gray-700">
-            O paciente vê o convite ao entrar com o e-mail <strong>{invited.invited_email}</strong>. Se ele usar outro e-mail do
-            Google, envie este link (por WhatsApp, por exemplo):
+          {enviado && <Notice tone="success">Convite enviado por e-mail para {invited.invited_email}.</Notice>}
+          <p className="mt-2 text-sm text-gray-700">
+            O paciente vê o convite ao entrar com o e-mail <strong>{invited.invited_email}</strong>. Nada é enviado
+            automaticamente: envie por e-mail quando quiser, ou mande o link abaixo (por WhatsApp, por exemplo).
           </p>
+          <div className="mt-3">
+            <SendInvitation relationship={invited} back={`/pro/pacientes/novo?convite=${invited.id}`} />
+          </div>
           <input readOnly value={link} className={`${inputClass} mt-3 font-mono text-xs`} aria-label="Link do convite" />
         </Card>
       )}

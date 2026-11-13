@@ -60,7 +60,7 @@ export default async function InvitationLinkPage({
               </Button>
             </form>
           ) : (
-            <LinkButton href="/entrar" className="w-full">
+            <LinkButton href={`/entrar?${new URLSearchParams({ next: `/convite/${id}?token=${token ?? ''}` })}`} className="w-full">
               Entrar para aceitar
             </LinkButton>
           )}

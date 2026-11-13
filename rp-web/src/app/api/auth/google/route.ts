@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { loginWithGoogle } from '@/lib/auth';
+import { safeNext } from '@/lib/redirect';
 import { ACCESS_COOKIE, cookieOptions, REFRESH_COOKIE, REFRESH_MAX_AGE } from '@/lib/session';
 
 export async function POST(request: Request) {
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: result.message }, { status: 401 });
   }
 
-  const response = NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true, next: safeNext(body.next) });
   response.cookies.set(ACCESS_COOKIE, result.tokens.access, cookieOptions(60 * 60));
   response.cookies.set(REFRESH_COOKIE, result.tokens.refresh, cookieOptions(REFRESH_MAX_AGE));
   return response;

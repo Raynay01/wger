@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ErrorFromQuery } from '@/components/ErrorFromQuery';
+import { SendInvitation } from '@/components/SendInvitation';
 import { Badge, Card, Empty, LinkButton, Notice } from '@/components/ui';
 import { api } from '@/lib/api';
 import { DISCIPLINE_LABELS } from '@/lib/brand';
@@ -9,7 +11,8 @@ import type { Paginated, Relationship } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Pacientes' };
 
-export default async function ProfessionalHome() {
+export default async function ProfessionalHome({ searchParams }: { searchParams: Promise<{ erro?: string; enviado?: string }> }) {
+  const { erro, enviado } = await searchParams;
   const { organizations, registrations } = await professionalContext();
   const ready = organizations.length > 0 && registrations.length > 0;
   const [relationships, alerts] = await Promise.all([
@@ -25,6 +28,9 @@ export default async function ProfessionalHome() {
         <h1 className="text-2xl font-bold">Pacientes</h1>
         {ready && <LinkButton href="/pro/pacientes/novo" variant="secondary">Convidar paciente</LinkButton>}
       </div>
+
+      <ErrorFromQuery erro={erro} />
+      {enviado && <Notice tone="success">Convite enviado por e-mail.</Notice>}
 
       {!ready && (
         <Notice>
@@ -73,16 +79,19 @@ export default async function ProfessionalHome() {
       </Card>
 
       {invited.length > 0 && (
-        <Card title="Convites enviados">
+        <Card title="Convites pendentes">
           <ul className="flex flex-col divide-y divide-navy-100 text-sm">
             {invited.map(r => (
-              <li key={r.id} className="flex justify-between py-2">
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span>
                   {r.invited_email} · {DISCIPLINE_LABELS[r.discipline]}
                 </span>
-                <Link href={`/pro/pacientes/novo?convite=${r.id}`} className="font-semibold text-navy-700 underline">
-                  Link do convite
-                </Link>
+                <span className="flex flex-wrap items-center gap-3">
+                  <SendInvitation relationship={r} back="/pro" />
+                  <Link href={`/pro/pacientes/novo?convite=${r.id}`} className="font-semibold text-navy-700 underline">
+                    Link do convite
+                  </Link>
+                </span>
               </li>
             ))}
           </ul>

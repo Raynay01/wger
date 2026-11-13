@@ -92,6 +92,9 @@ class CareRelationship(models.Model):
 
     invitation_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
+    invitation_sent_at = models.DateTimeField(null=True, blank=True)
+    """When the invitation email went out last"""
+
     created = models.DateTimeField(auto_now_add=True)
 
     started = models.DateTimeField(null=True, blank=True)

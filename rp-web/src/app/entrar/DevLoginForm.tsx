@@ -1,8 +1,9 @@
 import { Button, Field, inputClass } from '@/components/ui';
 
-export function DevLoginForm() {
+export function DevLoginForm({ next }: { next: string }) {
   return (
     <form action="/api/auth/password" method="post" className="mt-3 flex flex-col gap-3">
+      <input type="hidden" name="next" value={next} />
       <Field label="Usuário ou e-mail">
         <input name="username" required autoComplete="username" className={inputClass} />
       </Field>

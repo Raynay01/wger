@@ -8,3 +8,9 @@ import { NextResponse } from 'next/server';
 export function seeOther(path: string): NextResponse {
   return new NextResponse(null, { status: 303, headers: { Location: path } });
 }
+
+/** A path inside the app to continue to after login, or /inicio */
+export function safeNext(value: unknown): string {
+  const path = typeof value === 'string' ? value : '';
+  return path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/\\') ? path : '/inicio';
+}

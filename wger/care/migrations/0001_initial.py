@@ -82,6 +82,7 @@ class Migration(migrations.Migration):
                     'invitation_token',
                     models.UUIDField(default=uuid.uuid4, editable=False, unique=True),
                 ),
+                ('invitation_sent_at', models.DateTimeField(blank=True, null=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('started', models.DateTimeField(blank=True, null=True)),
                 ('ended', models.DateTimeField(blank=True, null=True)),

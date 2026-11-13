@@ -8,7 +8,7 @@
 |---|---|---|
 | Organizações (profissional independente, clínica, equipe) e membros com papéis | Pronto | `wger/care` |
 | Registro no conselho (CREF, CREFITO, CRN) com verificação pelo admin | Pronto (verificação manual no admin do Django) | `wger/care` |
-| Convite de paciente por e-mail ou link, aceite com consentimento registrado | Pronto (o e-mail do convite ainda não é enviado automaticamente) | `wger/care` |
+| Convite de paciente por e-mail ou link, aceite com consentimento registrado | Pronto. O e-mail só sai quando o profissional clica em "Enviar convite por e-mail" (reenvio a cada 10 min no máximo); em produção depende do servidor de e-mail (SMTP) configurado | `wger/care` |
 | Módulos visíveis conforme os profissionais do paciente (Testes 1 a 4) | Pronto | `GET /api/v2/care/modules/` |
 | Tela Meu Dia (treino, refeições, totais, água, fisioterapia) | Pronto | `GET /api/v2/care/my-day/` |
 | Compartilhamento por escopo, revogável, com log de acesso (Testes 5 e 8) | Pronto | `wger/care` |
@@ -72,7 +72,7 @@ O mesmo vale para treino (`/api/v2/routine/`, vínculo `training`) e fisioterapi
 
 ### Backend
 - Regras de sincronização do PowerSync (repositório docker) para as colunas e tabelas novas; até lá, o app offline não recebe autoria, versões, orientações nem as tabelas novas.
-- Envio do convite por e-mail e WhatsApp (Cloud API) com modelos aprovados.
+- Envio do convite pelo WhatsApp (Cloud API, com modelos aprovados pela Meta). O envio por e-mail já existe.
 - Bases de alimentos TACO (e TBCA, após autorização), nutrientes anuláveis e alimentos próprios da organização.
 - Anamnese e avaliação nutricional, antropometria, cálculo de necessidades energéticas.
 - Periodização (macro e mesociclos), vídeos de execução enviados pelo aluno.

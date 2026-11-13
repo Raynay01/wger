@@ -39,6 +39,7 @@ from rest_framework.views import APIView
 
 # wger
 from wger.care import (
+    invitations,
     policy,
     sharing,
 )
@@ -252,6 +253,24 @@ class CareRelationshipViewSet(
 
     def _respond(self, relationship):
         return Response(self.get_serializer(relationship).data)
+
+    @extend_schema(request=None, responses=CareRelationshipSerializer)
+    @action(detail=True, methods=['post'], url_path='send-email')
+    def send_email(self, request, pk):
+        """
+        Email the invitation to the invited address. Nothing is sent when the
+        invitation is created, only when the professional asks for it.
+        """
+        relationship = self._get_professional_relationship()
+        if relationship.status != RelationshipStatus.INVITED or not relationship.invited_email:
+            raise exceptions.ValidationError(_('This invitation is not open anymore.'))
+        if not invitations.can_resend(relationship):
+            raise exceptions.Throttled(
+                detail=_('The invitation was sent a few minutes ago, please wait a moment.')
+            )
+        if not invitations.send_invitation(relationship):
+            raise exceptions.APIException(_('The email could not be sent, please try again later.'))
+        return self._respond(relationship)
 
     @extend_schema(request=AcceptInvitationSerializer, responses=CareRelationshipSerializer)
     @action(detail=True, methods=['post'])

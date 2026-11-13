@@ -12,7 +12,7 @@ declare global {
  * "Sign in with Google" button from Google Identity Services. Google hands the
  * browser an ID token, which our server exchanges for a session with the API.
  */
-export function GoogleButton({ clientId }: { clientId: string }) {
+export function GoogleButton({ clientId, next }: { clientId: string; next: string }) {
   const container = useRef<HTMLDivElement>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -24,10 +24,11 @@ export function GoogleButton({ clientId }: { clientId: string }) {
       const result = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
+        body: JSON.stringify({ credential: response.credential, next }),
       });
       if (result.ok) {
-        window.location.href = '/inicio';
+        const json = await result.json().catch(() => ({}));
+        window.location.href = json.next || '/inicio';
         return;
       }
       const json = await result.json().catch(() => ({}));
@@ -60,7 +61,7 @@ export function GoogleButton({ clientId }: { clientId: string }) {
     script.onload = render;
     script.onerror = () => setError('Não foi possível carregar o login do Google.');
     document.head.appendChild(script);
-  }, [clientId]);
+  }, [clientId, next]);
 
   return (
     <div className="flex flex-col items-center gap-2">

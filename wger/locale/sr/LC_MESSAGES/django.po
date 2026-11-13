@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-13 22:32+0000\n"
+"POT-Creation-Date: 2026-11-13 22:43+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -27,7 +27,7 @@ msgstr ""
 msgid "You do not follow this patient in this discipline."
 msgstr ""
 
-#: care/api/prescription.py:93 care/api/serializers.py:205
+#: care/api/prescription.py:93 care/api/serializers.py:207
 msgid "You need a council registration for this discipline."
 msgstr ""
 
@@ -55,7 +55,7 @@ msgstr ""
 msgid "Only published versions can be archived."
 msgstr ""
 
-#: care/api/serializers.py:80 care/api/serializers.py:194
+#: care/api/serializers.py:80 care/api/serializers.py:196
 msgid "This field is required."
 msgstr ""
 
@@ -79,75 +79,83 @@ msgstr ""
 msgid "You already have a registration for this discipline."
 msgstr ""
 
-#: care/api/serializers.py:185
+#: care/api/serializers.py:187
 msgid "Use the actions to change the status of a relationship."
 msgstr ""
 
-#: care/api/serializers.py:197
+#: care/api/serializers.py:199
 msgid "You cannot follow yourself as a patient."
 msgstr ""
 
-#: care/api/serializers.py:201
+#: care/api/serializers.py:203
 msgid "You cannot follow patients in this organization."
 msgstr ""
 
-#: care/api/serializers.py:223
+#: care/api/serializers.py:225
 msgid "You already follow or invited this patient."
 msgstr ""
 
-#: care/api/serializers.py:235
+#: care/api/serializers.py:237
 msgid "You need to agree to be followed by this professional."
 msgstr ""
 
-#: care/api/serializers.py:250
+#: care/api/serializers.py:252
 msgid "You can only share your own data."
 msgstr ""
 
-#: care/api/serializers.py:254
+#: care/api/serializers.py:256
 msgid "This professional does not follow you anymore."
 msgstr ""
 
-#: care/api/serializers.py:261
+#: care/api/serializers.py:263
 msgid "You already share this."
 msgstr ""
 
-#: care/api/serializers.py:299
+#: care/api/serializers.py:301
 msgid "The relationship of a note cannot be changed."
 msgstr ""
 
-#: care/api/serializers.py:301
+#: care/api/serializers.py:303
 msgid "You do not follow this patient."
 msgstr ""
 
-#: care/api/views.py:154
+#: care/api/views.py:155
 msgid "An organization needs at least one owner."
 msgstr ""
 
-#: care/api/views.py:281 care/api/views.py:310
+#: care/api/views.py:266 care/api/views.py:300 care/api/views.py:329
 msgid "This invitation is not open anymore."
 msgstr ""
 
-#: care/api/views.py:288
+#: care/api/views.py:269
+msgid "The invitation was sent a few minutes ago, please wait a moment."
+msgstr ""
+
+#: care/api/views.py:272
+msgid "The email could not be sent, please try again later."
+msgstr ""
+
+#: care/api/views.py:307
 msgid "This professional already follows you."
 msgstr ""
 
-#: care/api/views.py:321
+#: care/api/views.py:340
 msgid "Only active relationships can be paused."
 msgstr ""
 
-#: care/api/views.py:331
+#: care/api/views.py:350
 msgid "Only paused relationships can be resumed."
 msgstr ""
 
-#: care/api/views.py:345
+#: care/api/views.py:364
 msgid "This relationship has already ended."
 msgstr ""
 
-#: care/api/views.py:382 care/api/views.py:588
+#: care/api/views.py:401 care/api/views.py:609
 msgid "Use the format YYYY-MM-DD."
 msgstr ""
 
-#: care/api/views.py:554
+#: care/api/views.py:575
 msgid "A valid integer is required."
 msgstr ""
 
@@ -163,6 +171,23 @@ msgstr ""
 #: care/disciplines.py:28 core/templates/navigation.html:146
 #: software/templates/features.html:471
 msgid "Nutrition"
+msgstr ""
+
+#: care/invitations.py:43
+msgid "Personal trainer"
+msgstr ""
+
+#: care/invitations.py:44
+msgid "Physiotherapist"
+msgstr ""
+
+#: care/invitations.py:45
+msgid "Nutritionist"
+msgstr ""
+
+#: care/invitations.py:83
+#, python-format
+msgid "%(professional)s invited you to %(app)s"
 msgstr ""
 
 #: care/models/grant.py:33
@@ -339,6 +364,40 @@ msgstr ""
 
 #: care/prescription.py:52
 msgid "Archived"
+msgstr ""
+
+#: care/templates/care/email_invitation.tpl:1
+msgid "Hello!"
+msgstr ""
+
+#: care/templates/care/email_invitation.tpl:3
+#, python-format
+msgid ""
+"%(professional)s (%(profession)s, %(organization)s) invited you to be "
+"followed in %(discipline)s on %(app)s."
+msgstr ""
+
+#: care/templates/care/email_invitation.tpl:5
+msgid "To accept, open this link and log in with your Google account:"
+msgstr ""
+
+#: care/templates/care/email_invitation.tpl:8
+#, python-format
+msgid ""
+"To accept, log in to %(app)s with the Google account of %(email)s and open "
+"your invitations."
+msgstr ""
+
+#: care/templates/care/email_invitation.tpl:10
+#, python-format
+msgid ""
+"When you accept, this professional can prescribe and follow your "
+"%(discipline)s. Data of other areas is only shared if you allow it, and you "
+"can end the follow-up at any time."
+msgstr ""
+
+#: care/templates/care/email_invitation.tpl:12
+msgid "If you don't know this professional, just ignore this email."
 msgstr ""
 
 #: config/models/gym_config.py:46 gym/templates/gym/list.html:56

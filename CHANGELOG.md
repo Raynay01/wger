@@ -37,6 +37,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   the routine `structure`), `rpe` on workout logs.
 * Invitation links: `care-relationship/{id}/accept/` with the invitation
   `token` works for any email address of the patient.
+* Invitation emails: creating an invitation sends nothing; the professional
+  sends it with `care-relationship/{id}/send-email/` (at most every ten
+  minutes, `invitation_sent_at` tells when). The link points to `WEB_APP_URL`,
+  the app is named after `WEB_APP_NAME`.
 * Google login: set `GOOGLE_CLIENT_ID` (and `GOOGLE_CLIENT_SECRET`) to enable
   it; web clients send Google's ID token to the headless provider token
   endpoint.

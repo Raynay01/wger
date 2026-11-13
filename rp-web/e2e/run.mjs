@@ -29,6 +29,7 @@ const users = {
   bruno: `bruno_${run}`,
   carla: `carla_${run}`,
   ana: `ana_${run}`,
+  dani: `dani_${run}`,
 };
 const PASSWORD = 'senha-forte-123';
 
@@ -130,7 +131,34 @@ try {
   await carla.getByText('Convite criado').waitFor();
   const inviteLink = await carla.getByLabel('Link do convite').inputValue();
   assert(inviteLink.includes('/convite/') && inviteLink.includes('token='), 'link de convite com token');
-  log('Convites de nutrição, treino e fisioterapia enviados');
+  log('Convites de nutrição, treino e fisioterapia criados');
+
+  // Nothing is emailed until the professional asks for it
+  assert(await carla.getByText('Ainda não enviado').isVisible(), 'convite ainda não enviado');
+  await carla.getByRole('button', { name: 'Enviar convite por e-mail' }).click();
+  await carla.getByText(/Convite enviado por e-mail para/).waitFor();
+  await carla.getByText(/Último envio:/).waitFor();
+  await carla.getByRole('button', { name: 'Reenviar por e-mail' }).click();
+  await carla.getByText('O convite foi enviado há poucos minutos, aguarde um pouco.').waitFor();
+  log('Carla enviou o convite por e-mail quando quis; o reenvio imediato foi bloqueado');
+
+  // Invitation link for someone who logs in with another email address
+  await bruno.goto(`${WEB}/pro/pacientes/novo`);
+  await bruno.getByLabel(/E-mail do paciente/).fill(`outro.email.${run}@example.com`);
+  await bruno.locator('select[name=discipline]').selectOption('nutrition');
+  await bruno.getByRole('button', { name: 'Enviar convite' }).click();
+  const daniLink = await bruno.getByLabel('Link do convite').inputValue();
+  const visitor = await (await browser.newContext({ locale: 'pt-BR' })).newPage();
+  await visitor.goto(daniLink.replace(/^https?:\/\/[^/]+/, WEB));
+  await visitor.getByRole('link', { name: 'Entrar para aceitar' }).click();
+  await visitor.fill('input[name=username]', users.dani);
+  await visitor.fill('input[name=password]', PASSWORD);
+  await visitor.click('form[action="/api/auth/password"] button[type=submit]');
+  await visitor.waitForURL(/\/convite\//);
+  await visitor.getByRole('button', { name: 'Aceitar e autorizar' }).click();
+  await visitor.waitForURL(/compartilhamento/);
+  await visitor.getByText(/Profissional de Educação Física|Nutricionista/).first().waitFor();
+  log('Dani entrou pelo link do convite com outro e-mail, voltou ao convite e aceitou');
 
   // The patient accepts
   const ana = await session('ana');
@@ -148,7 +176,7 @@ try {
 
   // Diet: draft, meal, foods, substitution, goals, publish
   await bruno.goto(`${WEB}/pro`);
-  await bruno.getByRole('link', { name: /Nutrição · desde/ }).first().click();
+  await bruno.getByRole('link', { name: /Ana Nutrição · desde/ }).first().click();
   await bruno.getByPlaceholder('Ex.: Hipertrofia').fill('Hipertrofia');
   await bruno.getByRole('button', { name: 'Criar rascunho' }).click();
   await bruno.waitForURL(/\/dieta\//);
@@ -180,7 +208,7 @@ try {
 
   // Training: draft, day, exercise, publish
   await bruno.goto(`${WEB}/pro`);
-  await bruno.getByRole('link', { name: /Treino · desde/ }).first().click();
+  await bruno.getByRole('link', { name: /Ana Treino · desde/ }).first().click();
   await bruno.getByPlaceholder('Ex.: Força A/B').fill('Força');
   await bruno.getByRole('button', { name: 'Criar rascunho' }).click();
   await bruno.waitForURL(/\/treino\//);
@@ -201,7 +229,7 @@ try {
 
   // Physio protocol
   await carla.goto(`${WEB}/pro`);
-  await carla.getByRole('link', { name: /Fisioterapia · desde/ }).first().click();
+  await carla.getByRole('link', { name: /Ana Fisioterapia · desde/ }).first().click();
   await carla.getByPlaceholder('Ex.: Reabilitação de joelho').fill('Joelho direito');
   await carla.getByRole('button', { name: 'Criar rascunho' }).click();
   await carla.waitForURL(/\/protocolo\//);
@@ -256,12 +284,12 @@ try {
   log('Ana compartilhou os registros de dor com o personal');
 
   await bruno.goto(`${WEB}/pro`);
-  await bruno.getByRole('link', { name: /Treino · desde/ }).first().click();
+  await bruno.getByRole('link', { name: /Ana Treino · desde/ }).first().click();
   await bruno.getByText(/registro\(s\) nos últimos 28 dias/).waitFor();
   log('O personal vê o resumo de dor compartilhado');
 
   await bruno.goto(`${WEB}/pro`);
-  await bruno.getByRole('link', { name: /Nutrição · desde/ }).first().click();
+  await bruno.getByRole('link', { name: /Ana Nutrição · desde/ }).first().click();
   await bruno.getByText('Nada compartilhado').waitFor();
   assert(await bruno.getByText(/kcal/).first().isVisible(), 'diário com a refeição seguida');
   await shot(bruno, '09-ficha-nutricao');
@@ -291,6 +319,12 @@ try {
   assert(errors.length === 0, `erros no navegador: ${errors.join(' | ')}`);
   console.log('\nTudo certo. Capturas em e2e/screenshots/');
 } catch (error) {
+  for (const [index, context] of browser.contexts().entries()) {
+    for (const [i, page] of context.pages().entries()) {
+      await page.screenshot({ path: path.join(shots, `falha-${index}-${i}.png`), fullPage: true, caret: 'initial' }).catch(() => {});
+      console.error(`falha-${index}-${i}: ${page.url()}`);
+    }
+  }
   console.error(error);
   console.error('Erros no navegador:', errors);
   process.exitCode = 1;

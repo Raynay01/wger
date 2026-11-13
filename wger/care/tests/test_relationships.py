@@ -13,8 +13,14 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Workout Manager.  If not, see <http://www.gnu.org/licenses/>.
 
+# Standard Library
+import datetime
+
 # Django
+from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 # Third Party
 from rest_framework import status
@@ -175,6 +181,78 @@ class InvitationTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         self.assertEqual(self.client.post(url).status_code, status.HTTP_200_OK)
         relationship.refresh_from_db()
         self.assertEqual(relationship.status, RelationshipStatus.PAUSED)
+
+
+@override_settings(WEB_APP_URL='https://app.example.com/', WEB_APP_NAME='Kinutri')
+class InvitationEmailTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
+    """
+    The invitation email goes out only when the professional sends it
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.nutritionist = self.make_professional('rp_nutri', Discipline.NUTRITION)
+        self.organization = self.nutritionist.care_memberships.first().organization
+        self.client.force_authenticate(self.nutritionist)
+        response = self.client.post(
+            reverse('care-relationship-list'),
+            {
+                'organization': str(self.organization.pk),
+                'discipline': Discipline.NUTRITION,
+                'invited_email': 'new.patient@example.com',
+            },
+        )
+        self.relationship = CareRelationship.objects.get(pk=response.data['id'])
+        self.send_url = reverse('care-relationship-send-email', kwargs={'pk': self.relationship.pk})
+
+    def test_creating_sends_nothing(self):
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertIsNone(self.relationship.invitation_sent_at)
+
+    def test_send_contains_link_with_token(self):
+        response = self.client.post(self.send_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(response.data['invitation_sent_at'])
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertEqual(message.to, ['new.patient@example.com'])
+        self.assertIn('Kinutri', message.subject)
+        self.assertIn(
+            f'https://app.example.com/convite/{self.relationship.pk}'
+            f'?token={self.relationship.invitation_token}',
+            message.body,
+        )
+
+    def test_resend_waits(self):
+        """A second email right away is refused, after ten minutes it goes out"""
+        self.assertEqual(self.client.post(self.send_url).status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            self.client.post(self.send_url).status_code,
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+        CareRelationship.objects.filter(pk=self.relationship.pk).update(
+            invitation_sent_at=timezone.now() - datetime.timedelta(minutes=10)
+        )
+        self.assertEqual(self.client.post(self.send_url).status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 2)
+
+    def test_only_the_professional_sends(self):
+        other = self.make_professional('rp_other_nutri', Discipline.NUTRITION)
+        self.client.force_authenticate(other)
+        self.assertEqual(self.client.post(self.send_url).status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_not_for_closed_invitations(self):
+        self.relationship.status = RelationshipStatus.ENDED
+        self.relationship.save()
+        self.assertEqual(self.client.post(self.send_url).status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(WEB_APP_URL='')
+    def test_without_web_app_no_link(self):
+        self.assertEqual(self.client.post(self.send_url).status_code, status.HTTP_200_OK)
+        self.assertNotIn('token=', mail.outbox[0].body)
+        self.assertIn('new.patient@example.com', mail.outbox[0].body)
 
 
 class OrganizationTestCase(CareScenarioMixin, BaseTestCase, APITestCase):

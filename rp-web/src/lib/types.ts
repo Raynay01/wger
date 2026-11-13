@@ -32,6 +32,7 @@ export type Relationship = {
   status: 'invited' | 'active' | 'paused' | 'ended';
   invited_email: string;
   invitation_token: string | null;
+  invitation_sent_at: string | null;
   created: string;
   started: string | null;
   my_role: 'professional' | 'patient';

@@ -137,6 +137,8 @@ if GOOGLE_CLIENT_ID:
         },
     }
 
+WEB_APP_URL = 'http://127.0.0.1:3000'
+
 # The web app (rp-web) calls the API from another port in development
 CSRF_TRUSTED_ORIGINS += ['http://localhost:3000', 'http://127.0.0.1:3000']
 

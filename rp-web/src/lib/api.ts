@@ -9,12 +9,8 @@ export class ApiError extends Error {
     public status: number,
     public data: unknown,
   ) {
-    super(`API error ${status}`);
-  }
-
-  /** A readable message from a DRF error response */
-  get message(): string {
-    return describeErrors(this.data) || 'Algo deu errado. Tente novamente.';
+    // The readable text of the DRF error response, shown in the forms
+    super(describeErrors(data) || 'Algo deu errado. Tente novamente.');
   }
 }
 

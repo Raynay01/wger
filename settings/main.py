@@ -141,6 +141,8 @@ TURNSTILE_SECRET_KEY = env.str('TURNSTILE_SECRET_KEY', '')
 # This is needed for uploaded files and images (exercise images, etc.) to be
 # properly served.
 SITE_URL = env.str('SITE_URL', 'http://localhost:8000')
+WEB_APP_URL = env.str('WEB_APP_URL', '')
+WEB_APP_NAME = env.str('WEB_APP_NAME', 'Kinutri')
 
 # Path to uploaded files
 # Absolute filesystem path to the directory that will hold user-uploaded files.
