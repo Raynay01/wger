@@ -53,6 +53,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   admin, which refuses while professionals hold clinical records about the
   person. Requests stay as evidence after the deletion.
 * The set descriptions ("3 Sets", "RiR", "rest") are translatable again.
+* `import-taco-products` imports the TACO (Tabela Brasileira de Composição de
+  Alimentos, NEPA/UNICAMP): 590 Brazilian foods in Portuguese, with category,
+  fiber and sodium, rounded as printed. The pinned CSV is verified by checksum,
+  a second run updates instead of duplicating. Foods the table gives no values
+  for are skipped, not guessed.
 * Physiotherapy: protocols with exercises (`/api/v2/physio-protocol/`,
   `/api/v2/protocol-exercise/`), pain records on the 0-10 scale with alerts for
   the physiotherapist (`/api/v2/pain-record/`, `pain-record/alerts/`), exercise

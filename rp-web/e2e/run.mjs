@@ -185,13 +185,13 @@ try {
   await bruno.getByRole('button', { name: 'Adicionar refeição' }).click();
   await bruno.getByRole('heading', { name: /Almoço/ }).waitFor();
   const lunch = bruno.locator('section', { has: bruno.getByRole('heading', { name: /Almoço/ }) });
-  await pick(bruno, 'Adicionar alimento', 'test', lunch);
+  await pick(bruno, 'Adicionar alimento', 'arroz', lunch);
   await lunch.getByLabel('Gramas').fill('150');
   await lunch.getByRole('button', { name: 'Adicionar' }).click();
   await bruno.waitForLoadState('networkidle');
   const lunch2 = bruno.locator('section', { has: bruno.getByRole('heading', { name: /Almoço/ }) });
   await lunch2.getByText('+ substituição').click();
-  await pick(bruno, 'Alimento', 'organic', lunch2);
+  await pick(bruno, 'Alimento', 'batata', lunch2);
   await lunch2.locator('details').getByLabel('Gramas').fill('120');
   await lunch2.locator('details').getByRole('button', { name: 'Adicionar' }).click();
   await bruno.getByText(/ou 120 g de/).waitFor();

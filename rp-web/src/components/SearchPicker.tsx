@@ -8,7 +8,8 @@ type Option = { id: number; name: string; detail?: string };
 function describe(kind: 'food' | 'exercise', item: any): string | undefined {
   if (kind === 'food') {
     const brand = item.brand ? `${item.brand} · ` : '';
-    return `${brand}${Math.round(item.energy)} kcal · P ${item.protein} g · C ${item.carbohydrates} g · G ${item.fat} g (100 g)`;
+    const source = item.source ? ` · ${item.source}` : '';
+    return `${brand}${Math.round(item.energy)} kcal · P ${item.protein} g · C ${item.carbohydrates} g · G ${item.fat} g (100 g)${source}`;
   }
   return undefined;
 }

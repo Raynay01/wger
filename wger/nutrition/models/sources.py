@@ -21,3 +21,4 @@ class Source(Enum):
     WGER = 'wger'
     OPEN_FOOD_FACTS = 'Open Food Facts'
     USDA = 'USDA'
+    TACO = 'TACO'

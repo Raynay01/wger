@@ -297,6 +297,11 @@ export default async function DietBuilderPage({
             )}
             <p className="mt-3 text-xs text-gray-500">As metas são suas: não há distribuição padrão imposta pelo sistema.</p>
           </Card>
+
+          <p className="px-1 text-xs text-gray-500">
+            Valores por 100 g. Alimentos marcados como TACO: Tabela Brasileira de Composição de Alimentos, 4ª edição,
+            NEPA/UNICAMP, 2011. Nutrientes que a tabela não informa aparecem como não informados.
+          </p>
         </aside>
       </div>
     </div>

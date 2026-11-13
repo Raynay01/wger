@@ -71,7 +71,7 @@ class IngredientData:
     serving_size_amount: float | None = None
     nutriscore: str | None = None
 
-    def sanity_checks(self):
+    def sanity_checks(self, check_energy: bool = True):
         if not self.name:
             raise ValueError('Name is empty!')
         self.name = self.name[:200]
@@ -142,7 +142,9 @@ class IngredientData:
             + self.fat * ENERGY_FACTOR['fat']
             + (self.fiber or 0) * ENERGY_FACTOR['fiber']
         )
-        if self.energy > ENERGY_CHECK_MIN_KCAL or energy_computed > ENERGY_CHECK_MIN_KCAL:
+        if check_energy and (
+            self.energy > ENERGY_CHECK_MIN_KCAL or energy_computed > ENERGY_CHECK_MIN_KCAL
+        ):
             energy_lower = (
                 self.energy * (1 - ENERGY_CHECK_TOLERANCE_RELATIVE)
                 - ENERGY_CHECK_TOLERANCE_ABSOLUTE_KCAL
