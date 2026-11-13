@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wger Workout Manager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-07 14:27+0100\n"
+"POT-Creation-Date: 2026-11-13 22:06+0000\n"
 "PO-Revision-Date: 2026-03-05 10:09+0000\n"
 "Last-Translator: Teodor Olteanu <teo.olteanu00@gmail.com>\n"
 "Language-Team: Romanian <https://hosted.weblate.org/projects/wger/web/ro/>\n"
@@ -22,6 +22,356 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
 "20)) ? 1 : 2;\n"
 "X-Generator: Weblate 5.17-dev\n"
+
+#: care/api/prescription.py:78
+msgid "A prescription cannot be moved to another patient."
+msgstr ""
+
+#: care/api/prescription.py:89 physio/api/serializers.py:161
+msgid "You do not follow this patient in this discipline."
+msgstr ""
+
+#: care/api/prescription.py:93 care/api/serializers.py:205
+msgid "You need a council registration for this discipline."
+msgstr ""
+
+#: care/api/prescription.py:131
+msgid "You cannot change this prescription."
+msgstr ""
+
+#: care/api/prescription.py:149
+msgid "Published versions are kept as history."
+msgstr ""
+
+#: care/api/prescription.py:165
+msgid "Only drafts can be published."
+msgstr ""
+
+#: care/api/prescription.py:176
+msgid "This version is still a draft."
+msgstr ""
+
+#: care/api/prescription.py:185
+msgid "There already is a draft for this prescription."
+msgstr ""
+
+#: care/api/prescription.py:195
+msgid "Only published versions can be archived."
+msgstr ""
+
+#: care/api/serializers.py:80 care/api/serializers.py:194
+msgid "This field is required."
+msgstr ""
+
+#: care/api/serializers.py:84
+msgid "There is no user with this email address."
+msgstr ""
+
+#: care/api/serializers.py:88
+msgid "This user is already a member of the organization."
+msgstr ""
+
+#: care/api/serializers.py:106
+msgid "Use the two letter code of the state."
+msgstr ""
+
+#: care/api/serializers.py:113
+msgid "The discipline of a registration cannot be changed."
+msgstr ""
+
+#: care/api/serializers.py:121
+msgid "You already have a registration for this discipline."
+msgstr ""
+
+#: care/api/serializers.py:185
+msgid "Use the actions to change the status of a relationship."
+msgstr ""
+
+#: care/api/serializers.py:197
+msgid "You cannot follow yourself as a patient."
+msgstr ""
+
+#: care/api/serializers.py:201
+msgid "You cannot follow patients in this organization."
+msgstr ""
+
+#: care/api/serializers.py:223
+#, fuzzy
+#| msgid "You are not allowed to access this page"
+msgid "You already follow or invited this patient."
+msgstr "Nu ai permisiunea de a accesa această pagină"
+
+#: care/api/serializers.py:235
+msgid "You need to agree to be followed by this professional."
+msgstr ""
+
+#: care/api/serializers.py:250
+msgid "You can only share your own data."
+msgstr ""
+
+#: care/api/serializers.py:254
+msgid "This professional does not follow you anymore."
+msgstr ""
+
+#: care/api/serializers.py:261
+msgid "You already share this."
+msgstr ""
+
+#: care/api/serializers.py:299
+msgid "The relationship of a note cannot be changed."
+msgstr ""
+
+#: care/api/serializers.py:301
+#, fuzzy
+#| msgid "You are not allowed to access this page"
+msgid "You do not follow this patient."
+msgstr "Nu ai permisiunea de a accesa această pagină"
+
+#: care/api/views.py:154
+msgid "An organization needs at least one owner."
+msgstr ""
+
+#: care/api/views.py:272 care/api/views.py:301
+msgid "This invitation is not open anymore."
+msgstr ""
+
+#: care/api/views.py:279
+msgid "This professional already follows you."
+msgstr ""
+
+#: care/api/views.py:312
+msgid "Only active relationships can be paused."
+msgstr ""
+
+#: care/api/views.py:322
+msgid "Only paused relationships can be resumed."
+msgstr ""
+
+#: care/api/views.py:336
+#, fuzzy
+#| msgid "This e-mail address is already in use."
+msgid "This relationship has already ended."
+msgstr "Această adresă de e-mail este deja folosită."
+
+#: care/api/views.py:373 care/api/views.py:583
+msgid "Use the format YYYY-MM-DD."
+msgstr ""
+
+#: care/api/views.py:549
+msgid "A valid integer is required."
+msgstr ""
+
+#: care/disciplines.py:26 core/templates/navigation.html:28
+#: software/templates/features.html:461
+msgid "Training"
+msgstr "Antrenament"
+
+#: care/disciplines.py:27
+msgid "Physiotherapy"
+msgstr ""
+
+#: care/disciplines.py:28 core/templates/navigation.html:146
+#: software/templates/features.html:471
+msgid "Nutrition"
+msgstr "Nutriție"
+
+#: care/models/grant.py:33
+msgid "Training days, times and frequency"
+msgstr ""
+
+#: care/models/grant.py:34
+msgid "Completed training sessions"
+msgstr ""
+
+#: care/models/grant.py:35
+#, fuzzy
+#| msgid "Nutritional data"
+msgid "Nutrition goals and meal times"
+msgstr "Date nutriționale"
+
+#: care/models/grant.py:36
+msgid "Food diary summary"
+msgstr ""
+
+#: care/models/grant.py:37
+msgid "Pain records summary"
+msgstr ""
+
+#: care/models/grant.py:38
+msgid "Body weight and measurements"
+msgstr ""
+
+#: care/models/grant.py:39
+msgid "Multidisciplinary notes"
+msgstr ""
+
+#: care/models/grant.py:81
+#, fuzzy
+#| msgid "Terms of service"
+msgid "Terms of use and privacy policy"
+msgstr "Termeni de utilizare"
+
+#: care/models/grant.py:82
+msgid "Processing of health data"
+msgstr ""
+
+#: care/models/grant.py:83
+msgid "Follow-up by a professional"
+msgstr ""
+
+#: care/models/grant.py:84
+msgid "Sharing between professionals"
+msgstr ""
+
+#: care/models/grant.py:85
+msgid "Summaries generated by artificial intelligence"
+msgstr ""
+
+#: care/models/grant.py:86
+#, fuzzy
+#| msgid "Notification language"
+msgid "Notifications via WhatsApp"
+msgstr "Limba notificărilor"
+
+#: care/models/note.py:29
+#, fuzzy
+#| msgid "General manager"
+msgid "General"
+msgstr "Manager general"
+
+#: care/models/note.py:30
+#, fuzzy
+#| msgid "Distance"
+msgid "Guidance"
+msgstr "Distanță"
+
+#: care/models/note.py:31
+#, fuzzy
+#| msgid "Repetitions"
+msgid "Restriction"
+msgstr "Repetări"
+
+#: care/models/note.py:32
+msgid "Alert"
+msgstr ""
+
+#: care/models/organization.py:26
+msgid "Independent professional"
+msgstr ""
+
+#: care/models/organization.py:27 physio/models/protocol.py:47
+msgid "Clinic"
+msgstr ""
+
+#: care/models/organization.py:28
+msgid "Multidisciplinary team"
+msgstr ""
+
+#: care/models/organization.py:41 core/models/rep_unit.py:47
+#: core/models/weight_unit.py:42 core/templates/user/overview.html:266
+#: core/views/user.py:709 exercises/models/muscle.py:36
+#: gym/models/contract.py:52 gym/models/contract.py:103 gym/models/gym.py:46
+#: gym/models/user_document.py:84 gym/templates/contract/view.html:50
+#: gym/templates/gym/member_list.html:28 gym/templates/gym/member_list.html:108
+#: gym/views/gym.py:168 nutrition/templates/ingredient/view.html:241
+#: physio/models/protocol.py:64
+msgid "Name"
+msgstr "Nume"
+
+#: care/models/organization.py:44
+msgid "Kind"
+msgstr ""
+
+#: care/models/organization.py:51
+msgid "CPF or CNPJ"
+msgstr ""
+
+#: care/models/organization.py:68 gym/models/gym.py:65
+#: gym/templates/gym/member_list.html:126
+msgid "Owner"
+msgstr "Proprietar"
+
+#: care/models/organization.py:69
+#, fuzzy
+#| msgid "Administration"
+msgid "Administrator"
+msgstr "Administrare"
+
+#: care/models/organization.py:70
+#, fuzzy
+#| msgid "Profession"
+msgid "Professional"
+msgstr "Profesie"
+
+#: care/models/organization.py:71
+#, fuzzy
+#| msgid "Description"
+msgid "Reception"
+msgstr "Descriere"
+
+#: care/models/registration.py:29
+msgid "Pending"
+msgstr "în așteptare"
+
+#: care/models/registration.py:30
+#, fuzzy
+#| msgid "Verified email"
+msgid "Verified"
+msgstr "E-mail verificat"
+
+#: care/models/registration.py:31
+msgid "Rejected"
+msgstr ""
+
+#: care/models/registration.py:59
+msgid "Council"
+msgstr ""
+
+#: care/models/registration.py:61
+msgid "Registration number"
+msgstr ""
+
+#: care/models/registration.py:64
+#, fuzzy
+#| msgid "Status"
+msgid "State"
+msgstr "Status"
+
+#: care/models/registration.py:66
+msgid "Two letter code of the state, e.g. SP"
+msgstr ""
+
+#: care/models/relationship.py:30
+msgid "Invited"
+msgstr ""
+
+#: care/models/relationship.py:31 core/templates/user/overview.html:311
+msgid "Active"
+msgstr "Activ"
+
+#: care/models/relationship.py:32
+msgid "Paused"
+msgstr ""
+
+#: care/models/relationship.py:33
+msgid "Ended"
+msgstr ""
+
+#: care/prescription.py:49
+msgid "Draft"
+msgstr ""
+
+#: care/prescription.py:50
+msgid "Published"
+msgstr ""
+
+#: care/prescription.py:51
+msgid "Superseded"
+msgstr ""
+
+#: care/prescription.py:52
+msgid "Archived"
+msgstr ""
 
 #: config/models/gym_config.py:46 gym/templates/gym/list.html:56
 msgid "Default gym"
@@ -56,60 +406,70 @@ msgstr ""
 msgid "Edit"
 msgstr "Editează"
 
-#: core/forms.py:116 core/forms.py:362
+#: core/captcha.py:83 core/captcha.py:84
+msgid "The captcha could not be verified, please try again."
+msgstr ""
+
+#: core/captcha.py:134
 msgid "The form is secured with reCAPTCHA"
 msgstr "Formularul este securizat cu reCAPTCHA"
 
-#: core/forms.py:129 core/templates/account/login.html:93
+#: core/captcha.py:145
+#, fuzzy
+#| msgid "The form is secured with reCAPTCHA"
+msgid "The form is secured with Cloudflare Turnstile"
+msgstr "Formularul este securizat cu reCAPTCHA"
+
+#: core/forms.py:124 core/templates/account/login.html:93
 #: core/templates/account/signup.html:4 core/templates/navigation.html:269
 #: core/templates/navigation.html:282 core/templates/template.html:114
 #: software/templates/features.html:89 software/templates/features.html:445
 msgid "Register"
 msgstr "Înregistrare"
 
-#: core/forms.py:148
+#: core/forms.py:143
 msgid "Not set"
 msgstr ""
 
-#: core/forms.py:152 core/forms.py:270 gym/views/export.py:62
+#: core/forms.py:147 core/forms.py:265 gym/views/export.py:62
 #: gym/views/gym.py:227
 msgid "First name"
 msgstr "Prenume"
 
-#: core/forms.py:153 core/forms.py:271 core/templates/user/overview.html:270
+#: core/forms.py:148 core/forms.py:266 core/templates/user/overview.html:270
 #: gym/views/export.py:63 gym/views/gym.py:227
 msgid "Last name"
 msgstr "Nume de familie"
 
-#: core/forms.py:155 core/models/profile.py:227
+#: core/forms.py:150 core/models/profile.py:227
 #: gym/templates/gym/new_user.html:38
 msgid "Date of Birth"
 msgstr "Data nașterii"
 
-#: core/forms.py:168
+#: core/forms.py:163
 msgid "Timezone"
 msgstr "Fus orar"
 
-#: core/forms.py:172
+#: core/forms.py:167
 msgid ""
 "Used to decide which day a workout counts for. The mobile app reports it "
 "automatically."
 msgstr ""
 
-#: core/forms.py:211
+#: core/forms.py:206
 msgid "Personal data"
 msgstr "Date personale"
 
-#: core/forms.py:221
+#: core/forms.py:216
 msgid "Other settings"
 msgstr "Alte setări"
 
-#: core/forms.py:226 core/views/user.py:734 gym/forms.py:73
+#: core/forms.py:221 core/views/user.py:734 gym/forms.py:73
 #: utils/generic_views.py:132
 msgid "Save"
 msgstr "Salvează"
 
-#: core/forms.py:241 core/templates/user/overview.html:274
+#: core/forms.py:236 core/templates/user/overview.html:274
 #: gym/models/contract.py:256 gym/models/gym.py:58
 #: gym/templates/contract/view.html:77 gym/templates/gym/member_list.html:116
 #: gym/templates/gym/new_user.html:30 gym/views/export.py:61
@@ -119,24 +479,24 @@ msgstr "Salvează"
 msgid "Email"
 msgstr "E-mail"
 
-#: core/forms.py:242
+#: core/forms.py:237
 msgid "Used for password resets and, optionally, email reminders."
 msgstr "Folosit pentru resetarea parolei și, opțional, mementouri prin e-mail."
 
-#: core/forms.py:265
+#: core/forms.py:260
 msgid "This e-mail address is already in use."
 msgstr "Această adresă de e-mail este deja folosită."
 
-#: core/forms.py:287 gym/templates/gym/new_user.html:26
+#: core/forms.py:282 gym/templates/gym/new_user.html:26
 #: gym/templates/gym/reset_user_password.html:24 gym/views/gym.py:227
 msgid "Password"
 msgstr "Parolă"
 
-#: core/forms.py:289
+#: core/forms.py:284
 msgid "Please enter your current password."
 msgstr "Te rugăm să introduci parola ta curentă."
 
-#: core/forms.py:298 core/forms.py:335 core/templates/language/view.html:70
+#: core/forms.py:293 core/forms.py:330 core/templates/language/view.html:70
 #: core/templates/license/list.html:21
 #: core/templates/repetition_unit/list.html:22
 #: core/templates/user/overview.html:251
@@ -152,25 +512,25 @@ msgstr "Te rugăm să introduci parola ta curentă."
 msgid "Delete"
 msgstr "Șterge"
 
-#: core/forms.py:307
+#: core/forms.py:302
 msgid "Invalid password"
 msgstr "Parolă invalidă"
 
-#: core/forms.py:320
+#: core/forms.py:315
 msgid "Confirm"
 msgstr "Confirmă"
 
-#: core/forms.py:328
+#: core/forms.py:323
 #, python-brace-format
 msgid ""
 "Your account has no password. Type the username \"{username}\" to confirm."
 msgstr ""
 
-#: core/forms.py:344
+#: core/forms.py:339
 msgid "The entered username does not match"
 msgstr ""
 
-#: core/forms.py:372 weight/templates/import_csv_form.html:9
+#: core/forms.py:364 weight/templates/import_csv_form.html:9
 msgid "Submit"
 msgstr "Trimite"
 
@@ -380,16 +740,6 @@ msgstr "Timp"
 #: core/models/rep_unit.py:34
 msgid "Distance"
 msgstr "Distanță"
-
-#: core/models/rep_unit.py:47 core/models/weight_unit.py:42
-#: core/templates/user/overview.html:266 core/views/user.py:709
-#: exercises/models/muscle.py:36 gym/models/contract.py:52
-#: gym/models/contract.py:103 gym/models/gym.py:46
-#: gym/models/user_document.py:84 gym/templates/contract/view.html:50
-#: gym/templates/gym/member_list.html:28 gym/templates/gym/member_list.html:108
-#: gym/views/gym.py:168 nutrition/templates/ingredient/view.html:241
-msgid "Name"
-msgstr "Nume"
 
 #: core/models/rep_unit.py:53
 msgid "Unit Type"
@@ -722,10 +1072,6 @@ msgstr "Nu am găsit nimic"
 msgid "Imprint"
 msgstr "Informații legale"
 
-#: core/templates/navigation.html:28 software/templates/features.html:461
-msgid "Training"
-msgstr "Antrenament"
-
 #: core/templates/navigation.html:36 core/templates/user/overview.html:24
 msgid "Routines"
 msgstr "Rutine"
@@ -784,10 +1130,6 @@ msgstr "Mușchi"
 #: exercises/templates/categories/admin-overview.html:4
 msgid "Categories"
 msgstr "Categorii"
-
-#: core/templates/navigation.html:146 software/templates/features.html:471
-msgid "Nutrition"
-msgstr "Nutriție"
 
 #: core/templates/navigation.html:154 core/templates/user/overview.html:158
 msgid "Nutrition plans"
@@ -1141,7 +1483,7 @@ msgstr "Prezentare generală"
 
 #: core/templates/user/overview.html:36 core/templates/user/overview.html:86
 #: core/templates/user/overview.html:134 core/templates/user/overview.html:170
-#: manager/helpers.py:90 software/templates/about_us.html:170
+#: manager/helpers.py:89 software/templates/about_us.html:170
 #: weight/templates/import_csv_preview.html:13
 #: weight/templates/import_csv_preview.html:42 weight/views.py:55
 msgid "Date"
@@ -1149,6 +1491,7 @@ msgstr "Dată"
 
 #: core/templates/user/overview.html:37 core/templates/user/overview.html:171
 #: gym/models/contract.py:58 gym/models/contract.py:109
+#: physio/models/protocol.py:66
 msgid "Description"
 msgstr "Descriere"
 
@@ -1178,28 +1521,28 @@ msgid "Notes"
 msgstr "Note"
 
 #: core/templates/user/overview.html:122 core/templates/user/overview.html:135
-#: manager/helpers.py:91 weight/templates/import_csv_preview.html:14
+#: manager/helpers.py:90 weight/templates/import_csv_preview.html:14
 #: weight/templates/import_csv_preview.html:43 weight/views.py:55
 msgid "Weight"
 msgstr "Greutate"
 
 #: core/templates/user/overview.html:172
-#: nutrition/templates/ingredient/view.html:83 nutrition/views/plan.py:246
+#: nutrition/templates/ingredient/view.html:83 nutrition/views/plan.py:248
 msgid "Energy"
 msgstr "Energie"
 
 #: core/templates/user/overview.html:173
-#: nutrition/templates/ingredient/view.html:90 nutrition/views/plan.py:252
+#: nutrition/templates/ingredient/view.html:90 nutrition/views/plan.py:254
 msgid "Protein"
 msgstr "Proteine"
 
 #: core/templates/user/overview.html:174
-#: nutrition/templates/ingredient/view.html:96 nutrition/views/plan.py:260
+#: nutrition/templates/ingredient/view.html:96 nutrition/views/plan.py:262
 msgid "Carbohydrates"
 msgstr "Carbohidrați"
 
 #: core/templates/user/overview.html:175
-#: nutrition/templates/ingredient/view.html:112 nutrition/views/plan.py:274
+#: nutrition/templates/ingredient/view.html:112 nutrition/views/plan.py:276
 msgid "Fat"
 msgstr "Grăsimi"
 
@@ -1253,8 +1596,7 @@ msgid "Details"
 msgstr "Detalii"
 
 #: core/templates/user/overview.html:262 gym/views/export.py:58
-#: manager/helpers.py:91 nutrition/views/plan.py:152
-#: nutrition/views/plan.py:158
+#: manager/helpers.py:90
 msgid "Nr."
 msgstr "Nr."
 
@@ -1280,10 +1622,6 @@ msgstr "Ultima autentificare"
 #: core/templates/user/overview.html:308
 msgid "Status"
 msgstr "Status"
-
-#: core/templates/user/overview.html:311
-msgid "Active"
-msgstr "Activ"
 
 #: core/templates/user/overview.html:313
 msgid "Inactive"
@@ -1484,7 +1822,7 @@ msgid "Username"
 msgstr "Nume de utilizator"
 
 #: core/views/user.py:711 gym/templates/gym/new_user.html:34
-#: gym/views/export.py:59 gym/views/gym.py:227
+#: gym/views/export.py:59 gym/views/gym.py:227 physio/models/protocol.py:46
 msgid "Gym"
 msgstr "Sală de fitness"
 
@@ -1687,7 +2025,7 @@ msgstr ""
 msgid "Add muscle"
 msgstr "Adaugă mușchi"
 
-#: gallery/forms.py:35
+#: gallery/forms.py:34
 msgid "If date is left empty, it will be read from the image instead"
 msgstr ""
 
@@ -1811,10 +2149,6 @@ msgstr "Admin: poate gestiona utilizatorii unei săli de fitness"
 msgid "Admin: can administrate the different gyms"
 msgstr "Admin: poate administra diferitele săli de fitness"
 
-#: gym/models/gym.py:65 gym/templates/gym/member_list.html:126
-msgid "Owner"
-msgstr "Proprietar"
-
 #: gym/models/gym_config.py:46
 msgid ""
 "Number of weeks since the last time a user logged his presence to be "
@@ -1830,6 +2164,11 @@ msgstr "Arată numele în antet"
 #: gym/models/gym_config.py:57
 msgid "Show the name of the gym in the site header"
 msgstr "Afișează numele sălii de fitness în antetul site-ului"
+
+#: gym/models/gym_config.py:68
+#, python-brace-format
+msgid "Configuration for {self.gym.name}"
+msgstr ""
 
 #: gym/models/user_config.py:65 gym/templates/gym/member_list.html:200
 msgid "Overview of inactive members"
@@ -2384,27 +2723,15 @@ msgstr "Trimite e-mailuri"
 msgid "Correction"
 msgstr "Corectare"
 
-#: manager/dataclasses.py:114
-msgid "Sets"
-msgstr "Serii"
-
-#: manager/dataclasses.py:132 manager/helpers.py:91
+#: manager/dataclasses.py:132 manager/helpers.py:90
 msgid "Reps"
 msgstr "Repetări"
 
-#: manager/dataclasses.py:179
-msgid "RiR"
-msgstr "RiR"
-
-#: manager/dataclasses.py:186
-msgid "rest"
-msgstr "pauză"
-
-#: manager/helpers.py:78
+#: manager/helpers.py:77
 msgid "Rest day"
 msgstr "Zi de pauză"
 
-#: manager/helpers.py:91
+#: manager/helpers.py:90
 msgid "Exercise"
 msgstr "Exercițiu"
 
@@ -2553,6 +2880,42 @@ msgstr ""
 msgid "Portion"
 msgstr "Porție"
 
+#: nutrition/models/substitution.py:37
+msgid "Same energy"
+msgstr ""
+
+#: nutrition/models/substitution.py:38
+#, fuzzy
+#| msgid "Macronutrients"
+msgid "Same main macronutrient"
+msgstr "Macronutrienți"
+
+#: nutrition/models/substitution.py:39
+msgid "Defined by the nutritionist"
+msgstr ""
+
+#: nutrition/models/substitution.py:40
+#, fuzzy
+#| msgid "Preferences"
+msgid "Preference"
+msgstr "Preferințe"
+
+#: nutrition/models/substitution.py:41
+msgid "Availability"
+msgstr ""
+
+#: nutrition/models/tracking.py:34
+msgid "Followed"
+msgstr ""
+
+#: nutrition/models/tracking.py:35
+msgid "Partially followed"
+msgstr ""
+
+#: nutrition/models/tracking.py:36
+msgid "Not followed"
+msgstr ""
+
 #: nutrition/templates/ingredient/email_new.tpl:1
 #, python-format
 msgid ""
@@ -2646,7 +3009,7 @@ msgstr "Caută"
 msgid "Filter"
 msgstr "Filtru"
 
-#: nutrition/templates/ingredient/view.html:77 nutrition/views/plan.py:238
+#: nutrition/templates/ingredient/view.html:77 nutrition/views/plan.py:240
 msgid "Macronutrients"
 msgstr "Macronutrienți"
 
@@ -2654,7 +3017,7 @@ msgstr "Macronutrienți"
 msgid "kJ"
 msgstr "kJ"
 
-#: nutrition/templates/ingredient/view.html:102 nutrition/views/plan.py:268
+#: nutrition/templates/ingredient/view.html:102 nutrition/views/plan.py:270
 msgid "Sugar content in carbohydrates"
 msgstr "Conținutul de zahăr din carbohidrați"
 
@@ -2668,7 +3031,7 @@ msgstr "Conținutul de zahăr din carbohidrați"
 msgid "n.A."
 msgstr "N/A"
 
-#: nutrition/templates/ingredient/view.html:118 nutrition/views/plan.py:282
+#: nutrition/templates/ingredient/view.html:118 nutrition/views/plan.py:284
 msgid "Saturated fat content in fats"
 msgstr "Conținutul de grăsimi saturate din grăsimi"
 
@@ -2676,11 +3039,11 @@ msgstr "Conținutul de grăsimi saturate din grăsimi"
 msgid "Others"
 msgstr "Altele"
 
-#: nutrition/templates/ingredient/view.html:140 nutrition/views/plan.py:288
+#: nutrition/templates/ingredient/view.html:140 nutrition/views/plan.py:290
 msgid "Fiber"
 msgstr "Fibre"
 
-#: nutrition/templates/ingredient/view.html:150 nutrition/views/plan.py:294
+#: nutrition/templates/ingredient/view.html:150 nutrition/views/plan.py:296
 msgid "Sodium"
 msgstr "Sodiu"
 
@@ -2796,32 +3159,28 @@ msgstr ""
 msgid "Add a new ingredient"
 msgstr "Adaugă un ingredient nou"
 
-#: nutrition/views/plan.py:129
+#: nutrition/views/plan.py:131
 msgid "Nutritional plan"
 msgstr "Plan nutrițional"
 
-#: nutrition/views/plan.py:131
+#: nutrition/views/plan.py:133
 #, python-format
 msgid "Nutritional plan for %s"
 msgstr "Plan nutrițional pentru %s"
 
-#: nutrition/views/plan.py:203
+#: nutrition/views/plan.py:205
 msgid "<i>This is an empty plan, what did you expect on the PDF?</i>"
 msgstr "<i>Acesta este un plan gol, la ce te așteptai pe PDF?</i>"
 
-#: nutrition/views/plan.py:231
-msgid "Nutritional data"
-msgstr "Date nutriționale"
-
-#: nutrition/views/plan.py:239
+#: nutrition/views/plan.py:241
 msgid "Total"
 msgstr "Total"
 
-#: nutrition/views/plan.py:240
+#: nutrition/views/plan.py:242
 msgid "Percent of energy"
 msgstr "Procentaj din energie"
 
-#: nutrition/views/plan.py:241
+#: nutrition/views/plan.py:243
 msgid "g per body kg"
 msgstr "g per kg-corp"
 
@@ -2836,6 +3195,92 @@ msgstr "Editează conexiunea dintre o unitate de greutate și un ingredient"
 #: nutrition/views/unit_ingredient.py:129
 msgid "Delete?"
 msgstr "Șterge?"
+
+#: physio/api/serializers.py:68
+#, fuzzy
+#| msgid "The start time cannot be after the end time."
+msgid "The end date cannot be before the start date."
+msgstr "Ora de începere nu poate fi după ora de finalizare."
+
+#: physio/api/serializers.py:154
+msgid "The patient of an assessment cannot be changed."
+msgstr ""
+
+#: physio/api/serializers.py:167
+msgid "This must be an object."
+msgstr ""
+
+#: physio/models/protocol.py:37
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "Before the exercises"
+msgstr "Îmbunătățește exercițiile"
+
+#: physio/models/protocol.py:38
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "During the exercises"
+msgstr "Îmbunătățește exercițiile"
+
+#: physio/models/protocol.py:39
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "After the exercises"
+msgstr "Îmbunătățește exercițiile"
+
+#: physio/models/protocol.py:40
+#, fuzzy
+#| msgid "Another sample day"
+msgid "On the next day"
+msgstr "Altă zi de probă"
+
+#: physio/models/protocol.py:41 physio/models/protocol.py:291
+#, fuzzy
+#| msgid "Others"
+msgid "Other"
+msgstr "Altele"
+
+#: physio/models/protocol.py:45
+msgid "Home"
+msgstr ""
+
+#: physio/models/protocol.py:286
+#, fuzzy
+#| msgid "Make a donation"
+msgid "Range of motion"
+msgstr "Fă o donație"
+
+#: physio/models/protocol.py:287
+#, fuzzy
+#| msgid "Street"
+msgid "Strength"
+msgstr "Stradă"
+
+#: physio/models/protocol.py:288
+msgid "Functional test"
+msgstr ""
+
+#: physio/models/protocol.py:289
+msgid "Questionnaire"
+msgstr ""
+
+#: physio/models/protocol.py:290
+msgid "Balance"
+msgstr ""
+
+#: physio/models/protocol.py:295
+msgid "Not applicable"
+msgstr ""
+
+#: physio/models/protocol.py:296
+msgid "Left"
+msgstr ""
+
+#: physio/models/protocol.py:297
+#, fuzzy
+#| msgid "Weight"
+msgid "Right"
+msgstr "Greutate"
 
 #: software/templates/about_us.html:9
 msgid ""
@@ -3417,6 +3862,15 @@ msgstr ""
 msgid "Re-Submit"
 msgstr "Retrimite"
 
+#~ msgid "Sets"
+#~ msgstr "Serii"
+
+#~ msgid "RiR"
+#~ msgstr "RiR"
+
+#~ msgid "rest"
+#~ msgstr "pauză"
+
 #~ msgid "Password reset successful"
 #~ msgstr "Resetarea parolei a avut succes"
 
@@ -3618,9 +4072,6 @@ msgstr "Retrimite"
 #~ msgid "Sample day"
 #~ msgstr "Zi de probă"
 
-#~ msgid "Another sample day"
-#~ msgstr "Altă zi de probă"
-
 #~ msgid "Sample nutritional plan"
 #~ msgstr "Plan nutrițional de probă"
 
@@ -3662,9 +4113,6 @@ msgstr "Retrimite"
 
 #~ msgid "Decline"
 #~ msgstr "Declinare"
-
-#~ msgid "Pending"
-#~ msgstr "în așteptare"
 
 #~ msgid "Accepted"
 #~ msgstr "Acceptat"

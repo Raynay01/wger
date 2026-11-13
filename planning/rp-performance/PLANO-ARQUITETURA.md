@@ -3,6 +3,7 @@
 > Treinamento, Reabilitação e Nutrição.
 > Documento de planejamento (pré-programação). Versão 0.1, 13/11/2026.
 > Base técnica: este repositório (fork do **wger**, Django + DRF, AGPL-3.0).
+> Estado da implementação: ver `IMPLEMENTACAO.md`. Na implementação, `tenancy`, `care` e `audit` ficaram juntos no app `care`.
 
 ---
 

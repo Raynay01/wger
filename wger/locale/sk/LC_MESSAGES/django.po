@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-07 14:27+0100\n"
+"POT-Creation-Date: 2026-11-13 22:06+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,6 +18,358 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n == 1 ? 0 : n % 1 == 0 && n "
 ">= 2 && n <= 4 ? 1 : n % 1 != 0 ? 2: 3);\n"
+
+#: care/api/prescription.py:78
+msgid "A prescription cannot be moved to another patient."
+msgstr ""
+
+#: care/api/prescription.py:89 physio/api/serializers.py:161
+msgid "You do not follow this patient in this discipline."
+msgstr ""
+
+#: care/api/prescription.py:93 care/api/serializers.py:205
+msgid "You need a council registration for this discipline."
+msgstr ""
+
+#: care/api/prescription.py:131
+msgid "You cannot change this prescription."
+msgstr ""
+
+#: care/api/prescription.py:149
+msgid "Published versions are kept as history."
+msgstr ""
+
+#: care/api/prescription.py:165
+msgid "Only drafts can be published."
+msgstr ""
+
+#: care/api/prescription.py:176
+msgid "This version is still a draft."
+msgstr ""
+
+#: care/api/prescription.py:185
+msgid "There already is a draft for this prescription."
+msgstr ""
+
+#: care/api/prescription.py:195
+msgid "Only published versions can be archived."
+msgstr ""
+
+#: care/api/serializers.py:80 care/api/serializers.py:194
+msgid "This field is required."
+msgstr ""
+
+#: care/api/serializers.py:84
+msgid "There is no user with this email address."
+msgstr ""
+
+#: care/api/serializers.py:88
+msgid "This user is already a member of the organization."
+msgstr ""
+
+#: care/api/serializers.py:106
+msgid "Use the two letter code of the state."
+msgstr ""
+
+#: care/api/serializers.py:113
+msgid "The discipline of a registration cannot be changed."
+msgstr ""
+
+#: care/api/serializers.py:121
+msgid "You already have a registration for this discipline."
+msgstr ""
+
+#: care/api/serializers.py:185
+msgid "Use the actions to change the status of a relationship."
+msgstr ""
+
+#: care/api/serializers.py:197
+msgid "You cannot follow yourself as a patient."
+msgstr ""
+
+#: care/api/serializers.py:201
+msgid "You cannot follow patients in this organization."
+msgstr ""
+
+#: care/api/serializers.py:223
+#, fuzzy
+#| msgid "You are not allowed to access this page"
+msgid "You already follow or invited this patient."
+msgstr "Nemáte povolený prístup na túto stránku"
+
+#: care/api/serializers.py:235
+msgid "You need to agree to be followed by this professional."
+msgstr ""
+
+#: care/api/serializers.py:250
+msgid "You can only share your own data."
+msgstr ""
+
+#: care/api/serializers.py:254
+msgid "This professional does not follow you anymore."
+msgstr ""
+
+#: care/api/serializers.py:261
+msgid "You already share this."
+msgstr ""
+
+#: care/api/serializers.py:299
+msgid "The relationship of a note cannot be changed."
+msgstr ""
+
+#: care/api/serializers.py:301
+#, fuzzy
+#| msgid "You are not allowed to access this page"
+msgid "You do not follow this patient."
+msgstr "Nemáte povolený prístup na túto stránku"
+
+#: care/api/views.py:154
+msgid "An organization needs at least one owner."
+msgstr ""
+
+#: care/api/views.py:272 care/api/views.py:301
+msgid "This invitation is not open anymore."
+msgstr ""
+
+#: care/api/views.py:279
+msgid "This professional already follows you."
+msgstr ""
+
+#: care/api/views.py:312
+msgid "Only active relationships can be paused."
+msgstr ""
+
+#: care/api/views.py:322
+msgid "Only paused relationships can be resumed."
+msgstr ""
+
+#: care/api/views.py:336
+#, fuzzy
+#| msgid "This e-mail address is already in use."
+msgid "This relationship has already ended."
+msgstr "Táto e-mailová adresa sa už používa."
+
+#: care/api/views.py:373 care/api/views.py:583
+msgid "Use the format YYYY-MM-DD."
+msgstr ""
+
+#: care/api/views.py:549
+msgid "A valid integer is required."
+msgstr ""
+
+#: care/disciplines.py:26 core/templates/navigation.html:28
+#: software/templates/features.html:461
+msgid "Training"
+msgstr "Tréning"
+
+#: care/disciplines.py:27
+msgid "Physiotherapy"
+msgstr ""
+
+#: care/disciplines.py:28 core/templates/navigation.html:146
+#: software/templates/features.html:471
+msgid "Nutrition"
+msgstr "Výživa"
+
+#: care/models/grant.py:33
+msgid "Training days, times and frequency"
+msgstr ""
+
+#: care/models/grant.py:34
+msgid "Completed training sessions"
+msgstr ""
+
+#: care/models/grant.py:35
+#, fuzzy
+#| msgid "Nutritional data"
+msgid "Nutrition goals and meal times"
+msgstr "Výživové údaje"
+
+#: care/models/grant.py:36
+msgid "Food diary summary"
+msgstr ""
+
+#: care/models/grant.py:37
+msgid "Pain records summary"
+msgstr ""
+
+#: care/models/grant.py:38
+msgid "Body weight and measurements"
+msgstr ""
+
+#: care/models/grant.py:39
+msgid "Multidisciplinary notes"
+msgstr ""
+
+#: care/models/grant.py:81
+#, fuzzy
+#| msgid "Terms of service"
+msgid "Terms of use and privacy policy"
+msgstr "Zmluvné podmienky"
+
+#: care/models/grant.py:82
+msgid "Processing of health data"
+msgstr ""
+
+#: care/models/grant.py:83
+msgid "Follow-up by a professional"
+msgstr ""
+
+#: care/models/grant.py:84
+msgid "Sharing between professionals"
+msgstr ""
+
+#: care/models/grant.py:85
+msgid "Summaries generated by artificial intelligence"
+msgstr ""
+
+#: care/models/grant.py:86
+#, fuzzy
+#| msgid "Notification language"
+msgid "Notifications via WhatsApp"
+msgstr "Jazyk upozornení"
+
+#: care/models/note.py:29
+#, fuzzy
+#| msgid "General manager"
+msgid "General"
+msgstr "Generálny manažér"
+
+#: care/models/note.py:30
+#, fuzzy
+#| msgid "Distance"
+msgid "Guidance"
+msgstr "Vzdialenosť"
+
+#: care/models/note.py:31
+#, fuzzy
+#| msgid "Repetitions"
+msgid "Restriction"
+msgstr "Opakovania"
+
+#: care/models/note.py:32
+msgid "Alert"
+msgstr ""
+
+#: care/models/organization.py:26
+msgid "Independent professional"
+msgstr ""
+
+#: care/models/organization.py:27 physio/models/protocol.py:47
+msgid "Clinic"
+msgstr ""
+
+#: care/models/organization.py:28
+msgid "Multidisciplinary team"
+msgstr ""
+
+#: care/models/organization.py:41 core/models/rep_unit.py:47
+#: core/models/weight_unit.py:42 core/templates/user/overview.html:266
+#: core/views/user.py:709 exercises/models/muscle.py:36
+#: gym/models/contract.py:52 gym/models/contract.py:103 gym/models/gym.py:46
+#: gym/models/user_document.py:84 gym/templates/contract/view.html:50
+#: gym/templates/gym/member_list.html:28 gym/templates/gym/member_list.html:108
+#: gym/views/gym.py:168 nutrition/templates/ingredient/view.html:241
+#: physio/models/protocol.py:64
+msgid "Name"
+msgstr "Meno"
+
+#: care/models/organization.py:44
+msgid "Kind"
+msgstr ""
+
+#: care/models/organization.py:51
+msgid "CPF or CNPJ"
+msgstr ""
+
+#: care/models/organization.py:68 gym/models/gym.py:65
+#: gym/templates/gym/member_list.html:126
+msgid "Owner"
+msgstr "Vlastník"
+
+#: care/models/organization.py:69
+#, fuzzy
+#| msgid "Administration"
+msgid "Administrator"
+msgstr "Administrácia"
+
+#: care/models/organization.py:70
+#, fuzzy
+#| msgid "Profession"
+msgid "Professional"
+msgstr "Profesia"
+
+#: care/models/organization.py:71
+#, fuzzy
+#| msgid "Description"
+msgid "Reception"
+msgstr "Popis"
+
+#: care/models/registration.py:29
+msgid "Pending"
+msgstr ""
+
+#: care/models/registration.py:30
+#, fuzzy
+#| msgid "Verified email"
+msgid "Verified"
+msgstr "Overený email"
+
+#: care/models/registration.py:31
+msgid "Rejected"
+msgstr ""
+
+#: care/models/registration.py:59
+msgid "Council"
+msgstr ""
+
+#: care/models/registration.py:61
+msgid "Registration number"
+msgstr ""
+
+#: care/models/registration.py:64
+#, fuzzy
+#| msgid "Status"
+msgid "State"
+msgstr "Stav"
+
+#: care/models/registration.py:66
+msgid "Two letter code of the state, e.g. SP"
+msgstr ""
+
+#: care/models/relationship.py:30
+#, fuzzy
+#| msgid "edited"
+msgid "Invited"
+msgstr "upravené"
+
+#: care/models/relationship.py:31 core/templates/user/overview.html:311
+msgid "Active"
+msgstr "Aktívne"
+
+#: care/models/relationship.py:32
+msgid "Paused"
+msgstr ""
+
+#: care/models/relationship.py:33
+msgid "Ended"
+msgstr ""
+
+#: care/prescription.py:49
+msgid "Draft"
+msgstr ""
+
+#: care/prescription.py:50
+msgid "Published"
+msgstr ""
+
+#: care/prescription.py:51
+msgid "Superseded"
+msgstr ""
+
+#: care/prescription.py:52
+msgid "Archived"
+msgstr ""
 
 #: config/models/gym_config.py:46 gym/templates/gym/list.html:56
 msgid "Default gym"
@@ -52,60 +404,70 @@ msgstr ""
 msgid "Edit"
 msgstr "Upraviť"
 
-#: core/forms.py:116 core/forms.py:362
+#: core/captcha.py:83 core/captcha.py:84
+msgid "The captcha could not be verified, please try again."
+msgstr ""
+
+#: core/captcha.py:134
 msgid "The form is secured with reCAPTCHA"
 msgstr "Formulár je zabezpečený pomocou reCAPTCHA"
 
-#: core/forms.py:129 core/templates/account/login.html:93
+#: core/captcha.py:145
+#, fuzzy
+#| msgid "The form is secured with reCAPTCHA"
+msgid "The form is secured with Cloudflare Turnstile"
+msgstr "Formulár je zabezpečený pomocou reCAPTCHA"
+
+#: core/forms.py:124 core/templates/account/login.html:93
 #: core/templates/account/signup.html:4 core/templates/navigation.html:269
 #: core/templates/navigation.html:282 core/templates/template.html:114
 #: software/templates/features.html:89 software/templates/features.html:445
 msgid "Register"
 msgstr "Zaregistrujte sa"
 
-#: core/forms.py:148
+#: core/forms.py:143
 msgid "Not set"
 msgstr ""
 
-#: core/forms.py:152 core/forms.py:270 gym/views/export.py:62
+#: core/forms.py:147 core/forms.py:265 gym/views/export.py:62
 #: gym/views/gym.py:227
 msgid "First name"
 msgstr "Krstné meno"
 
-#: core/forms.py:153 core/forms.py:271 core/templates/user/overview.html:270
+#: core/forms.py:148 core/forms.py:266 core/templates/user/overview.html:270
 #: gym/views/export.py:63 gym/views/gym.py:227
 msgid "Last name"
 msgstr "Priezvisko"
 
-#: core/forms.py:155 core/models/profile.py:227
+#: core/forms.py:150 core/models/profile.py:227
 #: gym/templates/gym/new_user.html:38
 msgid "Date of Birth"
 msgstr "Dátum narodenia"
 
-#: core/forms.py:168
+#: core/forms.py:163
 msgid "Timezone"
 msgstr "Časové pásmo"
 
-#: core/forms.py:172
+#: core/forms.py:167
 msgid ""
 "Used to decide which day a workout counts for. The mobile app reports it "
 "automatically."
 msgstr ""
 
-#: core/forms.py:211
+#: core/forms.py:206
 msgid "Personal data"
 msgstr "Osobné údaje"
 
-#: core/forms.py:221
+#: core/forms.py:216
 msgid "Other settings"
 msgstr "Iné nastavenia"
 
-#: core/forms.py:226 core/views/user.py:734 gym/forms.py:73
+#: core/forms.py:221 core/views/user.py:734 gym/forms.py:73
 #: utils/generic_views.py:132
 msgid "Save"
 msgstr "Uložiť"
 
-#: core/forms.py:241 core/templates/user/overview.html:274
+#: core/forms.py:236 core/templates/user/overview.html:274
 #: gym/models/contract.py:256 gym/models/gym.py:58
 #: gym/templates/contract/view.html:77 gym/templates/gym/member_list.html:116
 #: gym/templates/gym/new_user.html:30 gym/views/export.py:61
@@ -115,24 +477,24 @@ msgstr "Uložiť"
 msgid "Email"
 msgstr "Email"
 
-#: core/forms.py:242
+#: core/forms.py:237
 msgid "Used for password resets and, optionally, email reminders."
 msgstr "Používa sa na obnovenie hesla a voliteľne na e-mailové pripomienky."
 
-#: core/forms.py:265
+#: core/forms.py:260
 msgid "This e-mail address is already in use."
 msgstr "Táto e-mailová adresa sa už používa."
 
-#: core/forms.py:287 gym/templates/gym/new_user.html:26
+#: core/forms.py:282 gym/templates/gym/new_user.html:26
 #: gym/templates/gym/reset_user_password.html:24 gym/views/gym.py:227
 msgid "Password"
 msgstr "Heslo"
 
-#: core/forms.py:289
+#: core/forms.py:284
 msgid "Please enter your current password."
 msgstr "Zadajte svoje aktuálne heslo."
 
-#: core/forms.py:298 core/forms.py:335 core/templates/language/view.html:70
+#: core/forms.py:293 core/forms.py:330 core/templates/language/view.html:70
 #: core/templates/license/list.html:21
 #: core/templates/repetition_unit/list.html:22
 #: core/templates/user/overview.html:251
@@ -148,15 +510,15 @@ msgstr "Zadajte svoje aktuálne heslo."
 msgid "Delete"
 msgstr "Odstrániť"
 
-#: core/forms.py:307
+#: core/forms.py:302
 msgid "Invalid password"
 msgstr "Neplatné heslo"
 
-#: core/forms.py:320
+#: core/forms.py:315
 msgid "Confirm"
 msgstr "Potvrďte"
 
-#: core/forms.py:328
+#: core/forms.py:323
 #, python-brace-format
 msgid ""
 "Your account has no password. Type the username \"{username}\" to confirm."
@@ -164,11 +526,11 @@ msgstr ""
 "Váš účet nemá žiadne heslo. Potvrďte zadaním používateľského mena "
 "\"{username}\"."
 
-#: core/forms.py:344
+#: core/forms.py:339
 msgid "The entered username does not match"
 msgstr "Zadané používateľské meno sa nezhoduje"
 
-#: core/forms.py:372 weight/templates/import_csv_form.html:9
+#: core/forms.py:364 weight/templates/import_csv_form.html:9
 msgid "Submit"
 msgstr "Odoslať"
 
@@ -377,16 +739,6 @@ msgstr "Čas"
 #: core/models/rep_unit.py:34
 msgid "Distance"
 msgstr "Vzdialenosť"
-
-#: core/models/rep_unit.py:47 core/models/weight_unit.py:42
-#: core/templates/user/overview.html:266 core/views/user.py:709
-#: exercises/models/muscle.py:36 gym/models/contract.py:52
-#: gym/models/contract.py:103 gym/models/gym.py:46
-#: gym/models/user_document.py:84 gym/templates/contract/view.html:50
-#: gym/templates/gym/member_list.html:28 gym/templates/gym/member_list.html:108
-#: gym/views/gym.py:168 nutrition/templates/ingredient/view.html:241
-msgid "Name"
-msgstr "Meno"
 
 #: core/models/rep_unit.py:53
 msgid "Unit Type"
@@ -727,10 +1079,6 @@ msgstr "Nič sa nenašlo"
 msgid "Imprint"
 msgstr "Tiráž"
 
-#: core/templates/navigation.html:28 software/templates/features.html:461
-msgid "Training"
-msgstr "Tréning"
-
 #: core/templates/navigation.html:36 core/templates/user/overview.html:24
 msgid "Routines"
 msgstr "Rutiny"
@@ -789,10 +1137,6 @@ msgstr "Svaly"
 #: exercises/templates/categories/admin-overview.html:4
 msgid "Categories"
 msgstr "Kategórie"
-
-#: core/templates/navigation.html:146 software/templates/features.html:471
-msgid "Nutrition"
-msgstr "Výživa"
 
 #: core/templates/navigation.html:154 core/templates/user/overview.html:158
 msgid "Nutrition plans"
@@ -1185,7 +1529,7 @@ msgstr "Prehľad"
 
 #: core/templates/user/overview.html:36 core/templates/user/overview.html:86
 #: core/templates/user/overview.html:134 core/templates/user/overview.html:170
-#: manager/helpers.py:90 software/templates/about_us.html:170
+#: manager/helpers.py:89 software/templates/about_us.html:170
 #: weight/templates/import_csv_preview.html:13
 #: weight/templates/import_csv_preview.html:42 weight/views.py:55
 msgid "Date"
@@ -1193,6 +1537,7 @@ msgstr "Dátum"
 
 #: core/templates/user/overview.html:37 core/templates/user/overview.html:171
 #: gym/models/contract.py:58 gym/models/contract.py:109
+#: physio/models/protocol.py:66
 msgid "Description"
 msgstr "Popis"
 
@@ -1222,28 +1567,28 @@ msgid "Notes"
 msgstr "Poznámky"
 
 #: core/templates/user/overview.html:122 core/templates/user/overview.html:135
-#: manager/helpers.py:91 weight/templates/import_csv_preview.html:14
+#: manager/helpers.py:90 weight/templates/import_csv_preview.html:14
 #: weight/templates/import_csv_preview.html:43 weight/views.py:55
 msgid "Weight"
 msgstr "Hmotnosť"
 
 #: core/templates/user/overview.html:172
-#: nutrition/templates/ingredient/view.html:83 nutrition/views/plan.py:246
+#: nutrition/templates/ingredient/view.html:83 nutrition/views/plan.py:248
 msgid "Energy"
 msgstr "Energia"
 
 #: core/templates/user/overview.html:173
-#: nutrition/templates/ingredient/view.html:90 nutrition/views/plan.py:252
+#: nutrition/templates/ingredient/view.html:90 nutrition/views/plan.py:254
 msgid "Protein"
 msgstr "Proteín"
 
 #: core/templates/user/overview.html:174
-#: nutrition/templates/ingredient/view.html:96 nutrition/views/plan.py:260
+#: nutrition/templates/ingredient/view.html:96 nutrition/views/plan.py:262
 msgid "Carbohydrates"
 msgstr "Sacharidy"
 
 #: core/templates/user/overview.html:175
-#: nutrition/templates/ingredient/view.html:112 nutrition/views/plan.py:274
+#: nutrition/templates/ingredient/view.html:112 nutrition/views/plan.py:276
 msgid "Fat"
 msgstr "Tuk"
 
@@ -1297,8 +1642,7 @@ msgid "Details"
 msgstr "Podrobnosti"
 
 #: core/templates/user/overview.html:262 gym/views/export.py:58
-#: manager/helpers.py:91 nutrition/views/plan.py:152
-#: nutrition/views/plan.py:158
+#: manager/helpers.py:90
 msgid "Nr."
 msgstr "č."
 
@@ -1324,10 +1668,6 @@ msgstr "Posledné prihlásenie"
 #: core/templates/user/overview.html:308
 msgid "Status"
 msgstr "Stav"
-
-#: core/templates/user/overview.html:311
-msgid "Active"
-msgstr "Aktívne"
 
 #: core/templates/user/overview.html:313
 msgid "Inactive"
@@ -1525,7 +1865,7 @@ msgid "Username"
 msgstr "Používateľské meno"
 
 #: core/views/user.py:711 gym/templates/gym/new_user.html:34
-#: gym/views/export.py:59 gym/views/gym.py:227
+#: gym/views/export.py:59 gym/views/gym.py:227 physio/models/protocol.py:46
 msgid "Gym"
 msgstr "Telocvičňa"
 
@@ -1728,7 +2068,7 @@ msgstr "Komu"
 msgid "Add muscle"
 msgstr "Pridajte svaly"
 
-#: gallery/forms.py:35
+#: gallery/forms.py:34
 msgid "If date is left empty, it will be read from the image instead"
 msgstr "Ak dátum ponecháte prázdny, načíta sa namiesto toho z obrázka"
 
@@ -1850,10 +2190,6 @@ msgstr "Správca: môže spravovať používateľov telocvične"
 msgid "Admin: can administrate the different gyms"
 msgstr "Admin: môže spravovať rôzne telocvične"
 
-#: gym/models/gym.py:65 gym/templates/gym/member_list.html:126
-msgid "Owner"
-msgstr "Vlastník"
-
 #: gym/models/gym_config.py:46
 msgid ""
 "Number of weeks since the last time a user logged his presence to be "
@@ -1869,6 +2205,11 @@ msgstr "Zobraziť meno v hlavičke"
 #: gym/models/gym_config.py:57
 msgid "Show the name of the gym in the site header"
 msgstr "Zobrazte názov telocvične v hlavičke stránky"
+
+#: gym/models/gym_config.py:68
+#, python-brace-format
+msgid "Configuration for {self.gym.name}"
+msgstr ""
 
 #: gym/models/user_config.py:65 gym/templates/gym/member_list.html:200
 msgid "Overview of inactive members"
@@ -2425,27 +2766,15 @@ msgstr "Posielajte e-maily"
 msgid "Correction"
 msgstr "Oprava"
 
-#: manager/dataclasses.py:114
-msgid "Sets"
-msgstr "Série"
-
-#: manager/dataclasses.py:132 manager/helpers.py:91
+#: manager/dataclasses.py:132 manager/helpers.py:90
 msgid "Reps"
 msgstr "Opakovania"
 
-#: manager/dataclasses.py:179
-msgid "RiR"
-msgstr "RiR"
-
-#: manager/dataclasses.py:186
-msgid "rest"
-msgstr "odpočinok"
-
-#: manager/helpers.py:78
+#: manager/helpers.py:77
 msgid "Rest day"
 msgstr "Deň odpočinku"
 
-#: manager/helpers.py:91
+#: manager/helpers.py:90
 msgid "Exercise"
 msgstr "Cvičenie"
 
@@ -2592,6 +2921,42 @@ msgstr "Zadajte množstvo a vyberte gramy (g) alebo jednu z jednotiek porcie."
 msgid "Portion"
 msgstr "Porcia"
 
+#: nutrition/models/substitution.py:37
+msgid "Same energy"
+msgstr ""
+
+#: nutrition/models/substitution.py:38
+#, fuzzy
+#| msgid "Macronutrients"
+msgid "Same main macronutrient"
+msgstr "Makronutrienty"
+
+#: nutrition/models/substitution.py:39
+msgid "Defined by the nutritionist"
+msgstr ""
+
+#: nutrition/models/substitution.py:40
+#, fuzzy
+#| msgid "Preferences"
+msgid "Preference"
+msgstr "Predvoľby"
+
+#: nutrition/models/substitution.py:41
+msgid "Availability"
+msgstr ""
+
+#: nutrition/models/tracking.py:34
+msgid "Followed"
+msgstr ""
+
+#: nutrition/models/tracking.py:35
+msgid "Partially followed"
+msgstr ""
+
+#: nutrition/models/tracking.py:36
+msgid "Not followed"
+msgstr ""
+
 #: nutrition/templates/ingredient/email_new.tpl:1
 #, python-format
 msgid ""
@@ -2680,7 +3045,7 @@ msgstr "Hľadať"
 msgid "Filter"
 msgstr "Filter"
 
-#: nutrition/templates/ingredient/view.html:77 nutrition/views/plan.py:238
+#: nutrition/templates/ingredient/view.html:77 nutrition/views/plan.py:240
 msgid "Macronutrients"
 msgstr "Makronutrienty"
 
@@ -2688,7 +3053,7 @@ msgstr "Makronutrienty"
 msgid "kJ"
 msgstr "kJ"
 
-#: nutrition/templates/ingredient/view.html:102 nutrition/views/plan.py:268
+#: nutrition/templates/ingredient/view.html:102 nutrition/views/plan.py:270
 msgid "Sugar content in carbohydrates"
 msgstr "Obsah cukru v sacharidoch"
 
@@ -2702,7 +3067,7 @@ msgstr "Obsah cukru v sacharidoch"
 msgid "n.A."
 msgstr "n.A."
 
-#: nutrition/templates/ingredient/view.html:118 nutrition/views/plan.py:282
+#: nutrition/templates/ingredient/view.html:118 nutrition/views/plan.py:284
 msgid "Saturated fat content in fats"
 msgstr "Obsah nasýtených tukov v tukoch"
 
@@ -2710,11 +3075,11 @@ msgstr "Obsah nasýtených tukov v tukoch"
 msgid "Others"
 msgstr "Iní"
 
-#: nutrition/templates/ingredient/view.html:140 nutrition/views/plan.py:288
+#: nutrition/templates/ingredient/view.html:140 nutrition/views/plan.py:290
 msgid "Fiber"
 msgstr "Vláknina"
 
-#: nutrition/templates/ingredient/view.html:150 nutrition/views/plan.py:294
+#: nutrition/templates/ingredient/view.html:150 nutrition/views/plan.py:296
 msgid "Sodium"
 msgstr "Sodík"
 
@@ -2828,32 +3193,28 @@ msgstr ""
 msgid "Add a new ingredient"
 msgstr "Pridajte novú ingredienciu"
 
-#: nutrition/views/plan.py:129
+#: nutrition/views/plan.py:131
 msgid "Nutritional plan"
 msgstr "Výživový plán"
 
-#: nutrition/views/plan.py:131
+#: nutrition/views/plan.py:133
 #, python-format
 msgid "Nutritional plan for %s"
 msgstr "Výživový plán pre %s"
 
-#: nutrition/views/plan.py:203
+#: nutrition/views/plan.py:205
 msgid "<i>This is an empty plan, what did you expect on the PDF?</i>"
 msgstr "<i>Toto je prázdny plán, čo ste od PDF očakávali?</i>"
 
-#: nutrition/views/plan.py:231
-msgid "Nutritional data"
-msgstr "Výživové údaje"
-
-#: nutrition/views/plan.py:239
+#: nutrition/views/plan.py:241
 msgid "Total"
 msgstr "Celkom"
 
-#: nutrition/views/plan.py:240
+#: nutrition/views/plan.py:242
 msgid "Percent of energy"
 msgstr "Percento energie"
 
-#: nutrition/views/plan.py:241
+#: nutrition/views/plan.py:243
 msgid "g per body kg"
 msgstr "g na kg telesnej hmotnosti"
 
@@ -2868,6 +3229,92 @@ msgstr "Upravte jednotku hmotnosti k spojeniu prísad"
 #: nutrition/views/unit_ingredient.py:129
 msgid "Delete?"
 msgstr "Odstrániť?"
+
+#: physio/api/serializers.py:68
+#, fuzzy
+#| msgid "The start time cannot be after the end time."
+msgid "The end date cannot be before the start date."
+msgstr "Čas začiatku nemôže byť neskorší ako čas ukončenia."
+
+#: physio/api/serializers.py:154
+msgid "The patient of an assessment cannot be changed."
+msgstr ""
+
+#: physio/api/serializers.py:167
+msgid "This must be an object."
+msgstr ""
+
+#: physio/models/protocol.py:37
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "Before the exercises"
+msgstr "Zlepšite cvičenia"
+
+#: physio/models/protocol.py:38
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "During the exercises"
+msgstr "Zlepšite cvičenia"
+
+#: physio/models/protocol.py:39
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "After the exercises"
+msgstr "Zlepšite cvičenia"
+
+#: physio/models/protocol.py:40
+msgid "On the next day"
+msgstr ""
+
+#: physio/models/protocol.py:41 physio/models/protocol.py:291
+#, fuzzy
+#| msgid "Others"
+msgid "Other"
+msgstr "Iní"
+
+#: physio/models/protocol.py:45
+msgid "Home"
+msgstr ""
+
+#: physio/models/protocol.py:286
+#, fuzzy
+#| msgid "Make a donation"
+msgid "Range of motion"
+msgstr "Darujte"
+
+#: physio/models/protocol.py:287
+#, fuzzy
+#| msgid "Street"
+msgid "Strength"
+msgstr "Ulica"
+
+#: physio/models/protocol.py:288
+msgid "Functional test"
+msgstr ""
+
+#: physio/models/protocol.py:289
+msgid "Questionnaire"
+msgstr ""
+
+#: physio/models/protocol.py:290
+#, fuzzy
+#| msgid "Cancel"
+msgid "Balance"
+msgstr "Zrušiť"
+
+#: physio/models/protocol.py:295
+msgid "Not applicable"
+msgstr ""
+
+#: physio/models/protocol.py:296
+msgid "Left"
+msgstr ""
+
+#: physio/models/protocol.py:297
+#, fuzzy
+#| msgid "Weight"
+msgid "Right"
+msgstr "Hmotnosť"
 
 #: software/templates/about_us.html:9
 msgid ""
@@ -3436,6 +3883,15 @@ msgstr ""
 #: weight/templates/import_csv_preview.html:85
 msgid "Re-Submit"
 msgstr "Znova odoslať"
+
+#~ msgid "Sets"
+#~ msgstr "Série"
+
+#~ msgid "RiR"
+#~ msgstr "RiR"
+
+#~ msgid "rest"
+#~ msgstr "odpočinok"
 
 #~ msgid "Password reset successful"
 #~ msgstr "Obnovenie hesla bolo úspešné"

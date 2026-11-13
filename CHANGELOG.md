@@ -8,6 +8,38 @@
 ### Double progression
 Progression requirements can now reference the top of the prescribed range via the new rules `max_repetitions` and `max_weight`, and the new `all_sets` flag requires every prescribed set to qualify. Together they enable classic double progression schemes ("work from 8 to 12 reps at a fixed weight, add weight only once all sets reach 12"), e.g. `{"rules": ["max_repetitions"], "all_sets": true}`.
 
+### Professionals, patients and multidisciplinary follow-up (RP Performance)
+Trainers, physiotherapists and nutritionists work in organizations
+(`/api/v2/organization/`, `/api/v2/membership/`) and register their council
+number (`/api/v2/professional-registration/`, CREF, CREFITO or CRN). They invite
+patients per discipline (`/api/v2/care-relationship/`); the patient accepts with
+an explicit consent, which is recorded (`/api/v2/consent/`).
+
+* The app shows the modules of the patient's professionals only
+  (`/api/v2/care/modules/`), and `/api/v2/care/my-day/` returns the training,
+  meals, logged totals, water and physio exercises of a calendar day.
+* Nutrition plans, routines and the new physio protocols can be written by a
+  professional for a patient (`care_relationship` on create). They start as a
+  draft the patient does not see; `publish` freezes the version, `new-version`
+  creates an editable copy and the previous version stays readable as
+  superseded. Only the author edits a prescription, so a nutritionist cannot
+  change a routine and vice versa. Plans and routines without author behave as
+  before.
+* Patients share read-only summaries with each professional
+  (`/api/v2/access-grant/`, read via `care-relationship/{id}/shared/`), every
+  read is logged. Professionals leave notes for each other
+  (`/api/v2/multidisciplinary-note/`).
+* Nutrition: meal and meal item `instructions`, substitution options approved by
+  the nutritionist (`/api/v2/substitution-option/`), meal adherence per day
+  (`/api/v2/meal-adherence/`), water logs (`/api/v2/water-log/`) and a
+  `goal_water_ml` per plan.
+* Training: `tempo`, target `rpe` and `range_of_motion` on slot entries, `rpe`
+  on workout logs.
+* Physiotherapy: protocols with exercises (`/api/v2/physio-protocol/`,
+  `/api/v2/protocol-exercise/`), pain records on the 0-10 scale with alerts for
+  the physiotherapist (`/api/v2/pain-record/`, `pain-record/alerts/`), exercise
+  records and functional assessments (`/api/v2/functional-assessment/`).
+
 ### Others
 * `/api/v2/measurement/` accepts a `metric_type` instead of a `category` id when
   writing, and can be filtered by `metric_type` and `external_id`. Integrations

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wger Workout Manager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-07 14:27+0100\n"
+"POT-Creation-Date: 2026-11-13 22:06+0000\n"
 "PO-Revision-Date: 2026-07-30 17:01+0000\n"
 "Last-Translator: KT Park <qbdpqdbp@gmail.com>\n"
 "Language-Team: Korean <https://hosted.weblate.org/projects/wger/web/ko/>\n"
@@ -18,6 +18,356 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Weblate 2026.8.dev0\n"
+
+#: care/api/prescription.py:78
+msgid "A prescription cannot be moved to another patient."
+msgstr ""
+
+#: care/api/prescription.py:89 physio/api/serializers.py:161
+msgid "You do not follow this patient in this discipline."
+msgstr ""
+
+#: care/api/prescription.py:93 care/api/serializers.py:205
+msgid "You need a council registration for this discipline."
+msgstr ""
+
+#: care/api/prescription.py:131
+msgid "You cannot change this prescription."
+msgstr ""
+
+#: care/api/prescription.py:149
+msgid "Published versions are kept as history."
+msgstr ""
+
+#: care/api/prescription.py:165
+msgid "Only drafts can be published."
+msgstr ""
+
+#: care/api/prescription.py:176
+msgid "This version is still a draft."
+msgstr ""
+
+#: care/api/prescription.py:185
+msgid "There already is a draft for this prescription."
+msgstr ""
+
+#: care/api/prescription.py:195
+msgid "Only published versions can be archived."
+msgstr ""
+
+#: care/api/serializers.py:80 care/api/serializers.py:194
+msgid "This field is required."
+msgstr ""
+
+#: care/api/serializers.py:84
+msgid "There is no user with this email address."
+msgstr ""
+
+#: care/api/serializers.py:88
+msgid "This user is already a member of the organization."
+msgstr ""
+
+#: care/api/serializers.py:106
+msgid "Use the two letter code of the state."
+msgstr ""
+
+#: care/api/serializers.py:113
+msgid "The discipline of a registration cannot be changed."
+msgstr ""
+
+#: care/api/serializers.py:121
+msgid "You already have a registration for this discipline."
+msgstr ""
+
+#: care/api/serializers.py:185
+msgid "Use the actions to change the status of a relationship."
+msgstr ""
+
+#: care/api/serializers.py:197
+msgid "You cannot follow yourself as a patient."
+msgstr ""
+
+#: care/api/serializers.py:201
+msgid "You cannot follow patients in this organization."
+msgstr ""
+
+#: care/api/serializers.py:223
+#, fuzzy
+#| msgid "You are not allowed to access this page"
+msgid "You already follow or invited this patient."
+msgstr "이 페이지에 접근할 수 없습니다"
+
+#: care/api/serializers.py:235
+msgid "You need to agree to be followed by this professional."
+msgstr ""
+
+#: care/api/serializers.py:250
+msgid "You can only share your own data."
+msgstr ""
+
+#: care/api/serializers.py:254
+msgid "This professional does not follow you anymore."
+msgstr ""
+
+#: care/api/serializers.py:261
+msgid "You already share this."
+msgstr ""
+
+#: care/api/serializers.py:299
+msgid "The relationship of a note cannot be changed."
+msgstr ""
+
+#: care/api/serializers.py:301
+#, fuzzy
+#| msgid "You are not allowed to access this page"
+msgid "You do not follow this patient."
+msgstr "이 페이지에 접근할 수 없습니다"
+
+#: care/api/views.py:154
+msgid "An organization needs at least one owner."
+msgstr ""
+
+#: care/api/views.py:272 care/api/views.py:301
+msgid "This invitation is not open anymore."
+msgstr ""
+
+#: care/api/views.py:279
+msgid "This professional already follows you."
+msgstr ""
+
+#: care/api/views.py:312
+msgid "Only active relationships can be paused."
+msgstr ""
+
+#: care/api/views.py:322
+msgid "Only paused relationships can be resumed."
+msgstr ""
+
+#: care/api/views.py:336
+#, fuzzy
+#| msgid "This e-mail address is already in use."
+msgid "This relationship has already ended."
+msgstr "이 이메일 주소는 이미 사용중입니다."
+
+#: care/api/views.py:373 care/api/views.py:583
+msgid "Use the format YYYY-MM-DD."
+msgstr ""
+
+#: care/api/views.py:549
+msgid "A valid integer is required."
+msgstr ""
+
+#: care/disciplines.py:26 core/templates/navigation.html:28
+#: software/templates/features.html:461
+msgid "Training"
+msgstr "트레이닝"
+
+#: care/disciplines.py:27
+msgid "Physiotherapy"
+msgstr ""
+
+#: care/disciplines.py:28 core/templates/navigation.html:146
+#: software/templates/features.html:471
+msgid "Nutrition"
+msgstr "영양"
+
+#: care/models/grant.py:33
+msgid "Training days, times and frequency"
+msgstr ""
+
+#: care/models/grant.py:34
+msgid "Completed training sessions"
+msgstr ""
+
+#: care/models/grant.py:35
+#, fuzzy
+#| msgid "Nutritional data"
+msgid "Nutrition goals and meal times"
+msgstr "영양 데이터"
+
+#: care/models/grant.py:36
+msgid "Food diary summary"
+msgstr ""
+
+#: care/models/grant.py:37
+msgid "Pain records summary"
+msgstr ""
+
+#: care/models/grant.py:38
+msgid "Body weight and measurements"
+msgstr ""
+
+#: care/models/grant.py:39
+msgid "Multidisciplinary notes"
+msgstr ""
+
+#: care/models/grant.py:81
+#, fuzzy
+#| msgid "Terms of service"
+msgid "Terms of use and privacy policy"
+msgstr "서비스 약관"
+
+#: care/models/grant.py:82
+msgid "Processing of health data"
+msgstr ""
+
+#: care/models/grant.py:83
+msgid "Follow-up by a professional"
+msgstr ""
+
+#: care/models/grant.py:84
+msgid "Sharing between professionals"
+msgstr ""
+
+#: care/models/grant.py:85
+msgid "Summaries generated by artificial intelligence"
+msgstr ""
+
+#: care/models/grant.py:86
+#, fuzzy
+#| msgid "Notification language"
+msgid "Notifications via WhatsApp"
+msgstr "알람 언어"
+
+#: care/models/note.py:29
+#, fuzzy
+#| msgid "General manager"
+msgid "General"
+msgstr "일반 관리자"
+
+#: care/models/note.py:30
+#, fuzzy
+#| msgid "Distance"
+msgid "Guidance"
+msgstr "거리"
+
+#: care/models/note.py:31
+#, fuzzy
+#| msgid "Repetitions"
+msgid "Restriction"
+msgstr "반복"
+
+#: care/models/note.py:32
+msgid "Alert"
+msgstr ""
+
+#: care/models/organization.py:26
+msgid "Independent professional"
+msgstr ""
+
+#: care/models/organization.py:27 physio/models/protocol.py:47
+msgid "Clinic"
+msgstr ""
+
+#: care/models/organization.py:28
+msgid "Multidisciplinary team"
+msgstr ""
+
+#: care/models/organization.py:41 core/models/rep_unit.py:47
+#: core/models/weight_unit.py:42 core/templates/user/overview.html:266
+#: core/views/user.py:709 exercises/models/muscle.py:36
+#: gym/models/contract.py:52 gym/models/contract.py:103 gym/models/gym.py:46
+#: gym/models/user_document.py:84 gym/templates/contract/view.html:50
+#: gym/templates/gym/member_list.html:28 gym/templates/gym/member_list.html:108
+#: gym/views/gym.py:168 nutrition/templates/ingredient/view.html:241
+#: physio/models/protocol.py:64
+msgid "Name"
+msgstr "이름"
+
+#: care/models/organization.py:44
+msgid "Kind"
+msgstr ""
+
+#: care/models/organization.py:51
+msgid "CPF or CNPJ"
+msgstr ""
+
+#: care/models/organization.py:68 gym/models/gym.py:65
+#: gym/templates/gym/member_list.html:126
+msgid "Owner"
+msgstr "소유자"
+
+#: care/models/organization.py:69
+#, fuzzy
+#| msgid "Administration"
+msgid "Administrator"
+msgstr "관리"
+
+#: care/models/organization.py:70
+#, fuzzy
+#| msgid "Profession"
+msgid "Professional"
+msgstr "직업"
+
+#: care/models/organization.py:71
+#, fuzzy
+#| msgid "Description"
+msgid "Reception"
+msgstr "설명"
+
+#: care/models/registration.py:29
+msgid "Pending"
+msgstr ""
+
+#: care/models/registration.py:30
+#, fuzzy
+#| msgid "Verified email"
+msgid "Verified"
+msgstr "확인된 이메일"
+
+#: care/models/registration.py:31
+msgid "Rejected"
+msgstr ""
+
+#: care/models/registration.py:59
+msgid "Council"
+msgstr ""
+
+#: care/models/registration.py:61
+msgid "Registration number"
+msgstr ""
+
+#: care/models/registration.py:64
+#, fuzzy
+#| msgid "Status"
+msgid "State"
+msgstr "상태"
+
+#: care/models/registration.py:66
+msgid "Two letter code of the state, e.g. SP"
+msgstr ""
+
+#: care/models/relationship.py:30
+msgid "Invited"
+msgstr ""
+
+#: care/models/relationship.py:31 core/templates/user/overview.html:311
+msgid "Active"
+msgstr "활성"
+
+#: care/models/relationship.py:32
+msgid "Paused"
+msgstr ""
+
+#: care/models/relationship.py:33
+msgid "Ended"
+msgstr ""
+
+#: care/prescription.py:49
+msgid "Draft"
+msgstr ""
+
+#: care/prescription.py:50
+msgid "Published"
+msgstr ""
+
+#: care/prescription.py:51
+msgid "Superseded"
+msgstr ""
+
+#: care/prescription.py:52
+msgid "Archived"
+msgstr ""
 
 #: config/models/gym_config.py:46 gym/templates/gym/list.html:56
 msgid "Default gym"
@@ -51,60 +401,70 @@ msgstr ""
 msgid "Edit"
 msgstr "편집"
 
-#: core/forms.py:116 core/forms.py:362
+#: core/captcha.py:83 core/captcha.py:84
+msgid "The captcha could not be verified, please try again."
+msgstr ""
+
+#: core/captcha.py:134
 msgid "The form is secured with reCAPTCHA"
 msgstr "양식은 reCAPTCHA로 보호됩니다"
 
-#: core/forms.py:129 core/templates/account/login.html:93
+#: core/captcha.py:145
+#, fuzzy
+#| msgid "The form is secured with reCAPTCHA"
+msgid "The form is secured with Cloudflare Turnstile"
+msgstr "양식은 reCAPTCHA로 보호됩니다"
+
+#: core/forms.py:124 core/templates/account/login.html:93
 #: core/templates/account/signup.html:4 core/templates/navigation.html:269
 #: core/templates/navigation.html:282 core/templates/template.html:114
 #: software/templates/features.html:89 software/templates/features.html:445
 msgid "Register"
 msgstr "등록"
 
-#: core/forms.py:148
+#: core/forms.py:143
 msgid "Not set"
 msgstr ""
 
-#: core/forms.py:152 core/forms.py:270 gym/views/export.py:62
+#: core/forms.py:147 core/forms.py:265 gym/views/export.py:62
 #: gym/views/gym.py:227
 msgid "First name"
 msgstr "이름"
 
-#: core/forms.py:153 core/forms.py:271 core/templates/user/overview.html:270
+#: core/forms.py:148 core/forms.py:266 core/templates/user/overview.html:270
 #: gym/views/export.py:63 gym/views/gym.py:227
 msgid "Last name"
 msgstr "성"
 
-#: core/forms.py:155 core/models/profile.py:227
+#: core/forms.py:150 core/models/profile.py:227
 #: gym/templates/gym/new_user.html:38
 msgid "Date of Birth"
 msgstr "생일"
 
-#: core/forms.py:168
+#: core/forms.py:163
 msgid "Timezone"
 msgstr "시간대"
 
-#: core/forms.py:172
+#: core/forms.py:167
 msgid ""
 "Used to decide which day a workout counts for. The mobile app reports it "
 "automatically."
 msgstr ""
 
-#: core/forms.py:211
+#: core/forms.py:206
 msgid "Personal data"
 msgstr "개인 정보"
 
-#: core/forms.py:221
+#: core/forms.py:216
 msgid "Other settings"
 msgstr "기타 설정"
 
-#: core/forms.py:226 core/views/user.py:734 gym/forms.py:73
+#: core/forms.py:221 core/views/user.py:734 gym/forms.py:73
 #: utils/generic_views.py:132
 msgid "Save"
 msgstr "저장"
 
-#: core/forms.py:241 core/templates/user/overview.html:274
+#: core/forms.py:236 core/templates/user/overview.html:274
 #: gym/models/contract.py:256 gym/models/gym.py:58
 #: gym/templates/contract/view.html:77 gym/templates/gym/member_list.html:116
 #: gym/templates/gym/new_user.html:30 gym/views/export.py:61
@@ -114,24 +474,24 @@ msgstr "저장"
 msgid "Email"
 msgstr "이메일"
 
-#: core/forms.py:242
+#: core/forms.py:237
 msgid "Used for password resets and, optionally, email reminders."
 msgstr "비밀번호 재설정 및 이메일 알람(option)에 사용됩니다."
 
-#: core/forms.py:265
+#: core/forms.py:260
 msgid "This e-mail address is already in use."
 msgstr "이 이메일 주소는 이미 사용중입니다."
 
-#: core/forms.py:287 gym/templates/gym/new_user.html:26
+#: core/forms.py:282 gym/templates/gym/new_user.html:26
 #: gym/templates/gym/reset_user_password.html:24 gym/views/gym.py:227
 msgid "Password"
 msgstr "비밀번호"
 
-#: core/forms.py:289
+#: core/forms.py:284
 msgid "Please enter your current password."
 msgstr "현재 비밀번호를 입력해주세요."
 
-#: core/forms.py:298 core/forms.py:335 core/templates/language/view.html:70
+#: core/forms.py:293 core/forms.py:330 core/templates/language/view.html:70
 #: core/templates/license/list.html:21
 #: core/templates/repetition_unit/list.html:22
 #: core/templates/user/overview.html:251
@@ -147,15 +507,15 @@ msgstr "현재 비밀번호를 입력해주세요."
 msgid "Delete"
 msgstr "삭제"
 
-#: core/forms.py:307
+#: core/forms.py:302
 msgid "Invalid password"
 msgstr "유효하지 않은 비밀번호"
 
-#: core/forms.py:320
+#: core/forms.py:315
 msgid "Confirm"
 msgstr "확인"
 
-#: core/forms.py:328
+#: core/forms.py:323
 #, python-brace-format
 msgid ""
 "Your account has no password. Type the username \"{username}\" to confirm."
@@ -163,11 +523,11 @@ msgstr ""
 "귀하의 계정에 설정된 비밀번호가 없습니다. 승인하려면 사용자 계정 이름 "
 "\"{username}\"을 입력하세요."
 
-#: core/forms.py:344
+#: core/forms.py:339
 msgid "The entered username does not match"
 msgstr "입력된 사용자 계정 이름이 일치하지 않습니다"
 
-#: core/forms.py:372 weight/templates/import_csv_form.html:9
+#: core/forms.py:364 weight/templates/import_csv_form.html:9
 msgid "Submit"
 msgstr "보내기"
 
@@ -371,16 +731,6 @@ msgstr "시간"
 #: core/models/rep_unit.py:34
 msgid "Distance"
 msgstr "거리"
-
-#: core/models/rep_unit.py:47 core/models/weight_unit.py:42
-#: core/templates/user/overview.html:266 core/views/user.py:709
-#: exercises/models/muscle.py:36 gym/models/contract.py:52
-#: gym/models/contract.py:103 gym/models/gym.py:46
-#: gym/models/user_document.py:84 gym/templates/contract/view.html:50
-#: gym/templates/gym/member_list.html:28 gym/templates/gym/member_list.html:108
-#: gym/views/gym.py:168 nutrition/templates/ingredient/view.html:241
-msgid "Name"
-msgstr "이름"
 
 #: core/models/rep_unit.py:53
 msgid "Unit Type"
@@ -710,10 +1060,6 @@ msgstr "데이터가 없습니다"
 msgid "Imprint"
 msgstr "날인"
 
-#: core/templates/navigation.html:28 software/templates/features.html:461
-msgid "Training"
-msgstr "트레이닝"
-
 #: core/templates/navigation.html:36 core/templates/user/overview.html:24
 msgid "Routines"
 msgstr "루틴"
@@ -772,10 +1118,6 @@ msgstr "근육"
 #: exercises/templates/categories/admin-overview.html:4
 msgid "Categories"
 msgstr "카테고리"
-
-#: core/templates/navigation.html:146 software/templates/features.html:471
-msgid "Nutrition"
-msgstr "영양"
 
 #: core/templates/navigation.html:154 core/templates/user/overview.html:158
 msgid "Nutrition plans"
@@ -1125,7 +1467,7 @@ msgstr "개요"
 
 #: core/templates/user/overview.html:36 core/templates/user/overview.html:86
 #: core/templates/user/overview.html:134 core/templates/user/overview.html:170
-#: manager/helpers.py:90 software/templates/about_us.html:170
+#: manager/helpers.py:89 software/templates/about_us.html:170
 #: weight/templates/import_csv_preview.html:13
 #: weight/templates/import_csv_preview.html:42 weight/views.py:55
 msgid "Date"
@@ -1133,6 +1475,7 @@ msgstr "일자"
 
 #: core/templates/user/overview.html:37 core/templates/user/overview.html:171
 #: gym/models/contract.py:58 gym/models/contract.py:109
+#: physio/models/protocol.py:66
 msgid "Description"
 msgstr "설명"
 
@@ -1162,28 +1505,28 @@ msgid "Notes"
 msgstr "메모"
 
 #: core/templates/user/overview.html:122 core/templates/user/overview.html:135
-#: manager/helpers.py:91 weight/templates/import_csv_preview.html:14
+#: manager/helpers.py:90 weight/templates/import_csv_preview.html:14
 #: weight/templates/import_csv_preview.html:43 weight/views.py:55
 msgid "Weight"
 msgstr "몸무게"
 
 #: core/templates/user/overview.html:172
-#: nutrition/templates/ingredient/view.html:83 nutrition/views/plan.py:246
+#: nutrition/templates/ingredient/view.html:83 nutrition/views/plan.py:248
 msgid "Energy"
 msgstr "에너지"
 
 #: core/templates/user/overview.html:173
-#: nutrition/templates/ingredient/view.html:90 nutrition/views/plan.py:252
+#: nutrition/templates/ingredient/view.html:90 nutrition/views/plan.py:254
 msgid "Protein"
 msgstr "단백질"
 
 #: core/templates/user/overview.html:174
-#: nutrition/templates/ingredient/view.html:96 nutrition/views/plan.py:260
+#: nutrition/templates/ingredient/view.html:96 nutrition/views/plan.py:262
 msgid "Carbohydrates"
 msgstr "탄수화물"
 
 #: core/templates/user/overview.html:175
-#: nutrition/templates/ingredient/view.html:112 nutrition/views/plan.py:274
+#: nutrition/templates/ingredient/view.html:112 nutrition/views/plan.py:276
 msgid "Fat"
 msgstr "지방"
 
@@ -1237,8 +1580,7 @@ msgid "Details"
 msgstr "세부정보"
 
 #: core/templates/user/overview.html:262 gym/views/export.py:58
-#: manager/helpers.py:91 nutrition/views/plan.py:152
-#: nutrition/views/plan.py:158
+#: manager/helpers.py:90
 msgid "Nr."
 msgstr "Nr."
 
@@ -1264,10 +1606,6 @@ msgstr "최종 로그인"
 #: core/templates/user/overview.html:308
 msgid "Status"
 msgstr "상태"
-
-#: core/templates/user/overview.html:311
-msgid "Active"
-msgstr "활성"
 
 #: core/templates/user/overview.html:313
 msgid "Inactive"
@@ -1464,7 +1802,7 @@ msgid "Username"
 msgstr "사용자이름"
 
 #: core/views/user.py:711 gym/templates/gym/new_user.html:34
-#: gym/views/export.py:59 gym/views/gym.py:227
+#: gym/views/export.py:59 gym/views/gym.py:227 physio/models/protocol.py:46
 msgid "Gym"
 msgstr "짐"
 
@@ -1667,7 +2005,7 @@ msgstr ""
 msgid "Add muscle"
 msgstr "근육 추가"
 
-#: gallery/forms.py:35
+#: gallery/forms.py:34
 msgid "If date is left empty, it will be read from the image instead"
 msgstr ""
 
@@ -1789,10 +2127,6 @@ msgstr "관리자: 체육관 사용자를 관리할 수 있습니다"
 msgid "Admin: can administrate the different gyms"
 msgstr "관리자: 다양한 체육관을 관리할 수 있습니다"
 
-#: gym/models/gym.py:65 gym/templates/gym/member_list.html:126
-msgid "Owner"
-msgstr "소유자"
-
 #: gym/models/gym_config.py:46
 msgid ""
 "Number of weeks since the last time a user logged his presence to be "
@@ -1808,6 +2142,11 @@ msgstr "헤더에 이름 표시"
 #: gym/models/gym_config.py:57
 msgid "Show the name of the gym in the site header"
 msgstr "Site Header에 Gym 이름 표시"
+
+#: gym/models/gym_config.py:68
+#, python-brace-format
+msgid "Configuration for {self.gym.name}"
+msgstr ""
 
 #: gym/models/user_config.py:65 gym/templates/gym/member_list.html:200
 msgid "Overview of inactive members"
@@ -2352,27 +2691,15 @@ msgstr "이메일 보내기"
 msgid "Correction"
 msgstr "보정"
 
-#: manager/dataclasses.py:114
-msgid "Sets"
-msgstr "세트"
-
-#: manager/dataclasses.py:132 manager/helpers.py:91
+#: manager/dataclasses.py:132 manager/helpers.py:90
 msgid "Reps"
 msgstr "랩스"
 
-#: manager/dataclasses.py:179
-msgid "RiR"
-msgstr "RiR"
-
-#: manager/dataclasses.py:186
-msgid "rest"
-msgstr "휴식"
-
-#: manager/helpers.py:78
+#: manager/helpers.py:77
 msgid "Rest day"
 msgstr "휴식"
 
-#: manager/helpers.py:91
+#: manager/helpers.py:90
 msgid "Exercise"
 msgstr "예시"
 
@@ -2512,6 +2839,42 @@ msgstr ""
 msgid "Portion"
 msgstr "1회 제공량"
 
+#: nutrition/models/substitution.py:37
+msgid "Same energy"
+msgstr ""
+
+#: nutrition/models/substitution.py:38
+#, fuzzy
+#| msgid "Macronutrients"
+msgid "Same main macronutrient"
+msgstr "다량 영양소"
+
+#: nutrition/models/substitution.py:39
+msgid "Defined by the nutritionist"
+msgstr ""
+
+#: nutrition/models/substitution.py:40
+#, fuzzy
+#| msgid "Preferences"
+msgid "Preference"
+msgstr "환경설정"
+
+#: nutrition/models/substitution.py:41
+msgid "Availability"
+msgstr ""
+
+#: nutrition/models/tracking.py:34
+msgid "Followed"
+msgstr ""
+
+#: nutrition/models/tracking.py:35
+msgid "Partially followed"
+msgstr ""
+
+#: nutrition/models/tracking.py:36
+msgid "Not followed"
+msgstr ""
+
 #: nutrition/templates/ingredient/email_new.tpl:1
 #, python-format
 msgid ""
@@ -2602,7 +2965,7 @@ msgstr "검색"
 msgid "Filter"
 msgstr "필터"
 
-#: nutrition/templates/ingredient/view.html:77 nutrition/views/plan.py:238
+#: nutrition/templates/ingredient/view.html:77 nutrition/views/plan.py:240
 msgid "Macronutrients"
 msgstr "다량 영양소"
 
@@ -2610,7 +2973,7 @@ msgstr "다량 영양소"
 msgid "kJ"
 msgstr "kJ"
 
-#: nutrition/templates/ingredient/view.html:102 nutrition/views/plan.py:268
+#: nutrition/templates/ingredient/view.html:102 nutrition/views/plan.py:270
 msgid "Sugar content in carbohydrates"
 msgstr "탄수화물의 당 함량"
 
@@ -2624,7 +2987,7 @@ msgstr "탄수화물의 당 함량"
 msgid "n.A."
 msgstr "n.A."
 
-#: nutrition/templates/ingredient/view.html:118 nutrition/views/plan.py:282
+#: nutrition/templates/ingredient/view.html:118 nutrition/views/plan.py:284
 msgid "Saturated fat content in fats"
 msgstr "지방의 포화지방 함량"
 
@@ -2632,11 +2995,11 @@ msgstr "지방의 포화지방 함량"
 msgid "Others"
 msgstr "기타"
 
-#: nutrition/templates/ingredient/view.html:140 nutrition/views/plan.py:288
+#: nutrition/templates/ingredient/view.html:140 nutrition/views/plan.py:290
 msgid "Fiber"
 msgstr "섬유질"
 
-#: nutrition/templates/ingredient/view.html:150 nutrition/views/plan.py:294
+#: nutrition/templates/ingredient/view.html:150 nutrition/views/plan.py:296
 msgid "Sodium"
 msgstr "나트륨"
 
@@ -2749,32 +3112,28 @@ msgstr ""
 msgid "Add a new ingredient"
 msgstr "새로운 성분 추가"
 
-#: nutrition/views/plan.py:129
+#: nutrition/views/plan.py:131
 msgid "Nutritional plan"
 msgstr "영양 계획"
 
-#: nutrition/views/plan.py:131
+#: nutrition/views/plan.py:133
 #, python-format
 msgid "Nutritional plan for %s"
 msgstr "%s의 영양 계획"
 
-#: nutrition/views/plan.py:203
+#: nutrition/views/plan.py:205
 msgid "<i>This is an empty plan, what did you expect on the PDF?</i>"
 msgstr "<i>이건 빈 계획인데, PDF에서 무엇을 기대하셨나요?</i>"
 
-#: nutrition/views/plan.py:231
-msgid "Nutritional data"
-msgstr "영양 데이터"
-
-#: nutrition/views/plan.py:239
+#: nutrition/views/plan.py:241
 msgid "Total"
 msgstr "총"
 
-#: nutrition/views/plan.py:240
+#: nutrition/views/plan.py:242
 msgid "Percent of energy"
 msgstr "에너지 비율"
 
-#: nutrition/views/plan.py:241
+#: nutrition/views/plan.py:243
 msgid "g per body kg"
 msgstr "g 몸당 kg"
 
@@ -2789,6 +3148,90 @@ msgstr "무게 단위를 재료 연결에 맞게 편집하세요"
 #: nutrition/views/unit_ingredient.py:129
 msgid "Delete?"
 msgstr "삭제?"
+
+#: physio/api/serializers.py:68
+#, fuzzy
+#| msgid "The start time cannot be after the end time."
+msgid "The end date cannot be before the start date."
+msgstr "시작 시간은 종료 시간 이후일 수 없습니다."
+
+#: physio/api/serializers.py:154
+msgid "The patient of an assessment cannot be changed."
+msgstr ""
+
+#: physio/api/serializers.py:167
+msgid "This must be an object."
+msgstr ""
+
+#: physio/models/protocol.py:37
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "Before the exercises"
+msgstr "운동을 개선하세요"
+
+#: physio/models/protocol.py:38
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "During the exercises"
+msgstr "운동을 개선하세요"
+
+#: physio/models/protocol.py:39
+#, fuzzy
+#| msgid "Improve the exercises"
+msgid "After the exercises"
+msgstr "운동을 개선하세요"
+
+#: physio/models/protocol.py:40
+#, fuzzy
+#| msgid "Another sample day"
+msgid "On the next day"
+msgstr "다른 예시 일"
+
+#: physio/models/protocol.py:41 physio/models/protocol.py:291
+msgid "Other"
+msgstr "기타"
+
+#: physio/models/protocol.py:45
+msgid "Home"
+msgstr ""
+
+#: physio/models/protocol.py:286
+#, fuzzy
+#| msgid "Make a donation"
+msgid "Range of motion"
+msgstr "기부하기"
+
+#: physio/models/protocol.py:287
+#, fuzzy
+#| msgid "Street"
+msgid "Strength"
+msgstr "주소"
+
+#: physio/models/protocol.py:288
+msgid "Functional test"
+msgstr ""
+
+#: physio/models/protocol.py:289
+msgid "Questionnaire"
+msgstr ""
+
+#: physio/models/protocol.py:290
+msgid "Balance"
+msgstr ""
+
+#: physio/models/protocol.py:295
+msgid "Not applicable"
+msgstr ""
+
+#: physio/models/protocol.py:296
+msgid "Left"
+msgstr ""
+
+#: physio/models/protocol.py:297
+#, fuzzy
+#| msgid "Weight"
+msgid "Right"
+msgstr "몸무게"
 
 #: software/templates/about_us.html:9
 msgid ""
@@ -3349,6 +3792,15 @@ msgstr ""
 msgid "Re-Submit"
 msgstr "다시 제출"
 
+#~ msgid "Sets"
+#~ msgstr "세트"
+
+#~ msgid "RiR"
+#~ msgstr "RiR"
+
+#~ msgid "rest"
+#~ msgstr "휴식"
+
 #~ msgid "Password reset successful"
 #~ msgstr "비밀번호 변경 성공"
 
@@ -3530,9 +3982,6 @@ msgstr "다시 제출"
 #~ msgid "Photo"
 #~ msgstr "사진"
 
-#~ msgid "Other"
-#~ msgstr "기타"
-
 #~ msgid "Height"
 #~ msgstr "키"
 
@@ -3696,9 +4145,6 @@ msgstr "다시 제출"
 
 #~ msgid "Sample day"
 #~ msgstr "예시 일"
-
-#~ msgid "Another sample day"
-#~ msgstr "다른 예시 일"
 
 #, fuzzy
 #~| msgid "Sample nutrional plan"
