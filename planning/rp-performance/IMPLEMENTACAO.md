@@ -20,6 +20,21 @@
 
 Testes: 59 novos testes em `wger/care/tests` e `wger/physio/tests`. A suíte completa (2.569 testes) passa, exceto `test_sync_exercises`, que depende de acesso a `wger.de` (bloqueado nesta sessão; falha igual sem as mudanças).
 
+## 1.1 App web Kinutri (`rp-web/`)
+
+Nome escolhido: **Kinutri** (cinesioterapia/movimento + nutrição), subtítulo "Treino, reabilitação e nutrição". Na busca feita em 13/11/2026 não apareceu app, marca ou site com esse nome. Antes de registrar, confirme no INPI (classes 9, 42 e 44) e a disponibilidade dos domínios. O nome fica só em `rp-web/src/lib/brand.ts`.
+
+| Área | Telas |
+|---|---|
+| Entrada | Página inicial, login com Google (Gmail), escolha entre área do paciente e profissional |
+| Paciente | Meu Dia (treino, refeições com "segui / segui parcialmente / não segui", metas e restante, água, fisioterapia com vídeo e "feito", dor 0 a 10), visão Treino + alimentação / Só treino / Só alimentação, profissionais e convites, compartilhamento por escopo, evolução (avaliações, dor, água) |
+| Profissional | Painel com pacientes, convites e alertas; configurações (organização e CREF/CREFITO/CRN); convite por e-mail ou link; ficha do paciente (prescrições e versões, diário alimentar, planejado x realizado no treino, dor, avaliações funcionais, dados compartilhados, observações) |
+| Construtores | Dieta (refeições, busca de alimentos, gramas, orientações, substituições, totais, distribuição de macros, metas), treino (dias do ciclo, exercícios da biblioteca, séries, repetições, carga, descanso, RIR, RPE, cadência, amplitude), protocolo (exercícios com dosagem, local e vídeo, momentos de dor e limites de alerta), publicar, nova versão, arquivar |
+
+O teste ponta a ponta (`npm run test:e2e`) percorre esses fluxos no navegador com três usuários e passa nos 15 passos.
+
+Para o login com Google funcionar em produção, crie o ID do cliente OAuth no Google Cloud e configure `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` no Django e `NEXT_PUBLIC_GOOGLE_CLIENT_ID` no app web (passo a passo em `rp-web/README.md`).
+
 ## 2. Como os critérios de aceitação estão cobertos
 
 | Critério | Teste automatizado |
@@ -53,7 +68,7 @@ O mesmo vale para treino (`/api/v2/routine/`, vínculo `training`) e fisioterapi
 
 ### Clientes (maior bloco de trabalho)
 - **App do paciente (Flutter)**: o app do wger não está nesta sessão. É preciso fazer um fork de `wger-project/flutter` na sua conta e adicioná-lo aqui. Telas a criar: Meu Dia, convites e consentimento, autorizações de compartilhamento, adesão e água, fisioterapia (protocolo, dor), identidade visual RP.
-- **Painel profissional e site comercial**: o repositório `Raynay01/SaaS-Boilerplate` (Next.js 16, Clerk, Drizzle, licença MIT) foi clonado em `/home/user/raynay01/saas-boilerplate`. Proposta: usá-lo para o site e o painel web, consumindo a API Django. Decisão pendente: manter o login no Django (JWT, já pronto) ou passar para o Clerk e fazer o Django confiar nos tokens do Clerk. Recomendação: login no Django, para não duplicar usuários e permissões.
+- **Painel profissional e site comercial**: feitos em `rp-web/` (Next.js), com login do Django via Google. O `Raynay01/SaaS-Boilerplate` foi clonado, mas a sessão não teve permissão de escrita nele; o código pode ser movido para lá depois.
 
 ### Backend
 - Regras de sincronização do PowerSync (repositório docker) para as colunas e tabelas novas; até lá, o app offline não recebe autoria, versões, orientações nem as tabelas novas.

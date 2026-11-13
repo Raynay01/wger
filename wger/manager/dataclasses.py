@@ -111,7 +111,9 @@ class SetConfigData:
             if self.max_sets:
                 sets = f'{sets}-{self.max_sets}'
 
-            out.append(f'{sets} {_("Sets")},')
+            # Outside the f-string, which makemessages cannot read
+            sets_label = _('Sets')
+            out.append(f'{sets} {sets_label},')
 
         if self.repetitions:
             reps = round_value(self.repetitions, self.repetitions_rounding)
@@ -176,14 +178,16 @@ class SetConfigData:
 
         if self.rir:
             rir = round_value(self.rir, 0.5)
-            out.append(f'@ {rir} {_("RiR")}')
+            rir_label = _('RiR')
+            out.append(f'@ {rir} {rir_label}')
 
         if self.rest:
             rest = self.rest
             if self.max_rest:
                 rest = f'{rest}-{self.max_rest}'
 
-            out.append(f'{rest}s {_("rest")}')
+            rest_label = _('rest')
+            out.append(f'{rest}s {rest_label}')
 
         return ' '.join(out).strip(',')
 

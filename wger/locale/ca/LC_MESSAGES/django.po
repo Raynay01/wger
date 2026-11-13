@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-13 22:06+0000\n"
+"POT-Creation-Date: 2026-11-13 22:32+0000\n"
 "PO-Revision-Date: 2024-08-04 23:09+0000\n"
 "Last-Translator: Zixu Sun <zixu233@gmail.com>\n"
 "Language-Team: Catalan <https://hosted.weblate.org/projects/wger/web/ca/>\n"
@@ -126,33 +126,33 @@ msgstr "No tens permís per accedir a aquesta pàgina"
 msgid "An organization needs at least one owner."
 msgstr ""
 
-#: care/api/views.py:272 care/api/views.py:301
+#: care/api/views.py:281 care/api/views.py:310
 msgid "This invitation is not open anymore."
 msgstr ""
 
-#: care/api/views.py:279
+#: care/api/views.py:288
 msgid "This professional already follows you."
 msgstr ""
 
-#: care/api/views.py:312
+#: care/api/views.py:321
 msgid "Only active relationships can be paused."
 msgstr ""
 
-#: care/api/views.py:322
+#: care/api/views.py:331
 msgid "Only paused relationships can be resumed."
 msgstr ""
 
-#: care/api/views.py:336
+#: care/api/views.py:345
 #, fuzzy
 #| msgid "This e-mail address is already in use."
 msgid "This relationship has already ended."
 msgstr "Aquesta adreça ja s'està usant."
 
-#: care/api/views.py:373 care/api/views.py:583
+#: care/api/views.py:382 care/api/views.py:588
 msgid "Use the format YYYY-MM-DD."
 msgstr ""
 
-#: care/api/views.py:549
+#: care/api/views.py:554
 msgid "A valid integer is required."
 msgstr ""
 
@@ -2706,9 +2706,21 @@ msgstr "Envia correus"
 msgid "Correction"
 msgstr "Correcció"
 
-#: manager/dataclasses.py:132 manager/helpers.py:90
+#: manager/dataclasses.py:115
+msgid "Sets"
+msgstr "Sèries"
+
+#: manager/dataclasses.py:134 manager/helpers.py:90
 msgid "Reps"
 msgstr "Repeticions"
+
+#: manager/dataclasses.py:181
+msgid "RiR"
+msgstr "RER"
+
+#: manager/dataclasses.py:189
+msgid "rest"
+msgstr ""
 
 #: manager/helpers.py:77
 msgid "Rest day"
@@ -3723,12 +3735,6 @@ msgstr ""
 #: weight/templates/import_csv_preview.html:85
 msgid "Re-Submit"
 msgstr ""
-
-#~ msgid "Sets"
-#~ msgstr "Sèries"
-
-#~ msgid "RiR"
-#~ msgstr "RER"
 
 #~ msgid "Password reset successful"
 #~ msgstr "Contrasenya reinicialitzada amb èxit"

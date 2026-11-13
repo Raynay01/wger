@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wger Workout Manager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-13 22:06+0000\n"
+"POT-Creation-Date: 2026-11-13 22:32+0000\n"
 "PO-Revision-Date: 2026-08-12 12:47+0000\n"
 "Last-Translator: Armando Schiano di Cola <armando.schianodicola@gmail.com>\n"
 "Language-Team: Italian <https://hosted.weblate.org/projects/wger/web/it/>\n"
@@ -134,33 +134,33 @@ msgstr "Non sei autorizzato ad accedere a questa pagina"
 msgid "An organization needs at least one owner."
 msgstr ""
 
-#: care/api/views.py:272 care/api/views.py:301
+#: care/api/views.py:281 care/api/views.py:310
 msgid "This invitation is not open anymore."
 msgstr ""
 
-#: care/api/views.py:279
+#: care/api/views.py:288
 msgid "This professional already follows you."
 msgstr ""
 
-#: care/api/views.py:312
+#: care/api/views.py:321
 msgid "Only active relationships can be paused."
 msgstr ""
 
-#: care/api/views.py:322
+#: care/api/views.py:331
 msgid "Only paused relationships can be resumed."
 msgstr ""
 
-#: care/api/views.py:336
+#: care/api/views.py:345
 #, fuzzy
 #| msgid "This e-mail address is already in use."
 msgid "This relationship has already ended."
 msgstr "Questo indirizzo e-mail è già in uso."
 
-#: care/api/views.py:373 care/api/views.py:583
+#: care/api/views.py:382 care/api/views.py:588
 msgid "Use the format YYYY-MM-DD."
 msgstr ""
 
-#: care/api/views.py:549
+#: care/api/views.py:554
 msgid "A valid integer is required."
 msgstr ""
 
@@ -2758,9 +2758,21 @@ msgstr "Invia e-mail"
 msgid "Correction"
 msgstr "Correzione"
 
-#: manager/dataclasses.py:132 manager/helpers.py:90
+#: manager/dataclasses.py:115
+msgid "Sets"
+msgstr "Serie"
+
+#: manager/dataclasses.py:134 manager/helpers.py:90
 msgid "Reps"
 msgstr "Ripetizioni"
+
+#: manager/dataclasses.py:181
+msgid "RiR"
+msgstr "RiR"
+
+#: manager/dataclasses.py:189
+msgid "rest"
+msgstr "pausa"
 
 #: manager/helpers.py:77
 msgid "Rest day"
@@ -3898,15 +3910,6 @@ msgstr ""
 #: weight/templates/import_csv_preview.html:85
 msgid "Re-Submit"
 msgstr "Re-Invia"
-
-#~ msgid "Sets"
-#~ msgstr "Serie"
-
-#~ msgid "RiR"
-#~ msgstr "RiR"
-
-#~ msgid "rest"
-#~ msgstr "pausa"
 
 #~ msgid "Password reset successful"
 #~ msgstr "Reset password riuscito"

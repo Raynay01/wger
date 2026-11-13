@@ -107,14 +107,16 @@ class InvitationTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         response = self.invite()
         pk, token = response.data['id'], response.data['invitation_token']
         other = self.make_user('rp_other')
-        other.email = 'rp_patient@example.com'
-        other.save()
         self.client.force_authenticate(other)
-        response = self.client.post(
-            reverse('care-relationship-accept', kwargs={'pk': pk}),
-            {'accept_terms': True, 'token': token},
-        )
+        url = reverse('care-relationship-accept', kwargs={'pk': pk})
+
+        wrong = '00000000-0000-0000-0000-000000000000'
+        response = self.client.post(url, {'accept_terms': True, 'token': wrong})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+        response = self.client.post(url, {'accept_terms': True, 'token': token})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(CareRelationship.objects.get(pk=pk).patient, other)
 
     def test_needs_registration(self):
         """A nutritionist cannot follow patients in training without a CREF registration"""

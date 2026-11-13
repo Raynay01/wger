@@ -139,7 +139,13 @@ class PhysioTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         self.publish(protocol)
         self.client.force_authenticate(self.patient)
         url = reverse('pain-record-list')
-        now = timezone.now()
+        # A fixed time of day, so both records always fall on the same calendar day
+        yesterday = timezone.localdate() - datetime.timedelta(days=1)
+        now = datetime.datetime.combine(
+            yesterday,
+            datetime.time(10, 0),
+            tzinfo=self.patient.userprofile.zone_info,
+        )
         for moment, value, minutes in (('before', 2, 0), ('after', 6, 30)):
             response = self.client.post(
                 url,

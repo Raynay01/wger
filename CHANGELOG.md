@@ -33,8 +33,16 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   the nutritionist (`/api/v2/substitution-option/`), meal adherence per day
   (`/api/v2/meal-adherence/`), water logs (`/api/v2/water-log/`) and a
   `goal_water_ml` per plan.
-* Training: `tempo`, target `rpe` and `range_of_motion` on slot entries, `rpe`
-  on workout logs.
+* Training: `tempo`, target `rpe` and `range_of_motion` on slot entries (also in
+  the routine `structure`), `rpe` on workout logs.
+* Invitation links: `care-relationship/{id}/accept/` with the invitation
+  `token` works for any email address of the patient.
+* Google login: set `GOOGLE_CLIENT_ID` (and `GOOGLE_CLIENT_SECRET`) to enable
+  it; web clients send Google's ID token to the headless provider token
+  endpoint.
+* New web app in `rp-web/` (Next.js) for patients and professionals, see its
+  README.
+* The set descriptions ("3 Sets", "RiR", "rest") are translatable again.
 * Physiotherapy: protocols with exercises (`/api/v2/physio-protocol/`,
   `/api/v2/protocol-exercise/`), pain records on the 0-10 scale with alerts for
   the physiotherapist (`/api/v2/pain-record/`, `pain-record/alerts/`), exercise

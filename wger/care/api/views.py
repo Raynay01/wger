@@ -257,10 +257,19 @@ class CareRelationshipViewSet(
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def accept(self, request, pk):
-        """Accept an invitation, giving consent to be followed"""
-        relationship = self.get_object()
+        """
+        Accept an invitation, giving consent to be followed. With the token of
+        the invitation link it works for any email address of the patient.
+        """
         serializer = AcceptInvitationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data.get('token')
+        if token is not None:
+            relationship = CareRelationship.objects.filter(pk=pk, invitation_token=token).first()
+            if relationship is None:
+                raise exceptions.NotFound()
+        else:
+            relationship = self.get_object()
 
         email_matches = (
             request.user.email and relationship.invited_email.lower() == request.user.email.lower()
@@ -395,17 +404,15 @@ class CareRelationshipViewSet(
         ).select_related('ingredient', 'weight_unit')
 
         total = None
-        for item in items:
+        rows = []
+        for item, data in zip(items, LogItemSerializer(items, many=True).data):
             values = item.get_nutritional_values()
             total = values if total is None else total + values
+            rows.append(
+                {**data, 'ingredient_name': item.ingredient.name, 'values': _values(values)}
+            )
 
-        return Response(
-            {
-                'date': day,
-                'items': LogItemSerializer(items, many=True).data,
-                'total': total.to_dict if total and hasattr(total, 'to_dict') else _values(total),
-            }
-        )
+        return Response({'date': day, 'items': rows, 'total': _values(total)})
 
     @extend_schema(responses={200: dict})
     @action(detail=True, methods=['get'], url_path='workout-logs')
