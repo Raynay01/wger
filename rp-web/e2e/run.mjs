@@ -440,6 +440,34 @@ try {
   await ana.getByText(/\/ 2200 kcal/).waitFor();
   log('Ana passou a ver a meta da nova versão');
 
+  // Nutritional assessment: anamnesis, anthropometry and energy needs
+  await bruno.goto(`${WEB}/pro`);
+  await bruno.getByRole('link', { name: /Ana Nutrição · desde/ }).first().click();
+  await bruno.getByRole('link', { name: 'Avaliar' }).click();
+  await bruno.waitForURL(/\/avaliacao$/);
+  await bruno.getByLabel('Queixa principal e objetivo').fill('Perder gordura mantendo a massa muscular');
+  await bruno.getByLabel('Alergias e intolerâncias').fill('Intolerância à lactose');
+  await bruno.getByRole('button', { name: 'Salvar anamnese' }).click();
+  await bruno.getByRole('definition').filter({ hasText: 'Intolerância à lactose' }).waitFor();
+  await bruno.getByLabel('Idade (anos)').fill('30');
+  await bruno.getByLabel('Altura (cm)').fill('165');
+  await bruno.getByLabel('Peso (kg)').fill('65');
+  await bruno.getByLabel('Cintura (cm)').fill('70');
+  await bruno.getByLabel('Quadril (cm)').fill('98');
+  await bruno.getByLabel('Ajuste (kcal)').fill('-400');
+  await bruno.getByRole('button', { name: 'Calcular e registrar' }).click();
+  await bruno.getByRole('button', { name: /Criar plano com 1\.484 kcal/ }).waitFor();
+  assert(await bruno.getByText('1.370 kcal').isVisible(), 'taxa metabólica basal (Mifflin)');
+  assert(await bruno.getByText('1.884 kcal').isVisible(), 'gasto energético total');
+  assert(await bruno.getByText('Eutrofia').isVisible(), 'classificação do IMC');
+  await shot(bruno, '12-avaliacao-nutricional');
+  log('Bruno registrou a anamnese e a avaliação; a meta de 1.484 kcal foi calculada');
+
+  await ana.goto(`${WEB}/app/evolucao`);
+  await ana.getByText('1.484 kcal').waitFor();
+  await shot(ana, '12b-evolucao-paciente');
+  log('Ana vê a avaliação e a meta na Evolução');
+
   // LGPD: export and deletion request
   await ana.goto(`${WEB}/app/privacidade`);
   const [download] = await Promise.all([ana.waitForEvent('download'), ana.getByRole('link', { name: 'Baixar arquivo (JSON)' }).click()]);
@@ -449,6 +477,7 @@ try {
   assert(exported.physio.PainRecord.length === 2, 'registros de dor na exportação');
   assert(exported.care.reads_of_your_shared_data.length > 0, 'acessos aos dados compartilhados na exportação');
   assert(exported.care.messages.length === 3, 'as mensagens na exportação');
+  assert(exported.nutrition.NutritionalAssessment.length === 1, 'a avaliação nutricional na exportação');
   log('Ana baixou os seus dados (dietas, dor, mensagens e quem acessou o que ela compartilhou)');
 
   await visitor.goto(`${WEB}/app/privacidade`);

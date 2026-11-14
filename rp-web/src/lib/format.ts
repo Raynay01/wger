@@ -125,3 +125,27 @@ export const FOCUS_COLORS: Record<string, string> = {
   peak: 'bg-red-100 text-red-800',
   transition: 'bg-violet-100 text-violet-900',
 };
+
+export const ACTIVITY_LABELS: Record<string, string> = {
+  sedentary: 'Sedentário (1,2)',
+  light: 'Levemente ativo (1,375)',
+  moderate: 'Moderadamente ativo (1,55)',
+  very: 'Muito ativo (1,725)',
+  extreme: 'Extremamente ativo (1,9)',
+};
+
+export const EQUATION_LABELS: Record<string, string> = {
+  mifflin: 'Mifflin-St Jeor',
+  harris_benedict: 'Harris-Benedict (revisada)',
+  katch_mcardle: 'Katch-McArdle (massa magra)',
+};
+
+// WHO adult BMI classes
+export function bmiClass(bmi: number): string {
+  if (bmi < 18.5) return 'Baixo peso';
+  if (bmi < 25) return 'Eutrofia';
+  if (bmi < 30) return 'Sobrepeso';
+  if (bmi < 35) return 'Obesidade grau I';
+  if (bmi < 40) return 'Obesidade grau II';
+  return 'Obesidade grau III';
+}

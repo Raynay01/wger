@@ -206,6 +206,42 @@ msgstr "Uma fase não pode ser movida para outra periodização."
 msgid "The routine must belong to the patient of the plan."
 msgstr "O treino precisa ser do mesmo paciente da periodização."
 
+#: nutrition/models/assessment.py
+msgid "Sedentary"
+msgstr "Sedentário"
+
+#: nutrition/models/assessment.py
+msgid "Lightly active"
+msgstr "Levemente ativo"
+
+#: nutrition/models/assessment.py
+msgid "Moderately active"
+msgstr "Moderadamente ativo"
+
+#: nutrition/models/assessment.py
+msgid "Very active"
+msgstr "Muito ativo"
+
+#: nutrition/models/assessment.py
+msgid "Extremely active"
+msgstr "Extremamente ativo"
+
+#: nutrition/models/assessment.py
+msgid "Mifflin-St Jeor"
+msgstr "Mifflin-St Jeor"
+
+#: nutrition/models/assessment.py
+msgid "Harris-Benedict (revised)"
+msgstr "Harris-Benedict (revisada)"
+
+#: nutrition/models/assessment.py
+msgid "Katch-McArdle (lean mass)"
+msgstr "Katch-McArdle (massa magra)"
+
+#: nutrition/api/assessment.py
+msgid "The Katch-McArdle equation needs the body fat."
+msgstr "A equação de Katch-McArdle precisa do percentual de gordura."
+
 #: manager/models/periodization.py
 msgid "Hypertrophy"
 msgstr "Hipertrofia"

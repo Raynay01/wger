@@ -68,6 +68,8 @@ OWN_DATA = (
     ('physio', 'PainRecord', 'user'),
     ('physio', 'ExerciseRecord', 'user'),
     ('physio', 'FunctionalAssessment', 'relationship__patient'),
+    ('nutrition', 'NutritionalAnamnesis', 'relationship__patient'),
+    ('nutrition', 'NutritionalAssessment', 'relationship__patient'),
 )
 
 ACCOUNT_FIELDS = ('id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'last_login')

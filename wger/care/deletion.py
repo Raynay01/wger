@@ -68,10 +68,20 @@ def request_deletion(user: User) -> DataRequest:
 def clinical_records(user: User) -> dict[str, int]:
     """Records professionals wrote about the user, which may have to be kept"""
     # wger
+    from wger.nutrition.models import (
+        NutritionalAnamnesis,
+        NutritionalAssessment,
+    )
     from wger.physio.models import FunctionalAssessment
 
     counts = {
         'functional_assessments': FunctionalAssessment.objects.filter(
+            relationship__patient=user
+        ).count(),
+        'nutritional_anamneses': NutritionalAnamnesis.objects.filter(
+            relationship__patient=user
+        ).count(),
+        'nutritional_assessments': NutritionalAssessment.objects.filter(
             relationship__patient=user
         ).count(),
         'notes': MultidisciplinaryNote.objects.filter(relationship__patient=user).count(),

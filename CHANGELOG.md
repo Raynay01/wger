@@ -84,6 +84,15 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   API returns the dates of each block and the current published version of its
   routine. Training plans are prescriptions like routines (draft, publish, new
   version). `/api/v2/care/calendar/` gives each day's block and week (`phase`).
+* Nutritional assessment: nutritionists record the anamnesis
+  (`/api/v2/nutritional-anamnesis/`: goal, history, medications, allergies,
+  preferences, habits) and anthropometric assessments
+  (`/api/v2/nutritional-assessment/`: weight, height, waist, hip, body fat).
+  The API returns BMI, waist-hip ratio, lean mass, the basal metabolic rate
+  (Mifflin-St Jeor, revised Harris-Benedict or Katch-McArdle), the total
+  expenditure with the activity factor and the daily target with the goal's
+  adjustment. The patient reads them; the records are exported and, like the
+  functional assessments, block the account deletion until clarified.
 * Nutritionists add foods to the shared database or correct an existing one
   (`/api/v2/professional-food/`). The food is public like any other, marked
   as "Cadastro profissional" with the organization as author; a correction

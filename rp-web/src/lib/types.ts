@@ -238,3 +238,47 @@ export type TrainingPlan = Prescription & {
   description: string;
   blocks: TrainingBlock[];
 };
+
+export type NutritionalAssessment = {
+  id: string;
+  relationship: string;
+  patient: number;
+  date: string;
+  sex: 'female' | 'male';
+  age: number;
+  weight: string;
+  height: string;
+  waist: string | null;
+  hip: string | null;
+  body_fat: string | null;
+  activity_level: string;
+  equation: string;
+  energy_adjustment: number;
+  notes: string;
+  bmi: string;
+  waist_hip_ratio: string | null;
+  lean_mass: string | null;
+  basal_energy: number;
+  total_energy: number;
+  target_energy: number;
+  created: string;
+};
+
+export const ANAMNESIS_FIELDS = [
+  ['goal', 'Queixa principal e objetivo'],
+  ['medical_history', 'Histórico clínico (doenças, cirurgias, exames)'],
+  ['medications', 'Medicamentos e suplementos'],
+  ['allergies', 'Alergias e intolerâncias'],
+  ['preferences', 'Preferências e aversões alimentares'],
+  ['eating_habits', 'Hábitos alimentares (horários, onde, com quem)'],
+  ['bowel_habits', 'Hábito intestinal'],
+  ['sleep', 'Sono'],
+  ['water', 'Ingestão de água'],
+  ['alcohol_smoking', 'Álcool e tabagismo'],
+  ['physical_activity', 'Atividade física'],
+  ['notes', 'Observações'],
+] as const;
+
+export type AnamnesisField = (typeof ANAMNESIS_FIELDS)[number][0];
+
+export type NutritionalAnamnesis = { id: string; relationship: string; date: string; created: string } & Record<AnamnesisField, string>;

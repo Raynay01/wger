@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { Card, Empty } from '@/components/ui';
 import { api } from '@/lib/api';
 import { MOMENT_LABELS, date, dateTime, number } from '@/lib/format';
-import type { Paginated } from '@/lib/types';
+import { NutritionalAssessmentSummary } from '@/components/NutritionalAssessmentSummary';
+import type { NutritionalAssessment, Paginated } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Evolução' };
 
@@ -11,11 +12,14 @@ type Pain = { id: string; datetime: string; moment: string; value: number; body_
 type Water = { id: string; datetime: string; amount_ml: number };
 
 export default async function ProgressPage() {
-  const [assessments, pain, water] = await Promise.all([
+  const [assessments, pain, water, nutritional] = await Promise.all([
     api<Paginated<Assessment>>('functional-assessment/', { query: { limit: 100, ordering: 'date' } }),
     api<Paginated<Pain>>('pain-record/', { query: { limit: 30 } }),
     api<Paginated<Water>>('water-log/', { query: { limit: 200 } }),
+    api<Paginated<NutritionalAssessment>>('nutritional-assessment/', { query: { limit: 100 } }),
   ]);
+  const weights = [...nutritional.results].reverse();
+  const maxWeight = Math.max(...weights.map(a => Number(a.weight)), 1);
 
   const byName = new Map<string, Assessment[]>();
   for (const a of assessments.results) {
@@ -32,6 +36,25 @@ export default async function ProgressPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold">Evolução</h1>
+
+      {nutritional.results.length > 0 && (
+        <Card title="Avaliação nutricional">
+          <NutritionalAssessmentSummary assessment={nutritional.results[0]} />
+          {weights.length > 1 && (
+            <ul className="mt-4 flex flex-col gap-2" aria-label="Evolução do peso">
+              {weights.map(a => (
+                <li key={a.id} className="grid grid-cols-[5.5rem_1fr_4.5rem] items-center gap-2 text-sm">
+                  <span className="tabular-nums text-gray-600">{date(a.date)}</span>
+                  <span className="h-2 rounded-full bg-navy-100">
+                    <span className="block h-2 rounded-full bg-neon-600" style={{ width: `${(Number(a.weight) / maxWeight) * 100}%` }} />
+                  </span>
+                  <span className="text-right font-semibold tabular-nums">{number(a.weight, 1)} kg</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
 
       <Card title="Avaliações funcionais">
         {byName.size === 0 ? (

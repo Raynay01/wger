@@ -15,6 +15,14 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Local
+from .assessment import (
+    ACTIVITY_FACTORS,
+    ActivityLevel,
+    EnergyEquation,
+    NutritionalAnamnesis,
+    NutritionalAssessment,
+    Sex,
+)
 from .image import Image
 from .ingredient import Ingredient
 from .ingredient_category import IngredientCategory

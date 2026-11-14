@@ -6,10 +6,11 @@ import { api } from '@/lib/api';
 import { exerciseNames } from '@/lib/catalog';
 import { DISCIPLINE_LABELS } from '@/lib/brand';
 import { GOAL_LABELS, MOMENT_LABELS, SCOPE_LABELS, STATUS_LABELS, date, dateTime, number, shiftDate } from '@/lib/format';
-import type { Note, Paginated, Prescription, Relationship, TrainingPlan } from '@/lib/types';
+import type { Note, NutritionalAssessment, Paginated, Prescription, Relationship, TrainingPlan } from '@/lib/types';
 import { userZone } from '@/lib/userZone';
 import { todayIn } from '@/lib/zone';
 import { addAssessment, addNote, createPlan, createProtocol, createRoutine, createTrainingPlan, relationshipAction } from '../../actions';
+import { NutritionalAssessmentSummary } from '@/components/NutritionalAssessmentSummary';
 import { PeriodizationTimeline } from '@/components/PeriodizationTimeline';
 
 export const metadata: Metadata = { title: 'Paciente' };
@@ -109,6 +110,7 @@ export default async function PatientFilePage({
           </Card>
 
           {relationship.discipline === 'training' && <PeriodizationCard relationship={relationship} isOpen={isOpen} here={here} today={today} />}
+          {isOpen && relationship.discipline === 'nutrition' && <AssessmentCard rel={rel} />}
           {isOpen && relationship.discipline === 'nutrition' && <DiaryCard rel={rel} day={data} here={here} />}
           {isOpen && relationship.discipline === 'training' && <WorkoutLogsCard rel={rel} />}
           {isOpen && relationship.discipline === 'physio' && <PhysioRecordsCard relationship={relationship} here={here} today={today} />}
@@ -266,6 +268,27 @@ async function PeriodizationCard({ relationship, isOpen, here, today }: { relati
             <Button type="submit" variant="secondary">Criar periodização</Button>
           </div>
         </form>
+      )}
+    </Card>
+  );
+}
+
+async function AssessmentCard({ rel }: { rel: string }) {
+  const assessments = await api<Paginated<NutritionalAssessment>>('nutritional-assessment/', { query: { relationship: rel, limit: 1 } });
+  const latest = assessments.results[0];
+  return (
+    <Card
+      title="Avaliação nutricional"
+      action={
+        <Link href={`/pro/pacientes/${rel}/avaliacao`} className="text-sm font-semibold text-navy-700 underline">
+          {latest ? 'Abrir avaliação e anamnese' : 'Avaliar'}
+        </Link>
+      }
+    >
+      {latest ? (
+        <NutritionalAssessmentSummary assessment={latest} />
+      ) : (
+        <Empty title="Nenhuma avaliação ainda">Anamnese, antropometria e cálculo da meta de calorias.</Empty>
       )}
     </Card>
   );

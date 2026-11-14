@@ -131,6 +131,50 @@ export async function addAssessment(formData: FormData) {
   redirect(back(formData));
 }
 
+export async function addAnamnesis(formData: FormData) {
+  const fields = ['goal', 'medical_history', 'medications', 'allergies', 'preferences', 'eating_habits', 'bowel_habits', 'sleep', 'water', 'alcohol_smoking', 'physical_activity', 'notes'];
+  await attempt(formData, () =>
+    api('nutritional-anamnesis/', {
+      method: 'POST',
+      body: {
+        relationship: text(formData, 'relationship'),
+        date: text(formData, 'date') || undefined,
+        ...Object.fromEntries(fields.map(key => [key, text(formData, key)])),
+      },
+    }),
+  );
+  redirect(back(formData));
+}
+
+export async function addNutritionalAssessment(formData: FormData) {
+  await attempt(formData, () =>
+    api('nutritional-assessment/', {
+      method: 'POST',
+      body: {
+        relationship: text(formData, 'relationship'),
+        date: text(formData, 'date') || undefined,
+        sex: text(formData, 'sex'),
+        age: optionalNumber(formData, 'age'),
+        weight: optionalNumber(formData, 'weight'),
+        height: optionalNumber(formData, 'height'),
+        waist: optionalNumber(formData, 'waist'),
+        hip: optionalNumber(formData, 'hip'),
+        body_fat: optionalNumber(formData, 'body_fat'),
+        activity_level: text(formData, 'activity_level'),
+        equation: text(formData, 'equation'),
+        energy_adjustment: optionalNumber(formData, 'energy_adjustment') ?? 0,
+        notes: text(formData, 'notes'),
+      },
+    }),
+  );
+  redirect(back(formData));
+}
+
+export async function deleteNutritionalAssessment(formData: FormData) {
+  await attempt(formData, () => api(`nutritional-assessment/${text(formData, 'id')}/`, { method: 'DELETE' }));
+  redirect(back(formData));
+}
+
 // Prescriptions in general
 
 const KINDS: Record<string, { endpoint: string; path: string }> = {
@@ -171,7 +215,11 @@ export async function createPlan(formData: FormData) {
   await attempt(formData, async () => {
     const plan = await api<{ id: string }>('nutritionplan/', {
       method: 'POST',
-      body: { description: text(formData, 'description') || 'Plano alimentar', care_relationship: relationship },
+      body: {
+        description: text(formData, 'description') || 'Plano alimentar',
+        care_relationship: relationship,
+        ...(optionalNumber(formData, 'goal_energy') !== null && { goal_energy: optionalNumber(formData, 'goal_energy'), has_goal_calories: true }),
+      },
     });
     id = plan.id;
   });

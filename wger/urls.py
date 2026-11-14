@@ -49,7 +49,10 @@ from wger.manager.api import (
     views as manager_api_views,
 )
 from wger.measurements.api import views as measurements_api_views
-from wger.nutrition.api import views as nutrition_api_views
+from wger.nutrition.api import (
+    assessment as nutrition_assessment_api,
+    views as nutrition_api_views,
+)
 from wger.physio.api import views as physio_api_views
 from wger.trophies.api import views as trophies_api_views
 from wger.utils import oidc_auth
@@ -99,6 +102,16 @@ router.register(
     basename='protocol-exercise',
 )
 router.register(r'pain-record', physio_api_views.PainRecordViewSet, basename='pain-record')
+router.register(
+    r'nutritional-anamnesis',
+    nutrition_assessment_api.NutritionalAnamnesisViewSet,
+    basename='nutritional-anamnesis',
+)
+router.register(
+    r'nutritional-assessment',
+    nutrition_assessment_api.NutritionalAssessmentViewSet,
+    basename='nutritional-assessment',
+)
 router.register(r'training-plan', periodization_api.TrainingPlanViewSet, basename='training-plan')
 router.register(
     r'training-block', periodization_api.TrainingBlockViewSet, basename='training-block'
