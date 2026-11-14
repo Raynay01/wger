@@ -27,9 +27,13 @@ from wger.core.models import (
     License,
 )
 from wger.core.tests.base_testcase import WgerTestCase
-from wger.nutrition.extract_info.taco import extract_info_from_taco
+from wger.nutrition.extract_info.taco import (
+    extract_info_from_taco,
+    household_measures,
+)
 from wger.nutrition.models import (
     Ingredient,
+    IngredientWeightUnit,
     Source,
 )
 
@@ -114,6 +118,37 @@ SPIRIT = {
 }
 
 
+POF_COLUMNS = ['codigo_alimento', 'codigo_preparacao', 'descricao_medida', 'quantidade_g']
+
+# Brown rice is TACO 1, mapped to POF 6300201 / 99 in taco_household_map.json
+POF_ROWS = [
+    {
+        'codigo_alimento': '6300201',
+        'codigo_preparacao': '99',
+        'descricao_medida': 'COLHER DE SOPA',
+        'quantidade_g': '20.0',
+    },
+    {
+        'codigo_alimento': '6300201',
+        'codigo_preparacao': '99',
+        'descricao_medida': 'CONCHA',
+        'quantidade_g': '117.4',
+    },
+    {
+        'codigo_alimento': '6300201',
+        'codigo_preparacao': '99',
+        'descricao_medida': 'COLHER DE CHA',
+        'quantidade_g': '2.5',
+    },
+    {
+        'codigo_alimento': '6300201',
+        'codigo_preparacao': '99',
+        'descricao_medida': 'PEDACO',
+        'quantidade_g': '30.0',
+    },
+]
+
+
 class TacoExtractTestCase(WgerTestCase):
     """
     Values of TACO rows, rounded as printed, never guessed
@@ -147,6 +182,20 @@ class TacoExtractTestCase(WgerTestCase):
         self.assertEqual(data.energy, 32)
         self.assertEqual(data.carbohydrates, Decimal('11.1'))
 
+    def test_household_measures(self):
+        """Grams come from the POF table, measures whole grams would distort are left out"""
+        entries = [
+            {
+                'taco_id': 1,
+                'pof_code': '6300201',
+                'pof_prep': '99',
+                'measures': ['COLHER DE SOPA', 'CONCHA', 'COLHER DE CHA', 'XICARA DE CHA'],
+            }
+        ]
+        measures, left_out = household_measures(entries, POF_ROWS)
+        self.assertEqual(measures, {1: [('colher de sopa', 20), ('concha', 117)]})
+        self.assertEqual(left_out, 2)
+
     def test_negative_carbohydrate_mean_is_zero(self):
         self.assertEqual(extract_info_from_taco(LIVER, 1, 1).carbohydrates, Decimal('0.0'))
 
@@ -166,8 +215,19 @@ class TacoImportTestCase(WgerTestCase):
             writer.writerow(row)
         self.file.close()
 
+        self.pof = tempfile.NamedTemporaryFile('w', suffix='.csv', delete=False, encoding='utf-8')
+        writer = csv.DictWriter(self.pof, fieldnames=POF_COLUMNS)
+        writer.writeheader()
+        writer.writerows(POF_ROWS)
+        self.pof.close()
+
     def run_import(self):
-        call_command('import-taco-products', file=self.file.name, stdout=open('/dev/null', 'w'))
+        call_command(
+            'import-taco-products',
+            file=self.file.name,
+            pof_file=self.pof.name,
+            stdout=open('/dev/null', 'w'),
+        )
 
     def test_import_is_idempotent(self):
         self.run_import()
@@ -194,3 +254,13 @@ class TacoImportTestCase(WgerTestCase):
         self.run_import()
         rice.refresh_from_db()
         self.assertEqual(rice.energy, 124)
+
+    def test_household_measures_are_imported_once(self):
+        """Only the mapped measures of the POF are imported, again without duplicates"""
+        self.run_import()
+        self.run_import()
+        rice = Ingredient.objects.get(remote_id='TACO-1')
+        units = dict(
+            IngredientWeightUnit.objects.filter(ingredient=rice).values_list('name', 'gram')
+        )
+        self.assertEqual(units, {'colher de sopa': 20, 'concha': 117})

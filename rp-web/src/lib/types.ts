@@ -171,7 +171,7 @@ export type MyDay = {
       time: string | null;
       instructions: string;
       planned: Values;
-      items: { ingredient: number; name: string; amount: string; weight_unit: number | null; instructions: string; substitutions: number }[];
+      items: { ingredient: number; name: string; amount: string; weight_unit: number | null; unit_name: string | null; grams: string; instructions: string; substitutions: number }[];
       adherence: 'full' | 'partial' | 'skipped' | null;
     }[];
     logged: Values | null;

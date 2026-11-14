@@ -17,7 +17,7 @@
 | Nutrição: orientações por refeição e item, substituições, adesão por refeição, hidratação, meta de água | Pronto | `wger/nutrition` |
 | Treino: RPE alvo, cadência, amplitude; RPE realizado | Pronto (campos; o motor de progressão continua usando RIR) | `wger/manager` |
 | Fisioterapia: protocolos, exercícios com dosagem e vídeo, dor 0 a 10 por momento, alertas, exercícios realizados, avaliações funcionais | Pronto | `wger/physio` |
-| Banco de alimentos TACO: 590 alimentos brasileiros em português, com categoria, fibra e sódio, fonte citada | Pronto: `manage.py import-taco-products` (rodar uma vez em cada servidor; rodar de novo atualiza). Ficam de fora os 7 itens sem valores na própria TACO (6 laticínios e a aguardente). Óleos recebem proteína e carboidrato 0 por balanço de massa (99,5 g ou mais de gordura em 100 g) | `wger/nutrition/extract_info/taco.py` |
+| Banco de alimentos TACO: 590 alimentos brasileiros em português, com categoria, fibra e sódio, fonte citada | Pronto: `manage.py import-taco-products` (rodar uma vez em cada servidor; rodar de novo atualiza). Ficam de fora os 7 itens sem valores na própria TACO (6 laticínios e a aguardente). Óleos recebem proteína e carboidrato 0 por balanço de massa (99,5 g ou mais de gordura em 100 g). Inclui 688 medidas caseiras (colher de sopa, concha, xícara...) com os gramas da POF/IBGE, que o nutricionista escolhe no construtor de dietas | `wger/nutrition/extract_info/taco.py` |
 | LGPD: exportar todos os dados (JSON) e pedir a exclusão da conta | Pronto. O pedido encerra os acompanhamentos na hora; a exclusão é feita pelo administrador no admin do Django, que bloqueia enquanto houver registros clínicos de profissionais (avaliações, observações) | `wger/care/export.py`, `wger/care/deletion.py` |
 
 Testes: 59 novos testes em `wger/care/tests` e `wger/physio/tests`. A suíte completa (2.569 testes) passa, exceto `test_sync_exercises`, que depende de acesso a `wger.de` (bloqueado nesta sessão; falha igual sem as mudanças).
@@ -75,7 +75,7 @@ O mesmo vale para treino (`/api/v2/routine/`, vínculo `training`) e fisioterapi
 ### Backend
 - Regras de sincronização do PowerSync (repositório docker) para as colunas e tabelas novas; até lá, o app offline não recebe autoria, versões, orientações nem as tabelas novas.
 - Envio do convite pelo WhatsApp (Cloud API, com modelos aprovados pela Meta). O envio por e-mail já existe.
-- Medidas caseiras da POF/IBGE ligadas à TACO, TBCA (após autorização), nutrientes anuláveis e alimentos próprios da organização.
+- TBCA (após autorização), nutrientes anuláveis e alimentos próprios da organização.
 - Anamnese e avaliação nutricional, antropometria, cálculo de necessidades energéticas.
 - Periodização (macro e mesociclos), vídeos de execução enviados pelo aluno.
 - Agenda e calendário integrado, chat com mídia.

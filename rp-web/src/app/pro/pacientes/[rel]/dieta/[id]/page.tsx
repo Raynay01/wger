@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ErrorFromQuery } from '@/components/ErrorFromQuery';
 import { PrescriptionHeader } from '@/components/PrescriptionHeader';
+import { FoodAmountPicker } from '@/components/FoodAmountPicker';
 import { SearchPicker } from '@/components/SearchPicker';
 import { Button, Card, Empty, Field, inputClass } from '@/components/ui';
 import { addMeal, addMealItem, addSubstitution, deleteMeal, deleteMealItem, deleteSubstitution, updatePlan } from '@/app/pro/actions';
@@ -104,7 +105,9 @@ export default async function DietBuilderPage({
                   <tbody className="divide-y divide-navy-100">
                     {meal.meal_items.map(item => {
                       const ingredient = item.ingredient_obj as any;
-                      const factor = Number(item.amount) / 100;
+                      const unit = (item as any).weight_unit_obj as { name: string; gram: number } | null;
+                      const grams = unit ? Number(item.amount) * unit.gram : Number(item.amount);
+                      const factor = grams / 100;
                       return (
                         <tr key={item.id} className="align-top">
                           <td className="py-2">
@@ -154,7 +157,16 @@ export default async function DietBuilderPage({
                               </details>
                             )}
                           </td>
-                          <td className="py-2 text-right tabular-nums">{number(item.amount)} g</td>
+                          <td className="py-2 text-right tabular-nums">
+                            {unit ? (
+                              <>
+                                {number(item.amount, 1)} × {unit.name}
+                                <span className="block text-xs text-gray-500">{number(grams)} g</span>
+                              </>
+                            ) : (
+                              <>{number(item.amount)} g</>
+                            )}
+                          </td>
                           <td className="py-2 text-right tabular-nums">{number(ingredient.energy * factor)}</td>
                           <td className="hidden py-2 text-right tabular-nums sm:table-cell">{number(ingredient.protein * factor, 1)}</td>
                           <td className="hidden py-2 text-right tabular-nums sm:table-cell">{number(ingredient.carbohydrates * factor, 1)}</td>
@@ -176,13 +188,10 @@ export default async function DietBuilderPage({
                   </tbody>
                 </table>
                 {editable && (
-                  <form action={addMealItem} className="mt-3 grid gap-2 border-t border-navy-100 pt-3 sm:grid-cols-[1fr_6rem_1fr_auto]">
+                  <form action={addMealItem} className="mt-3 grid gap-2 border-t border-navy-100 pt-3 sm:grid-cols-[1fr_11rem_6rem] lg:grid-cols-[1fr_11rem_6rem_1fr_auto]">
                     <input type="hidden" name="back" value={here} />
                     <input type="hidden" name="meal" value={meal.id} />
-                    <SearchPicker kind="food" name="ingredient" label="Adicionar alimento" placeholder="Buscar por nome ou código de barras" />
-                    <Field label="Gramas">
-                      <input name="amount" required inputMode="decimal" className={inputClass} />
-                    </Field>
+                    <FoodAmountPicker />
                     <Field label="Orientação (opcional)">
                       <input name="instructions" maxLength={200} placeholder="Ex.: cozido, sem sal" className={inputClass} />
                     </Field>

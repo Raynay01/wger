@@ -34,6 +34,7 @@ from wger.care.tests.helpers import CareScenarioMixin
 from wger.core.tests.base_testcase import BaseTestCase
 from wger.manager.models import Routine
 from wger.nutrition.models import (
+    IngredientWeightUnit,
     LogItem,
     Meal,
     MealAdherence,
@@ -154,6 +155,19 @@ class MyDayTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         data = self.get_day().data['nutrition']
         self.assertEqual(data['plan']['id'], draft.pk)
         self.assertEqual(data['goals']['energy'], 1800)
+
+    def test_household_measure_in_grams(self):
+        """Items prescribed in a household measure show the measure and its grams"""
+        draft = self.plan.new_version()
+        item = MealItem.objects.get(meal__plan=draft)
+        unit = IngredientWeightUnit.objects.create(ingredient_id=1, name='colher de sopa', gram=25)
+        item.weight_unit = unit
+        item.amount = 2
+        item.save()
+        draft.publish()
+        meal = self.get_day().data['nutrition']['meals'][0]
+        self.assertEqual(meal['items'][0]['unit_name'], 'colher de sopa')
+        self.assertEqual(meal['items'][0]['grams'], 50)
 
     def test_bad_date(self):
         self.client.force_authenticate(self.patient)

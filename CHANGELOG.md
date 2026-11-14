@@ -57,7 +57,12 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   Alimentos, NEPA/UNICAMP): 590 Brazilian foods in Portuguese, with category,
   fiber and sodium, rounded as printed. The pinned CSV is verified by checksum,
   a second run updates instead of duplicating. Foods the table gives no values
-  for are skipped, not guessed.
+  for are skipped, not guessed. It also adds about 700 household measures
+  (colher de sopa, concha, xícara, ...) with the grams of the POF/IBGE table,
+  through a hand-curated TACO to POF mapping kept in the repository; measures
+  that whole grams would change by more than 5% are left out.
+* `/api/v2/care/my-day/` gives the household measure and the grams of each
+  prescribed meal item.
 * Physiotherapy: protocols with exercises (`/api/v2/physio-protocol/`,
   `/api/v2/protocol-exercise/`), pain records on the 0-10 scale with alerts for
   the physiotherapist (`/api/v2/pain-record/`, `pain-record/alerts/`), exercise

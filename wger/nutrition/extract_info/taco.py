@@ -105,3 +105,83 @@ def extract_info_from_taco(row: dict, language_id: int, license_id: int) -> Ingr
     # energy comes from food-specific factors (and alcohol), the check assumes neither
     data.sanity_checks(check_energy=False)
     return data
+
+
+#
+# Household measures
+#
+
+MEASURE_LABELS = {
+    'BANDA': 'banda',
+    'BIFE': 'bife',
+    'CACHO': 'cacho',
+    'CANECA': 'caneca',
+    'COLHER DE ARROZ/SERVIR': 'colher de arroz (de servir)',
+    'COLHER DE CAFE': 'colher de café',
+    'COLHER DE CHA': 'colher de chá',
+    'COLHER DE SOBREMESA': 'colher de sobremesa',
+    'COLHER DE SOPA': 'colher de sopa',
+    'CONCHA': 'concha',
+    'COPO AMERICANO': 'copo americano',
+    'COPO DE CAFEZINHO': 'copo de cafezinho',
+    'COPO DE REQUEIJAO': 'copo de requeijão',
+    'COPO GRANDE': 'copo grande',
+    'COPO MEDIO': 'copo médio',
+    'COPO TULIPA': 'copo tulipa',
+    'ESCUMADEIRA': 'escumadeira',
+    'FATIA': 'fatia',
+    'FILE': 'filé',
+    'FOLHA': 'folha',
+    'GARRAFA (600 ML)': 'garrafa (600 ml)',
+    'GOMO': 'gomo',
+    'LATA (350 ML)': 'lata (350 ml)',
+    'METADE': 'metade',
+    'PEDACO': 'pedaço',
+    'PORCAO': 'porção',
+    'PRATO DE SOBREMESA': 'prato de sobremesa',
+    'PRATO FUNDO': 'prato fundo',
+    'PRATO RASO': 'prato raso',
+    'PUNHADO': 'punhado',
+    'RAMO': 'ramo',
+    'RODELA': 'rodela',
+    'UNIDADE': 'unidade',
+    'UNIDADE PEQUENA': 'unidade pequena',
+    'XICARA DE CAFE': 'xícara de café',
+    'XICARA DE CHA': 'xícara de chá',
+}
+
+MAX_ROUNDING_ERROR = Decimal('0.05')
+"""Weight units hold whole grams; measures that rounding would change by more are left out"""
+
+
+def household_measures(
+    entries: list[dict],
+    pof_rows: list[dict],
+) -> tuple[dict[int, list[tuple[str, int]]], int]:
+    """
+    Household measures of the TACO foods, from the curated TACO to POF mapping
+    and the grams of the POF/IBGE table. Returns the measures per TACO number
+    and how many were left out because whole grams would distort them.
+    """
+    grams = {
+        (r['codigo_alimento'], r['codigo_preparacao'], r['descricao_medida']): Decimal(
+            r['quantidade_g']
+        )
+        for r in pof_rows
+    }
+
+    out: dict[int, list[tuple[str, int]]] = {}
+    left_out = 0
+    for entry in entries:
+        for measure in entry['measures']:
+            value = grams.get((entry['pof_code'], entry['pof_prep'], measure))
+            if value is None or value <= 0:
+                left_out += 1
+                continue
+            rounded = value.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+            if abs(rounded - value) / value > MAX_ROUNDING_ERROR:
+                left_out += 1
+                continue
+            label = MEASURE_LABELS.get(measure, measure.lower())
+            out.setdefault(int(entry['taco_id']), []).append((label, int(rounded)))
+    return out, left_out

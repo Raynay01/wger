@@ -221,6 +221,7 @@ export async function addMealItem(formData: FormData) {
       body: {
         meal: text(formData, 'meal'),
         ingredient: Number(text(formData, 'ingredient')),
+        weight_unit: text(formData, 'weight_unit') ? Number(text(formData, 'weight_unit')) : null,
         amount: optionalNumber(formData, 'amount'),
         instructions: text(formData, 'instructions'),
       },

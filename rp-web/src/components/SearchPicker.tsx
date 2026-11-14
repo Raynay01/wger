@@ -24,6 +24,7 @@ export function SearchPicker({
   placeholder,
   required = true,
   nameField,
+  onChange,
 }: {
   kind: 'food' | 'exercise';
   name: string;
@@ -31,6 +32,8 @@ export function SearchPicker({
   placeholder?: string;
   required?: boolean;
   nameField?: string;
+  /** For client components that react to the choice */
+  onChange?: (id: number | null) => void;
 }) {
   const endpoint = kind === 'food' ? '/api/busca/alimentos' : '/api/busca/exercicios';
   const [term, setTerm] = useState('');
@@ -70,6 +73,7 @@ export function SearchPicker({
         onChange={e => {
           setChosen(null);
           setTerm(e.target.value);
+          onChange?.(null);
         }}
         placeholder={placeholder}
         required={required}
@@ -88,6 +92,7 @@ export function SearchPicker({
                 onClick={() => {
                   setChosen(option);
                   setOptions([]);
+                  onChange?.(option.id);
                 }}
                 className="flex w-full flex-col items-start px-3 py-2 text-left hover:bg-navy-100"
               >

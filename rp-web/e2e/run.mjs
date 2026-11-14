@@ -185,10 +185,14 @@ try {
   await bruno.getByRole('button', { name: 'Adicionar refeição' }).click();
   await bruno.getByRole('heading', { name: /Almoço/ }).waitFor();
   const lunch = bruno.locator('section', { has: bruno.getByRole('heading', { name: /Almoço/ }) });
-  await pick(bruno, 'Adicionar alimento', 'arroz', lunch);
-  await lunch.getByLabel('Gramas').fill('150');
-  await lunch.getByRole('button', { name: 'Adicionar' }).click();
-  await bruno.waitForLoadState('networkidle');
+  await pick(bruno, 'Adicionar alimento', 'Arroz, tipo 1, cozido', lunch);
+  const measure = lunch.locator('select[name=weight_unit]');
+  await measure.locator('option', { hasText: 'colher de arroz (de servir)' }).waitFor({ state: 'attached' });
+  await measure.selectOption({ label: 'colher de arroz (de servir) (45 g)' });
+  await lunch.getByLabel('Quantidade').fill('3');
+  await lunch.getByRole('button', { name: 'Adicionar', exact: true }).click();
+  await bruno.getByText('3 × colher de arroz (de servir)').waitFor();
+  await bruno.getByText('135 g').first().waitFor();
   const lunch2 = bruno.locator('section', { has: bruno.getByRole('heading', { name: /Almoço/ }) });
   await lunch2.getByText('+ substituição').click();
   await pick(bruno, 'Alimento', 'batata', lunch2);
@@ -204,7 +208,7 @@ try {
   await bruno.getByRole('button', { name: 'Publicar para o paciente' }).click();
   await bruno.getByRole('button', { name: 'Criar nova versão para editar' }).waitFor();
   const dietUrl = bruno.url();
-  log('Bruno montou e publicou a dieta (refeição, alimento, substituição, metas)');
+  log('Bruno montou e publicou a dieta (refeição, arroz em colheres de servir, substituição, metas)');
 
   // Training: draft, day, exercise, publish
   await bruno.goto(`${WEB}/pro`);
@@ -249,6 +253,7 @@ try {
   assert(await ana.getByRole('tab', { name: 'Treino + alimentação' }).isVisible(), 'visão combinada');
   assert(await ana.getByText('Treino · Força').isVisible(), 'treino do dia');
   assert(await ana.getByText('Isometria de quadríceps').isVisible(), 'exercício de fisioterapia');
+  await ana.getByText('3 × colher de arroz (de servir) (135 g) · Arroz, tipo 1, cozido').waitFor();
   await ana.getByRole('button', { name: 'Segui', exact: true }).click();
   await ana.getByText('Segui', { exact: true }).waitFor();
   await ana.getByRole('button', { name: '+ 300 ml' }).click();

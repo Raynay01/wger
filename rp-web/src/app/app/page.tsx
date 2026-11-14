@@ -187,7 +187,7 @@ function NutritionSection({ day }: { day: MyDay }) {
                 <ul className="mt-2 text-sm text-gray-700">
                   {meal.items.map((item, i) => (
                     <li key={i}>
-                      {number(item.amount)} g · {item.name}
+                      {item.unit_name ? `${number(item.amount, 1)} × ${item.unit_name} (${number(item.grams)} g)` : `${number(item.amount)} g`} · {item.name}
                       {item.substitutions > 0 && <span className="ml-1 text-xs text-neon-700">({item.substitutions} substituição(ões))</span>}
                       {item.instructions && <span className="block text-xs text-gray-500">{item.instructions}</span>}
                     </li>

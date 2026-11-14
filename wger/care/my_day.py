@@ -161,10 +161,14 @@ def nutrition_section(user: User, day: datetime.date) -> dict:
                             'name': item.ingredient.name,
                             'amount': item.amount,
                             'weight_unit': item.weight_unit_id,
+                            'unit_name': item.weight_unit.name if item.weight_unit else None,
+                            'grams': item.amount * item.weight_unit.gram
+                            if item.weight_unit
+                            else item.amount,
                             'instructions': item.instructions,
                             'substitutions': item.substitutions.count(),
                         }
-                        for item in meal.mealitem_set.select_related('ingredient')
+                        for item in meal.mealitem_set.select_related('ingredient', 'weight_unit')
                     ],
                     'adherence': adherence.get(meal.pk),
                 }
