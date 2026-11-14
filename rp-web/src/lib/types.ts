@@ -326,3 +326,26 @@ export type PlanProgress = {
   end: string | null;
   blocks: ProgressBlock[];
 };
+
+export type ConsistencyDay = {
+  date: string;
+  training: 'done' | 'missed' | 'planned' | 'rest' | null;
+  meals: boolean | null;
+  water_ml: number | null;
+  water_goal: boolean | null;
+  physio: boolean | null;
+  recorded: boolean;
+};
+
+export type ConsistencyWeek = {
+  start: string;
+  end: string;
+  training_done: number;
+  training_planned: number;
+  meals_days: number;
+  water_goal_days: number;
+  physio_days: number;
+  recorded_days: number;
+};
+
+export type Consistency = { modules: string[]; today: string; streak: number; weeks: ConsistencyWeek[]; days: ConsistencyDay[] };

@@ -435,6 +435,51 @@ class MyDaySerializer(ModulesSerializer):
     physio = serializers.DictField(allow_null=True)
 
 
+class ConsistencyDaySerializer(serializers.Serializer):
+    date = serializers.DateField()
+    training = serializers.ChoiceField(
+        choices=['done', 'missed', 'planned', 'rest'],
+        allow_null=True,
+        help_text='Null without a training routine that day and nothing recorded',
+    )
+    meals = serializers.BooleanField(
+        allow_null=True,
+        help_text='Food recorded (diary or meal adherence); null without a food plan',
+    )
+    water_ml = serializers.IntegerField(allow_null=True)
+    water_goal = serializers.BooleanField(
+        allow_null=True,
+        help_text='Water goal of the food plan reached; null without a goal',
+    )
+    physio = serializers.BooleanField(
+        allow_null=True,
+        help_text='Physio exercise recorded; null without a protocol that day',
+    )
+    recorded = serializers.BooleanField(help_text='Anything recorded in one of the areas')
+
+
+class ConsistencyWeekSerializer(serializers.Serializer):
+    start = serializers.DateField()
+    end = serializers.DateField()
+    training_done = serializers.IntegerField()
+    training_planned = serializers.IntegerField(help_text='Training days of the routine')
+    meals_days = serializers.IntegerField()
+    water_goal_days = serializers.IntegerField()
+    physio_days = serializers.IntegerField()
+    recorded_days = serializers.IntegerField()
+
+
+class ConsistencySerializer(serializers.Serializer):
+    modules = serializers.ListField(child=serializers.CharField())
+    today = serializers.DateField()
+    streak = serializers.IntegerField(
+        help_text='Consecutive days with a record up to today; prescribed rest days '
+        'and today do not break it'
+    )
+    weeks = ConsistencyWeekSerializer(many=True)
+    days = ConsistencyDaySerializer(many=True)
+
+
 class SharedDataSerializer(serializers.Serializer):
     scopes = serializers.ListField(child=serializers.CharField())
     data = serializers.DictField()

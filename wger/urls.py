@@ -416,6 +416,11 @@ urlpatterns += [
     path('api/v2/care/my-day/', care_api_views.MyDayView.as_view(), name='care-my-day'),
     path('api/v2/care/my-data/', care_api_views.MyDataView.as_view(), name='care-my-data'),
     path('api/v2/care/calendar/', care_api_views.CalendarView.as_view(), name='care-calendar'),
+    path(
+        'api/v2/care/consistency/',
+        care_api_views.ConsistencyView.as_view(),
+        name='care-consistency',
+    ),
     path('api/v2/', include(router.urls)),
     path('api/v2/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v2/token/verify', TokenVerifyView.as_view(), name='token_verify'),

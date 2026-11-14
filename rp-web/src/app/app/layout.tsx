@@ -17,6 +17,7 @@ export default async function PatientLayout({ children }: { children: React.Reac
         { href: '/app/convites', label: 'Profissionais' },
         { href: '/app/compartilhamento', label: 'Compartilhamento' },
         { href: '/app/evolucao', label: 'Evolução' },
+        { href: '/app/constancia', label: 'Constância' },
         { href: '/app/privacidade', label: 'Privacidade' },
       ]}
       switchTo={isProfessional ? { href: '/pro', label: 'Área profissional' } : { href: '/pro/configurar', label: 'Sou profissional' }}

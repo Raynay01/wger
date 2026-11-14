@@ -92,6 +92,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   `[{"muscle": id, "sets": n}]`); the progress returns the planned and done
   sets of those muscles per week and per block, each set counting for every
   primary muscle of its exercise.
+* Consistency: `/api/v2/care/consistency/` gives the patient's records per day
+  and per week (Monday to Sunday) for up to 26 weeks: training done, missed or
+  rest, food recorded, water goal reached, physio exercise done, and the streak
+  of days with a record. Only records count, never amounts; prescribed rest
+  days and the current day do not break the streak.
 * Nutritional assessment: nutritionists record the anamnesis
   (`/api/v2/nutritional-anamnesis/`: goal, history, medications, allergies,
   preferences, habits) and anthropometric assessments

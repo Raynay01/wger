@@ -45,6 +45,7 @@ from rest_framework.views import APIView
 # wger
 from wger.care import (
     agenda,
+    consistency,
     deletion,
     export,
     invitations,
@@ -58,6 +59,7 @@ from wger.care.api.serializers import (
     AppointmentSerializer,
     CareRelationshipSerializer,
     ConsentRecordSerializer,
+    ConsistencySerializer,
     DataRequestSerializer,
     MembershipSerializer,
     MessageReadSerializer,
@@ -721,6 +723,39 @@ class CalendarView(APIView):
         if end < start or (end - start).days >= agenda.MAX_DAYS:
             raise exceptions.ValidationError({'end': _('The calendar covers at most 62 days.')})
         return Response(agenda.patient_calendar(request.user, start, end))
+
+
+class ConsistencyView(APIView):
+    """
+    The patient's consistency: what was recorded each day and week per area
+    (training, food, water, physio) and the streak of days with records. Only
+    records count, never amounts. Weeks run from Monday to Sunday.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('end', str, description='A day of the last week, YYYY-MM-DD'),
+            OpenApiParameter('weeks', int, description='Number of weeks, 1 to 26 (default 8)'),
+        ],
+        responses=ConsistencySerializer,
+    )
+    def get(self, request):
+        try:
+            end = datetime.date.fromisoformat(request.query_params.get('end') or '')
+        except ValueError:
+            end = consistency.local_today(request.user)
+        try:
+            weeks = int(request.query_params.get('weeks') or 8)
+        except ValueError:
+            raise exceptions.ValidationError({'weeks': _('A whole number is required.')})
+        if not 1 <= weeks <= consistency.MAX_WEEKS:
+            raise exceptions.ValidationError(
+                {'weeks': _('Between 1 and %(max)s weeks.') % {'max': consistency.MAX_WEEKS}}
+            )
+        data = consistency.consistency(request.user, end, weeks)
+        return Response(ConsistencySerializer(data).data)
 
 
 class AppointmentViewSet(viewsets.ModelViewSet):

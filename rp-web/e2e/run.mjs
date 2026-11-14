@@ -539,6 +539,16 @@ try {
   await ana.getByText('3 de 84 séries (4%) · RIR médio 2').waitFor();
   log('Ana vê o próprio planejado x realizado na Evolução');
 
+  // Consistency: today she trained, ate, drank water and did the physio exercise
+  await ana.goto(`${WEB}/app/constancia`);
+  const todayBr = new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+  await ana.getByText('1 dia', { exact: true }).waitFor();
+  await ana.getByRole('img', { name: `Treino, ${todayBr}: treino feito` }).waitFor();
+  await ana.getByRole('img', { name: `Refeições registradas, ${todayBr}: refeições registradas` }).waitFor();
+  await ana.getByRole('img', { name: `Fisioterapia, ${todayBr}: exercícios feitos` }).waitFor();
+  await shot(ana, '14-constancia');
+  log('Ana vê a constância: treino, refeições e fisioterapia de hoje, sequência de 1 dia');
+
   // LGPD: export and deletion request
   await ana.goto(`${WEB}/app/privacidade`);
   const [download] = await Promise.all([ana.waitForEvent('download'), ana.getByRole('link', { name: 'Baixar arquivo (JSON)' }).click()]);

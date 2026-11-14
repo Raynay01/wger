@@ -214,6 +214,15 @@ msgstr "Cada músculo só pode ter uma meta."
 msgid "Unknown muscle."
 msgstr "Músculo desconhecido."
 
+#: care/api/views.py
+msgid "A whole number is required."
+msgstr "Informe um número inteiro."
+
+#: care/api/views.py
+#, python-format
+msgid "Between 1 and %(max)s weeks."
+msgstr "Entre 1 e %(max)s semanas."
+
 #: nutrition/models/assessment.py
 msgid "Jackson-Pollock, 3 skinfolds"
 msgstr "Jackson-Pollock, 3 dobras"
