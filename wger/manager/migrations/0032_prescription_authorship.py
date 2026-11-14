@@ -312,6 +312,7 @@ class Migration(migrations.Migration):
                         max_length=100,
                     ),
                 ),
+                ('weekly_sets', models.JSONField(blank=True, default=list)),
                 ('notes', models.TextField(blank=True)),
                 (
                     'routine',

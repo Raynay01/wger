@@ -590,6 +590,9 @@ export async function addTrainingBlock(formData: FormData) {
         routine: routine ? Number(routine) : null,
         intensity: text(formData, 'intensity'),
         volume: text(formData, 'volume'),
+        weekly_sets: [...formData.entries()]
+          .filter(([key, value]) => key.startsWith('sets_') && String(value).trim() !== '')
+          .map(([key, value]) => ({ muscle: Number(key.slice('sets_'.length)), sets: Number(value) })),
         notes: text(formData, 'notes'),
       },
     }),

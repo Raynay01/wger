@@ -28,7 +28,10 @@ from wger.care.export import export_user_data
 from wger.care.prescription import start_prescription
 from wger.care.tests.helpers import CareScenarioMixin
 from wger.core.tests.base_testcase import BaseTestCase
-from wger.exercises.models import Exercise
+from wger.exercises.models import (
+    Exercise,
+    Muscle,
+)
 from wger.manager.models import (
     Day,
     RepetitionsConfig,
@@ -286,3 +289,104 @@ class PeriodizationTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         self.client.force_authenticate(self.physio)
         response = self.client.get(reverse('training-plan-progress', kwargs={'pk': plan['id']}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_sets_per_muscle(self):
+        """Weekly targets per muscle against the sets of the routine and of the logs"""
+        chest, back, legs = Muscle.objects.all()[:3]
+        squat, plank = Exercise.objects.all()[:2]
+        squat.muscles.set([chest, back])
+        plank.muscles.set([back])
+        squat.muscles_secondary.set([legs])
+        day = Day.objects.create(routine=self.routine, order=1, name='A')
+        Day.objects.create(routine=self.routine, order=2, name='Descanso', is_rest=True)
+        entry = SlotEntry.objects.create(
+            slot=Slot.objects.create(day=day, order=1),
+            exercise=squat,
+            order=1,
+        )
+        SetsConfig.objects.create(slot_entry=entry, iteration=1, value=3)
+
+        plan = self.create_plan()
+        url = reverse('training-block-list')
+        targets = [
+            {'muscle': chest.pk, 'sets': 10},
+            {'muscle': back.pk, 'sets': 8},
+            {'muscle': legs.pk, 'sets': 6},
+        ]
+        data = {'plan': plan['id'], 'focus': 'hypertrophy', 'weeks': 2, 'routine': self.routine.pk}
+        response = self.client.post(url, {**data, 'weekly_sets': targets}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data['weekly_sets'], targets)
+        self.publish(plan['id'])
+
+        for when, exercise in [
+            ('2026-03-02T12:00:00+00:00', squat),
+            ('2026-03-02T12:05:00+00:00', squat),
+            ('2026-03-04T12:00:00+00:00', plank),
+            ('2026-03-09T12:00:00+00:00', squat),
+        ]:
+            WorkoutLog.objects.create(
+                user=self.patient,
+                exercise=exercise,
+                date=datetime.datetime.fromisoformat(when),
+                repetitions=10,
+            )
+
+        self.client.force_authenticate(self.patient)
+        response = self.client.get(reverse('training-plan-progress', kwargs={'pk': plan['id']}))
+        (block,) = response.data['blocks']
+        # Sessions on 2, 4, 6, 8, 10, 12 and 14 March, 3 sets of squats each
+        self.assertEqual(
+            block['muscles'],
+            [
+                {
+                    'muscle': chest.pk,
+                    'planned_sets': 21,
+                    'done_sets': 3,
+                    'name': chest.name,
+                    'weekly_sets': 10,
+                },
+                {
+                    'muscle': back.pk,
+                    'planned_sets': 21,
+                    'done_sets': 4,
+                    'name': back.name,
+                    'weekly_sets': 8,
+                },
+                {
+                    'muscle': legs.pk,
+                    'planned_sets': 0,
+                    'done_sets': 0,
+                    'name': legs.name,
+                    'weekly_sets': 6,
+                },
+            ],
+        )
+        first, second = block['weeks']
+        self.assertEqual(
+            [(m['planned_sets'], m['done_sets']) for m in first['muscles']],
+            [(12, 2), (12, 3), (0, 0)],
+        )
+        self.assertEqual(
+            [(m['planned_sets'], m['done_sets']) for m in second['muscles']],
+            [(9, 1), (9, 1), (0, 0)],
+        )
+
+    def test_sets_per_muscle_validation(self):
+        """A target needs a known muscle, once per block, and 1 to 60 sets"""
+        plan = self.create_plan()
+        muscle = Muscle.objects.first()
+        data = {'plan': plan['id'], 'focus': 'strength', 'weeks': 3}
+        for weekly_sets in [
+            [{'muscle': muscle.pk, 'sets': 10}, {'muscle': muscle.pk, 'sets': 4}],
+            [{'muscle': Muscle.objects.order_by('-pk').first().pk + 1, 'sets': 10}],
+            [{'muscle': muscle.pk, 'sets': 0}],
+            [{'muscle': muscle.pk, 'sets': 61}],
+        ]:
+            response = self.client.post(
+                reverse('training-block-list'),
+                {**data, 'weekly_sets': weekly_sets},
+                format='json',
+            )
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, weekly_sets)
+            self.assertIn('weekly_sets', response.data)

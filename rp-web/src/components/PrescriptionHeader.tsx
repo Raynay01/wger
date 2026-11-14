@@ -81,7 +81,7 @@ export function PrescriptionHeader({
         <Notice>Rascunho: o paciente ainda não vê. Edite à vontade e publique quando estiver pronto.</Notice>
       ) : (
         <Notice>
-          Versão {STATUS_LABELS[status].toLowerCase()} em {dateTime(prescription.published_at)}. Versões publicadas não mudam: para
+          Versão publicada em {dateTime(prescription.published_at)}. Versões publicadas não mudam: para
           alterar, crie uma nova versão.
         </Notice>
       )}

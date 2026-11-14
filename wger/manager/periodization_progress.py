@@ -18,16 +18,24 @@ Planned versus done training per week of a periodization
 
 Planned comes from the routine of each block as prescribed (without the
 patient's history), done from all training logs of the patient in that week,
-whichever routine they belong to.
+whichever routine they belong to. Sets per muscle count each set for every
+primary muscle of its exercise.
 """
 
 # Standard Library
 import datetime
-from collections import defaultdict
+from collections import (
+    Counter,
+    defaultdict,
+)
 from decimal import Decimal
 
 # wger
 from wger.care.my_day import day_bounds
+from wger.exercises.models import (
+    Exercise,
+    Muscle,
+)
 from wger.manager.consts import (
     REP_UNIT_REPETITIONS,
     WEIGHT_UNIT_KG,
@@ -54,8 +62,20 @@ def _load(repetitions, repetitions_unit, weight, weight_unit) -> Decimal:
     return Decimal(0)
 
 
-def _planned(routine, start: datetime.date, end: datetime.date) -> dict:
-    """Sessions, sets and load per day of the routine as prescribed"""
+class _PrimaryMuscles(dict):
+    """Exercise ID to the IDs of its primary muscles, loaded on first use"""
+
+    def __missing__(self, exercise_id):
+        self[exercise_id] = list(
+            Exercise.muscles.through.objects.filter(exercise_id=exercise_id).values_list(
+                'muscle_id', flat=True
+            )
+        )
+        return self[exercise_id]
+
+
+def _planned(routine, start: datetime.date, end: datetime.date, muscles: dict) -> dict:
+    """Sessions, sets, load and sets per muscle per day of the routine as prescribed"""
     out = {}
     if routine is None:
         return out
@@ -64,32 +84,46 @@ def _planned(routine, start: datetime.date, end: datetime.date) -> dict:
             continue
         sets = 0
         load = Decimal(0)
+        per_muscle = Counter()
         for slot in entry.slots_display_mode:
             for config in slot.sets:
                 count = config.sets or 0
                 sets += count
+                for muscle in muscles[config.exercise]:
+                    per_muscle[muscle] += count
                 load += count * _load(
                     config.repetitions,
                     config.repetitions_unit,
                     config.weight,
                     config.weight_unit,
                 )
-        out[entry.date] = (sets, load)
+        out[entry.date] = {'sets': sets, 'load': load, 'muscles': per_muscle}
     return out
 
 
-def _done(user, start: datetime.date, end: datetime.date) -> dict:
-    """Sets, load, RIR and RPE per calendar day of the patient"""
+def _done(user, start: datetime.date, end: datetime.date, muscles: dict) -> dict:
+    """Sets, load, sets per muscle, RIR and RPE per calendar day of the patient"""
     zone = user.userprofile.zone_info
     range_start, _ = day_bounds(user, start)
     _, range_end = day_bounds(user, end)
-    days = defaultdict(lambda: {'sets': 0, 'load': Decimal(0), 'rir': [], 'rpe': []})
+    days = defaultdict(
+        lambda: {'sets': 0, 'load': Decimal(0), 'muscles': Counter(), 'rir': [], 'rpe': []}
+    )
     logs = WorkoutLog.objects.filter(user=user, date__gte=range_start, date__lt=range_end)
     for log in logs.only(
-        'date', 'repetitions', 'repetitions_unit', 'weight', 'weight_unit', 'rir', 'rpe'
+        'date',
+        'exercise',
+        'repetitions',
+        'repetitions_unit',
+        'weight',
+        'weight_unit',
+        'rir',
+        'rpe',
     ):
         day = days[log.date.astimezone(zone).date()]
         day['sets'] += 1
+        for muscle in muscles[log.exercise_id]:
+            day['muscles'][muscle] += 1
         day['load'] += _load(
             log.repetitions, log.repetitions_unit_id, log.weight, log.weight_unit_id
         )
@@ -114,22 +148,32 @@ def _average(values: list) -> Decimal | None:
     return (sum(values) / len(values)).quantize(Decimal('0.1'))
 
 
-def _summary(start, end, planned: dict, done: dict) -> dict:
+def _summary(start, end, planned: dict, done: dict, targets: list) -> dict:
     planned_days = [v for d, v in planned.items() if start <= d <= end]
     done_days = [v for d, v in done.items() if start <= d <= end]
     rir = [x for v in done_days for x in v['rir']]
     rpe = [x for v in done_days for x in v['rpe']]
+    planned_muscles = sum((v['muscles'] for v in planned_days), Counter())
+    done_muscles = sum((v['muscles'] for v in done_days), Counter())
     return {
         'start': start,
         'end': end,
         'planned_sessions': len(planned_days),
         'done_sessions': len(done_days),
-        'planned_sets': sum(sets for sets, _ in planned_days),
+        'planned_sets': sum(v['sets'] for v in planned_days),
         'done_sets': sum(v['sets'] for v in done_days),
-        'planned_load': round(sum((load for _, load in planned_days), Decimal(0))),
+        'planned_load': round(sum((v['load'] for v in planned_days), Decimal(0))),
         'done_load': round(sum((v['load'] for v in done_days), Decimal(0))),
         'average_rir': _average(rir),
         'average_rpe': _average(rpe),
+        'muscles': [
+            {
+                'muscle': target['muscle'],
+                'planned_sets': planned_muscles[target['muscle']],
+                'done_sets': done_muscles[target['muscle']],
+            }
+            for target in targets
+        ],
     }
 
 
@@ -138,17 +182,26 @@ def plan_progress(plan: TrainingPlan) -> dict:
     schedule = plan.schedule()
     if not schedule:
         return {'start': plan.start, 'end': None, 'blocks': []}
-    done = _done(plan.user, schedule[0].start, schedule[-1].end)
+    muscles = _PrimaryMuscles()
+    done = _done(plan.user, schedule[0].start, schedule[-1].end, muscles)
+    names = dict(Muscle.objects.values_list('pk', 'name'))
 
     blocks = []
     for scheduled in schedule:
         block = scheduled.block
-        planned = _planned(block.current_routine(), scheduled.start, scheduled.end)
+        targets = [t for t in block.weekly_sets if t['muscle'] in names]
+        planned = _planned(block.current_routine(), scheduled.start, scheduled.end, muscles)
         weeks = []
         for index in range(block.weeks):
             week_start = scheduled.start + datetime.timedelta(weeks=index)
             week_end = week_start + datetime.timedelta(days=6)
-            weeks.append({'week': index + 1, **_summary(week_start, week_end, planned, done)})
+            weeks.append(
+                {'week': index + 1, **_summary(week_start, week_end, planned, done, targets)}
+            )
+        summary = _summary(scheduled.start, scheduled.end, planned, done, targets)
+        for item, target in zip(summary['muscles'], targets):
+            item['name'] = names[target['muscle']]
+            item['weekly_sets'] = target['sets']
         blocks.append(
             {
                 'id': block.pk,
@@ -156,7 +209,7 @@ def plan_progress(plan: TrainingPlan) -> dict:
                 'focus': block.focus,
                 'intensity': block.intensity,
                 'volume': block.volume,
-                **_summary(scheduled.start, scheduled.end, planned, done),
+                **summary,
                 'weeks': weeks,
             }
         )

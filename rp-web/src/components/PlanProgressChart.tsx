@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { FOCUS_LABELS, date, number } from '@/lib/format';
-import type { PlanProgress, ProgressSummary } from '@/lib/types';
+import { FOCUS_LABELS, date, muscleLabel, number } from '@/lib/format';
+import type { PlanProgress, ProgressBlock, ProgressSummary } from '@/lib/types';
 
 // Validated pair (light surface): blue for planned, green for done
 const PLANNED = '#2a78d6';
@@ -23,6 +23,64 @@ function values(summary: ProgressSummary, measure: Measure): [number, number] {
 
 function percent(planned: number, done: number): string {
   return planned > 0 ? `${Math.round((done / planned) * 100)}%` : '–';
+}
+
+/** Weekly sets per muscle of a block: target, the routine's weekly average and what was done each week */
+function MuscleSets({ block, today }: { block: ProgressBlock; today: string }) {
+  return (
+    <div className="overflow-x-auto">
+      <p className="mb-1 text-sm font-semibold text-navy-900">{block.name || FOCUS_LABELS[block.focus]}: séries por semana</p>
+      <table className="w-full text-left text-sm">
+        <thead className="text-xs uppercase text-gray-500">
+          <tr>
+            <th className="py-1.5">Músculo</th>
+            <th className="text-right">Meta</th>
+            <th className="text-right">No treino</th>
+            {block.weeks.map(week => (
+              <th key={week.week} className="text-right" title={`${date(week.start)} a ${date(week.end)}`}>
+                S{week.week}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-navy-100">
+          {block.muscles.map((muscle, index) => {
+            const planned = muscle.planned_sets / block.weeks.length;
+            return (
+              <tr key={muscle.muscle}>
+                <td className="py-1.5">{muscleLabel(muscle.name)}</td>
+                <td className="text-right tabular-nums">{muscle.weekly_sets}</td>
+                <td className="text-right tabular-nums">
+                  {number(planned, 1)}
+                  {planned < muscle.weekly_sets && <span className="block text-xs text-gray-500">abaixo da meta</span>}
+                </td>
+                {block.weeks.map(week => {
+                  const done = week.muscles[index].done_sets;
+                  const reached = done >= muscle.weekly_sets;
+                  return (
+                    <td key={week.week} className="text-right tabular-nums">
+                      {week.start > today ? (
+                        <span className="text-gray-400">–</span>
+                      ) : (
+                        <>
+                          {number(done)}
+                          {reached && (
+                            <span className="ml-0.5 font-semibold text-navy-900" title="Meta atingida">
+                              ✓<span className="sr-only"> meta atingida</span>
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 /** Planned versus done per week of a periodization, one measure at a time */
@@ -148,6 +206,20 @@ export function PlanProgressChart({ progress, today }: { progress: PlanProgress;
             );
           })}
         </ul>
+      )}
+
+      {progress.blocks.some(block => block.muscles.length > 0) && (
+        <div className="flex flex-col gap-4 border-t border-navy-100 pt-4">
+          {progress.blocks
+            .filter(block => block.muscles.length > 0)
+            .map(block => (
+              <MuscleSets key={block.id} block={block} today={today} />
+            ))}
+          <p className="-mt-2 text-xs text-gray-500">
+            Séries realizadas por semana. Cada série conta para os músculos principais do exercício; ✓ quando a semana atingiu a meta. &quot;No treino&quot; é a média semanal do
+            treino ligado à fase.
+          </p>
+        </div>
       )}
 
       <details className="text-sm">

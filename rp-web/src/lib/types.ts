@@ -224,10 +224,16 @@ export type TrainingBlock = {
   current_routine_name: string | null;
   intensity: string;
   volume: string;
+  weekly_sets: WeeklySets[];
   notes: string;
   start: string;
   end: string;
 };
+
+/** Target sets per week of a muscle */
+export type WeeklySets = { muscle: number; sets: number };
+
+export type Muscle = { id: number; name: string; name_en: string };
 
 export type TrainingPlan = Prescription & {
   id: string;
@@ -302,8 +308,21 @@ export type ProgressSummary = {
   average_rpe: string | null;
 };
 
+export type ProgressMuscle = { muscle: number; planned_sets: number; done_sets: number };
+
+export type ProgressBlock = ProgressSummary & {
+  id: string;
+  name: string;
+  focus: string;
+  intensity: string;
+  volume: string;
+  /** Totals over the block of the muscles with a weekly target */
+  muscles: (ProgressMuscle & { name: string; weekly_sets: number })[];
+  weeks: (ProgressSummary & { week: number; muscles: ProgressMuscle[] })[];
+};
+
 export type PlanProgress = {
   start: string;
   end: string | null;
-  blocks: (ProgressSummary & { id: string; name: string; focus: string; intensity: string; volume: string; weeks: (ProgressSummary & { week: number })[] })[];
+  blocks: ProgressBlock[];
 };

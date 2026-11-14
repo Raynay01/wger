@@ -206,6 +206,14 @@ msgstr "Uma fase não pode ser movida para outra periodização."
 msgid "The routine must belong to the patient of the plan."
 msgstr "O treino precisa ser do mesmo paciente da periodização."
 
+#: manager/api/periodization.py
+msgid "Each muscle can only have one target."
+msgstr "Cada músculo só pode ter uma meta."
+
+#: manager/api/periodization.py
+msgid "Unknown muscle."
+msgstr "Músculo desconhecido."
+
 #: nutrition/models/assessment.py
 msgid "Jackson-Pollock, 3 skinfolds"
 msgstr "Jackson-Pollock, 3 dobras"

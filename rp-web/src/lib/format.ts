@@ -103,6 +103,30 @@ export const GOAL_LABELS: Record<string, string> = {
   health: 'Saúde e condicionamento',
 };
 
+// wger's muscles by their Latin name, as in the API
+const MUSCLE_LABELS: Record<string, string> = {
+  'Anterior deltoid': 'Deltoide anterior (ombros)',
+  'Biceps brachii': 'Bíceps',
+  'Biceps femoris': 'Posteriores da coxa',
+  Brachialis: 'Braquial',
+  'Erector spinae': 'Lombar (eretores da espinha)',
+  Gastrocnemius: 'Panturrilha (gastrocnêmio)',
+  'Gluteus maximus': 'Glúteos',
+  'Latissimus dorsi': 'Dorsais (latíssimo)',
+  'Obliquus externus abdominis': 'Oblíquos',
+  'Pectoralis major': 'Peitoral',
+  'Quadriceps femoris': 'Quadríceps',
+  'Rectus abdominis': 'Abdômen (reto abdominal)',
+  'Serratus anterior': 'Serrátil anterior',
+  Soleus: 'Sóleo',
+  Trapezius: 'Trapézio',
+  'Triceps brachii': 'Tríceps',
+};
+
+export function muscleLabel(name: string): string {
+  return MUSCLE_LABELS[name] ?? name;
+}
+
 export const FOCUS_LABELS: Record<string, string> = {
   adaptation: 'Adaptação',
   hypertrophy: 'Hipertrofia',

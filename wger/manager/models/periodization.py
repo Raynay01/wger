@@ -126,6 +126,7 @@ class TrainingPlan(PrescriptionMixin, models.Model):
                     'routine': b.routine_id,
                     'intensity': b.intensity,
                     'volume': b.volume,
+                    'weekly_sets': b.weekly_sets,
                     'notes': b.notes,
                     'order': b.order,
                 }
@@ -175,6 +176,9 @@ class TrainingBlock(models.Model):
     intensity = models.CharField(max_length=100, blank=True, help_text='e.g. 70-80% 1RM, RIR 2-3')
 
     volume = models.CharField(max_length=100, blank=True, help_text='e.g. 12-16 sets per muscle')
+
+    weekly_sets = models.JSONField(default=list, blank=True)
+    """Target sets per week per muscle: ``[{'muscle': id, 'sets': n}]``"""
 
     notes = models.TextField(blank=True)
 

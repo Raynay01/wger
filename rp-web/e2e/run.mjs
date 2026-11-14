@@ -266,8 +266,12 @@ try {
   await bruno.getByLabel('Nome (opcional)').fill('Base');
   await bruno.locator('select[name=routine]').selectOption({ label: 'Força · v1 (Publicado)' });
   await bruno.getByLabel('Intensidade (opcional)').fill('RIR 2-3');
+  await bruno.getByText('Séries por semana por músculo (opcional)').click();
+  await bruno.getByLabel('Quadríceps', { exact: true }).fill('12');
+  await bruno.getByLabel('Peitoral', { exact: true }).fill('10');
   await bruno.getByRole('button', { name: 'Adicionar fase' }).click();
   await bruno.getByText('Treino: Força · Intensidade: RIR 2-3').waitFor();
+  await bruno.getByText('Séries por semana: Peitoral 10 · Quadríceps 12').waitFor();
   await bruno.locator('select[name=focus]').selectOption('deload');
   await bruno.getByLabel('Semanas').fill('1');
   await bruno.getByRole('button', { name: 'Adicionar fase' }).click();
@@ -522,8 +526,13 @@ try {
   await bruno.getByRole('radio', { name: 'Séries' }).click();
   await bruno.getByRole('img', { name: /Base · semana 1/ }).hover();
   await bruno.getByText('Realizado: 3 séries (14%)').waitFor();
+  // The squat trains the quadriceps (21 sets a week in the routine); no exercise for the chest
+  const quads = bruno.getByRole('row').filter({ hasText: 'Quadríceps' });
+  assert((await quads.innerText()).replace(/\s+/g, ' ').startsWith('Quadríceps 12 21 3 –'), `séries de quadríceps: ${await quads.innerText()}`);
+  const chest = bruno.getByRole('row').filter({ hasText: 'Peitoral' });
+  assert((await chest.innerText()).includes('abaixo da meta'), 'peitoral abaixo da meta no treino');
   await shot(bruno, '13-planejado-realizado');
-  log('O personal comparou o planejado com o realizado na fase (séries e tonelagem)');
+  log('O personal comparou o planejado com o realizado na fase (séries, tonelagem e séries por músculo)');
 
   await ana.goto(`${WEB}/app/evolucao`);
   await ana.getByText('Treino planejado x realizado · Temporada de verão').waitFor();

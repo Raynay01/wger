@@ -88,6 +88,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   and per week: sessions, sets and load (repetitions times kg, pounds
   converted). Planned comes from the block's routine as prescribed, done from
   all training logs of the patient in that week, by their own time zone.
+  Blocks take target sets per week per muscle (`weekly_sets`,
+  `[{"muscle": id, "sets": n}]`); the progress returns the planned and done
+  sets of those muscles per week and per block, each set counting for every
+  primary muscle of its exercise.
 * Nutritional assessment: nutritionists record the anamnesis
   (`/api/v2/nutritional-anamnesis/`: goal, history, medications, allergies,
   preferences, habits) and anthropometric assessments

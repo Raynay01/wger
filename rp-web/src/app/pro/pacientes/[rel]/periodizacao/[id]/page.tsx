@@ -6,8 +6,8 @@ import { PrescriptionHeader } from '@/components/PrescriptionHeader';
 import { Button, Card, Empty, Field, inputClass } from '@/components/ui';
 import { addTrainingBlock, deleteTrainingBlock, updateTrainingPlan } from '@/app/pro/actions';
 import { api } from '@/lib/api';
-import { FOCUS_COLORS, FOCUS_LABELS, GOAL_LABELS, STATUS_LABELS, date } from '@/lib/format';
-import type { Paginated, PlanProgress, TrainingPlan } from '@/lib/types';
+import { FOCUS_COLORS, FOCUS_LABELS, GOAL_LABELS, STATUS_LABELS, date, muscleLabel } from '@/lib/format';
+import type { Muscle, Paginated, PlanProgress, TrainingPlan } from '@/lib/types';
 import { userZone } from '@/lib/userZone';
 import { todayIn } from '@/lib/zone';
 
@@ -24,10 +24,15 @@ export default async function PeriodizationBuilderPage({
 }) {
   const { rel, id } = await params;
   const { erro } = await searchParams;
-  const [plan, routines] = await Promise.all([
+  const [plan, routines, muscleList] = await Promise.all([
     api<TrainingPlan>(`training-plan/${id}/`),
     api<Paginated<RoutineOption>>('routine/', { query: { care_relationship: rel, limit: 100 } }),
+    api<Paginated<Muscle>>('muscle/', { query: { limit: 100 } }),
   ]);
+  const muscles = muscleList.results
+    .map(m => ({ id: m.id, label: muscleLabel(m.name) }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+  const muscleName = new Map(muscles.map(m => [m.id, m.label]));
   const versions = plan.lineage_id
     ? (await api<Paginated<TrainingPlan>>('training-plan/', { query: { lineage_id: plan.lineage_id, limit: 100 } })).results
     : [plan];
@@ -78,6 +83,11 @@ export default async function PeriodizationBuilderPage({
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
+                  {block.weekly_sets.length > 0 && (
+                    <p className="mt-1 text-sm text-gray-700">
+                      Séries por semana: {block.weekly_sets.map(t => `${muscleName.get(t.muscle) ?? t.muscle} ${t.sets}`).join(' · ')}
+                    </p>
+                  )}
                   {block.notes && <p className="mt-1 text-sm text-gray-600">{block.notes}</p>}
                   {editable && (
                     <form action={deleteTrainingBlock} className="mt-1 text-right">
@@ -132,6 +142,19 @@ export default async function PeriodizationBuilderPage({
                 <Field label="Volume (opcional)">
                   <input name="volume" maxLength={100} placeholder="Ex.: 12-16 séries por grupo/semana" className={inputClass} />
                 </Field>
+                <details className="rounded-xl border border-navy-100 p-3">
+                  <summary className="cursor-pointer text-sm font-semibold text-navy-700">Séries por semana por músculo (opcional)</summary>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Meta para comparar com o treino e com o que o aluno registrar. Conta as séries dos exercícios em que o músculo é o principal.
+                  </p>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {muscles.map(m => (
+                      <Field key={m.id} label={m.label}>
+                        <input name={`sets_${m.id}`} type="number" min={1} max={60} className={inputClass} />
+                      </Field>
+                    ))}
+                  </div>
+                </details>
                 <Field label="Observações (opcional)">
                   <textarea name="notes" rows={2} className={inputClass} />
                 </Field>

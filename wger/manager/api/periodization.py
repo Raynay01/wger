@@ -41,6 +41,7 @@ from wger.care.api.prescription import (
     PrescriptionWriteGuardMixin,
 )
 from wger.care.prescription import visible_prescriptions_q
+from wger.exercises.models import Muscle
 from wger.manager.models import (
     Routine,
     TrainingBlock,
@@ -57,6 +58,11 @@ def _dates(block: TrainingBlock) -> tuple | None:
     return None
 
 
+class WeeklySetsSerializer(serializers.Serializer):
+    muscle = serializers.IntegerField()
+    sets = serializers.IntegerField(min_value=1, max_value=60)
+
+
 class TrainingBlockSerializer(serializers.ModelSerializer):
     plan = serializers.PrimaryKeyRelatedField(queryset=TrainingPlan.objects.all())
     routine = serializers.PrimaryKeyRelatedField(
@@ -68,6 +74,12 @@ class TrainingBlockSerializer(serializers.ModelSerializer):
     end = serializers.SerializerMethodField()
     current_routine = serializers.SerializerMethodField()
     current_routine_name = serializers.SerializerMethodField()
+    weekly_sets = serializers.ListField(
+        child=WeeklySetsSerializer(),
+        required=False,
+        max_length=30,
+        help_text='Target sets per week per muscle (primary muscle of the exercise)',
+    )
 
     class Meta:
         model = TrainingBlock
@@ -83,6 +95,7 @@ class TrainingBlockSerializer(serializers.ModelSerializer):
             'current_routine_name',
             'intensity',
             'volume',
+            'weekly_sets',
             'notes',
             'start',
             'end',
@@ -103,6 +116,14 @@ class TrainingBlockSerializer(serializers.ModelSerializer):
     def get_current_routine_name(self, obj) -> str | None:
         routine = obj.current_routine()
         return routine.name if routine else None
+
+    def validate_weekly_sets(self, value):
+        muscles = [item['muscle'] for item in value]
+        if len(set(muscles)) != len(muscles):
+            raise serializers.ValidationError(_('Each muscle can only have one target.'))
+        if Muscle.objects.filter(pk__in=muscles).count() != len(set(muscles)):
+            raise serializers.ValidationError(_('Unknown muscle.'))
+        return [{'muscle': item['muscle'], 'sets': item['sets']} for item in value]
 
     def validate(self, data):
         data = super().validate(data)
@@ -155,12 +176,24 @@ class TrainingPlanSerializer(PrescriptionSerializerMixin, serializers.ModelSeria
                     'current_routine_name': routine.name if routine else None,
                     'intensity': block.intensity,
                     'volume': block.volume,
+                    'weekly_sets': block.weekly_sets,
                     'notes': block.notes,
                     'start': scheduled.start,
                     'end': scheduled.end,
                 }
             )
         return out
+
+
+class ProgressMuscleSerializer(serializers.Serializer):
+    muscle = serializers.IntegerField()
+    planned_sets = serializers.IntegerField()
+    done_sets = serializers.IntegerField()
+
+
+class ProgressBlockMuscleSerializer(ProgressMuscleSerializer):
+    name = serializers.CharField()
+    weekly_sets = serializers.IntegerField(help_text='Target sets per week')
 
 
 class ProgressSummarySerializer(serializers.Serializer):
@@ -178,6 +211,10 @@ class ProgressSummarySerializer(serializers.Serializer):
 
 class ProgressWeekSerializer(ProgressSummarySerializer):
     week = serializers.IntegerField()
+    muscles = ProgressMuscleSerializer(
+        many=True,
+        help_text='Sets of the muscles with a weekly target',
+    )
 
 
 class ProgressBlockSerializer(ProgressSummarySerializer):
@@ -186,6 +223,10 @@ class ProgressBlockSerializer(ProgressSummarySerializer):
     focus = serializers.CharField()
     intensity = serializers.CharField()
     volume = serializers.CharField()
+    muscles = ProgressBlockMuscleSerializer(
+        many=True,
+        help_text='Sets over the whole block of the muscles with a weekly target',
+    )
     weeks = ProgressWeekSerializer(many=True)
 
 
