@@ -14,7 +14,7 @@ export function PrescriptionHeader({
   path,
   back,
 }: {
-  kind: 'nutrition' | 'training' | 'physio';
+  kind: 'nutrition' | 'training' | 'physio' | 'periodization';
   relationship: string;
   prescription: Prescription;
   title: string;

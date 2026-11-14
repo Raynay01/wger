@@ -93,3 +93,35 @@ export function shiftDate(isoDate: string, days: number): string {
 export function time(value: string | null | undefined): string {
   return value ? value.slice(0, 5) : '';
 }
+
+export const GOAL_LABELS: Record<string, string> = {
+  hypertrophy: 'Hipertrofia',
+  strength: 'Força',
+  fat_loss: 'Emagrecimento',
+  endurance: 'Resistência',
+  performance: 'Desempenho esportivo',
+  health: 'Saúde e condicionamento',
+};
+
+export const FOCUS_LABELS: Record<string, string> = {
+  adaptation: 'Adaptação',
+  hypertrophy: 'Hipertrofia',
+  strength: 'Força',
+  power: 'Potência',
+  endurance: 'Resistência',
+  deload: 'Deload (recuperação)',
+  peak: 'Pico',
+  transition: 'Transição',
+};
+
+/** Background and text classes per block focus, for timelines and the calendar */
+export const FOCUS_COLORS: Record<string, string> = {
+  adaptation: 'bg-sky-100 text-sky-900',
+  hypertrophy: 'bg-neon-100 text-navy-900',
+  strength: 'bg-navy-800 text-white',
+  power: 'bg-amber-200 text-amber-900',
+  endurance: 'bg-teal-100 text-teal-900',
+  deload: 'bg-gray-200 text-gray-700',
+  peak: 'bg-red-100 text-red-800',
+  transition: 'bg-violet-100 text-violet-900',
+};

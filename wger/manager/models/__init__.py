@@ -19,6 +19,12 @@ from .abstract_config import AbstractChangeConfig
 from .day import Day
 from .label import Label
 from .log import WorkoutLog
+from .periodization import (
+    BlockFocus,
+    TrainingBlock,
+    TrainingGoal,
+    TrainingPlan,
+)
 from .repetitions_config import (
     MaxRepetitionsConfig,
     RepetitionsConfig,

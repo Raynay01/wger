@@ -605,6 +605,11 @@ SPECTACULAR_SETTINGS = {
         'DayTypeEnum': 'wger.manager.models.day.DayType.choices',
         'ExerciseTypeEnum': 'wger.manager.models.slot_entry.ExerciseType.choices',
         'IntensityEnum': 'wger.core.models.profile.UserProfile.INTENSITY',
+        'AppointmentStatusEnum': 'wger.care.models.appointment.AppointmentStatus.choices',
+        'DataRequestStatusEnum': 'wger.care.models.data_request.DataRequestStatus.choices',
+        'PrescriptionStatusEnum': 'wger.care.prescription.PrescriptionStatus.choices',
+        'RelationshipStatusEnum': 'wger.care.models.relationship.RelationshipStatus.choices',
+        'VerificationStatusEnum': 'wger.care.models.registration.VerificationStatus.choices',
     },
 }
 

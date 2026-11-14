@@ -57,6 +57,8 @@ OWN_DATA = (
     ('manager', 'SlotEntry', 'slot__day__routine__user'),
     ('manager', 'WorkoutSession', 'user'),
     ('manager', 'WorkoutLog', 'user'),
+    ('manager', 'TrainingPlan', 'user'),
+    ('manager', 'TrainingBlock', 'plan__user'),
     ('measurements', 'Category', 'user'),
     ('measurements', 'Measurement', 'category__user'),
     ('gallery', 'Image', 'user'),

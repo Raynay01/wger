@@ -212,3 +212,29 @@ export type Message = {
   created: string;
   read_at: string | null;
 };
+
+export type TrainingBlock = {
+  id: string;
+  order: number;
+  name: string;
+  focus: string;
+  weeks: number;
+  routine: number | null;
+  current_routine: number | null;
+  current_routine_name: string | null;
+  intensity: string;
+  volume: string;
+  notes: string;
+  start: string;
+  end: string;
+};
+
+export type TrainingPlan = Prescription & {
+  id: string;
+  name: string;
+  goal: string;
+  start: string;
+  end: string | null;
+  description: string;
+  blocks: TrainingBlock[];
+};

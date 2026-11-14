@@ -254,6 +254,28 @@ try {
   await bruno.getByRole('button', { name: 'Criar nova versão para editar' }).waitFor();
   log('Bruno montou e publicou o treino (dia, exercício com carga, RPE e cadência)');
 
+  // Periodization: two phases, the first with the routine
+  await bruno.goto(`${WEB}/pro`);
+  await bruno.getByRole('link', { name: /Ana Treino · desde/ }).first().click();
+  await bruno.getByPlaceholder('Ex.: Temporada 2027').fill('Temporada de verão');
+  await bruno.getByRole('button', { name: 'Criar periodização' }).click();
+  await bruno.waitForURL(/\/periodizacao\//);
+  await bruno.locator('select[name=focus]').selectOption('hypertrophy');
+  await bruno.getByLabel('Semanas').fill('4');
+  await bruno.getByLabel('Nome (opcional)').fill('Base');
+  await bruno.locator('select[name=routine]').selectOption({ label: 'Força · v1 (Publicado)' });
+  await bruno.getByLabel('Intensidade (opcional)').fill('RIR 2-3');
+  await bruno.getByRole('button', { name: 'Adicionar fase' }).click();
+  await bruno.getByText('Treino: Força · Intensidade: RIR 2-3').waitFor();
+  await bruno.locator('select[name=focus]').selectOption('deload');
+  await bruno.getByLabel('Semanas').fill('1');
+  await bruno.getByRole('button', { name: 'Adicionar fase' }).click();
+  await bruno.getByText('2. Deload (recuperação)').waitFor();
+  await shot(bruno, '04b-periodizacao');
+  await bruno.getByRole('button', { name: 'Publicar para o paciente' }).click();
+  await bruno.getByRole('button', { name: 'Criar nova versão para editar' }).waitFor();
+  log('Bruno montou e publicou a periodização: 4 semanas de base com o treino Força e 1 de deload');
+
   // Physio protocol
   await carla.goto(`${WEB}/pro`);
   await carla.getByRole('link', { name: /Ana Fisioterapia · desde/ }).first().click();
@@ -319,6 +341,8 @@ try {
   await ana.goto(`${WEB}/app/agenda?mes=${tomorrow.slice(0, 7)}`);
   await ana.getByText('14:00 Sessão').first().waitFor();
   assert(await ana.getByText('Treino: Pernas').first().isVisible(), 'treino no calendário');
+  assert(await ana.getByText('Periodização: Temporada de verão · Hipertrofia').isVisible(), 'periodização na agenda');
+  assert(await ana.getByText('Base · sem. 1/4').first().isVisible(), 'fase e semana no calendário');
   assert(await ana.getByText('Fisio: Joelho direito').first().isVisible(), 'fisioterapia no calendário');
   await shot(ana, '10c-agenda-paciente');
   await ana.getByRole('button', { name: 'Cancelar' }).first().click();

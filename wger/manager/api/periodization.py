@@ -1,0 +1,207 @@
+# This file is part of wger Workout Manager.
+#
+# wger Workout Manager is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# wger Workout Manager is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with Workout Manager.  If not, see <http://www.gnu.org/licenses/>.
+
+"""
+Periodization: training plans (macrocycles) made of blocks (mesocycles)
+"""
+
+# Standard Library
+import datetime
+
+# Django
+from django.utils.translation import gettext_lazy as _
+
+# Third Party
+from rest_framework import (
+    serializers,
+    viewsets,
+)
+
+# wger
+from wger.care.api.prescription import (
+    PRESCRIPTION_FIELDS,
+    PRESCRIPTION_READ_ONLY_FIELDS,
+    PrescriptionSerializerMixin,
+    PrescriptionViewSetMixin,
+    PrescriptionWriteGuardMixin,
+)
+from wger.care.prescription import visible_prescriptions_q
+from wger.manager.models import (
+    Routine,
+    TrainingBlock,
+    TrainingPlan,
+)
+from wger.utils.viewsets import WgerOwnerObjectModelViewSet
+
+
+def _dates(block: TrainingBlock) -> tuple | None:
+    for scheduled in block.plan.schedule():
+        if scheduled.block.pk == block.pk:
+            return scheduled.start, scheduled.end
+    return None
+
+
+class TrainingBlockSerializer(serializers.ModelSerializer):
+    plan = serializers.PrimaryKeyRelatedField(queryset=TrainingPlan.objects.all())
+    routine = serializers.PrimaryKeyRelatedField(
+        queryset=Routine.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    start = serializers.SerializerMethodField()
+    end = serializers.SerializerMethodField()
+    current_routine = serializers.SerializerMethodField()
+    current_routine_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TrainingBlock
+        fields = (
+            'id',
+            'plan',
+            'order',
+            'name',
+            'focus',
+            'weeks',
+            'routine',
+            'current_routine',
+            'current_routine_name',
+            'intensity',
+            'volume',
+            'notes',
+            'start',
+            'end',
+        )
+
+    def get_start(self, obj) -> datetime.date | None:
+        dates = _dates(obj)
+        return dates[0] if dates else None
+
+    def get_end(self, obj) -> datetime.date | None:
+        dates = _dates(obj)
+        return dates[1] if dates else None
+
+    def get_current_routine(self, obj) -> int | None:
+        routine = obj.current_routine()
+        return routine.pk if routine else None
+
+    def get_current_routine_name(self, obj) -> str | None:
+        routine = obj.current_routine()
+        return routine.name if routine else None
+
+    def validate(self, data):
+        data = super().validate(data)
+        plan = data.get('plan') or getattr(self.instance, 'plan', None)
+        if self.instance is not None and 'plan' in data and data['plan'] != self.instance.plan:
+            raise serializers.ValidationError(
+                {'plan': _('A block cannot be moved to another plan.')}
+            )
+        routine = data.get('routine')
+        if routine is not None and plan is not None and routine.user_id != plan.user_id:
+            raise serializers.ValidationError(
+                {'routine': _('The routine must belong to the patient of the plan.')}
+            )
+        return data
+
+
+class TrainingPlanSerializer(PrescriptionSerializerMixin, serializers.ModelSerializer):
+    end = serializers.DateField(read_only=True)
+    blocks = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TrainingPlan
+        fields = (
+            'id',
+            'name',
+            'goal',
+            'start',
+            'end',
+            'description',
+            'blocks',
+            'created',
+            *PRESCRIPTION_FIELDS,
+        )
+        read_only_fields = ('created', *PRESCRIPTION_READ_ONLY_FIELDS)
+
+    def get_blocks(self, obj) -> list[dict]:
+        out = []
+        for scheduled in obj.schedule():
+            block = scheduled.block
+            routine = block.current_routine()
+            out.append(
+                {
+                    'id': str(block.pk),
+                    'order': block.order,
+                    'name': block.name,
+                    'focus': block.focus,
+                    'weeks': block.weeks,
+                    'routine': block.routine_id,
+                    'current_routine': routine.pk if routine else None,
+                    'current_routine_name': routine.name if routine else None,
+                    'intensity': block.intensity,
+                    'volume': block.volume,
+                    'notes': block.notes,
+                    'start': scheduled.start,
+                    'end': scheduled.end,
+                }
+            )
+        return out
+
+
+class TrainingPlanViewSet(PrescriptionViewSetMixin, viewsets.ModelViewSet):
+    """
+    Periodizations (macrocycles) of a patient. A trainer creates one by passing
+    ``care_relationship``; it stays a draft until published. The blocks follow
+    each other from the start date, each lasting its number of weeks.
+    """
+
+    serializer_class = TrainingPlanSerializer
+    is_private = True
+    filterset_fields = ('status', 'care_relationship', 'lineage_id', 'goal')
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return TrainingPlan.objects.none()
+        return TrainingPlan.objects.filter(
+            visible_prescriptions_q(self.request.user)
+        ).prefetch_related('blocks__routine')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @staticmethod
+    def get_owner_objects():
+        return []
+
+
+class TrainingBlockViewSet(PrescriptionWriteGuardMixin, WgerOwnerObjectModelViewSet):
+    """
+    The blocks (mesocycles) of a training plan
+    """
+
+    serializer_class = TrainingBlockSerializer
+    is_private = True
+    prescription_children = True
+    filterset_fields = ('plan', 'focus')
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return TrainingBlock.objects.none()
+        return TrainingBlock.objects.filter(
+            visible_prescriptions_q(self.request.user, 'plan__')
+        ).select_related('plan', 'routine')
+
+    @staticmethod
+    def get_owner_objects():
+        return [(TrainingPlan, 'plan')]

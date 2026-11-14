@@ -21,6 +21,7 @@
 | Alimentos cadastrados por nutricionistas (novos ou correções de alimentos existentes), compartilhados com todos e marcados com a organização como autora | Pronto: tela Alimentos na área profissional. A correção copia valores e medidas do original, que não muda; edição e exclusão só enquanto o alimento não estiver em dietas publicadas ou diários | `wger/nutrition/professional_foods.py` |
 | Agenda e calendário integrado: consultas, sessões e avaliações marcadas pelo profissional; calendário mensal do paciente com treino ou descanso, plano alimentar, fisioterapia e consultas, com filtros por área | Pronto. O app web grava o fuso do navegador no perfil, e os dias contam no fuso do paciente | `wger/care/agenda.py` |
 | Chat entre paciente e cada profissional, com fotos e vídeos (ex.: execução de exercício), aviso de mensagens não lidas no menu e confirmação de leitura | Pronto. Os anexos ficam fora da pasta pública de mídia e só são entregues às duas pessoas do acompanhamento; vídeos tocam com avanço/retrocesso (requisições por partes). Fotos até 20 MB, vídeos até 50 MB. A conversa atualiza sozinha a cada 10 s. Depois do fim do acompanhamento, os dois continuam lendo o histórico, mas não escrevem. Em produção, `DJANGO_PRIVATE_MEDIA_ROOT` precisa de um volume persistente no docker | `wger/care/messages.py` |
+| Periodização do treino: macrociclo com objetivo e fases (mesociclos) com foco, semanas, treino da fase, intensidade e volume; linha do tempo para o personal e para o aluno, fase e semana no calendário | Pronto. Versões e publicação iguais às do treino; a fase mostra sempre a versão publicada atual do treino ligado | `wger/manager/models/periodization.py` |
 | LGPD: exportar todos os dados (JSON) e pedir a exclusão da conta | Pronto. O pedido encerra os acompanhamentos na hora; a exclusão é feita pelo administrador no admin do Django, que bloqueia enquanto houver registros clínicos de profissionais (avaliações, observações) | `wger/care/export.py`, `wger/care/deletion.py` |
 
 Testes: 59 novos testes em `wger/care/tests` e `wger/physio/tests`. A suíte completa (2.569 testes) passa, exceto `test_sync_exercises`, que depende de acesso a `wger.de` (bloqueado nesta sessão; falha igual sem as mudanças).
@@ -80,7 +81,7 @@ O mesmo vale para treino (`/api/v2/routine/`, vínculo `training`) e fisioterapi
 - Envio do convite pelo WhatsApp (Cloud API, com modelos aprovados pela Meta). O envio por e-mail já existe.
 - TBCA (após autorização) e nutrientes anuláveis.
 - Anamnese e avaliação nutricional, antropometria, cálculo de necessidades energéticas.
-- Periodização (macro e mesociclos). Vídeos de execução já podem ser enviados pelo chat.
+- Periodização: gráfico de carga/volume planejado x realizado por fase (hoje a fase guarda as metas em texto).
 - Aviso de mensagem nova fora do app (push no celular, e-mail opcional) e chat em tempo real (hoje a conversa atualiza a cada 10 s).
 - Volume `private-media` no docker para os anexos do chat.
 - RP Intelligence (Fase 5), assinaturas e pagamentos (Fase 6), Row Level Security.

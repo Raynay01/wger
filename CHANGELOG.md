@@ -76,6 +76,14 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   the two people of the follow-up. `care-message/unread/` counts unread
   messages per follow-up, `care-message/read/` marks them as read. The data
   export contains the patient's messages.
+* Periodization: trainers plan macrocycles (`/api/v2/training-plan/`, with a
+  goal and a start date) made of blocks (`/api/v2/training-block/`): focus
+  (adaptation, hypertrophy, strength, power, endurance, deload, peak,
+  transition), length in weeks, optionally the routine of the block, target
+  intensity and volume. The blocks follow each other from the start date; the
+  API returns the dates of each block and the current published version of its
+  routine. Training plans are prescriptions like routines (draft, publish, new
+  version). `/api/v2/care/calendar/` gives each day's block and week (`phase`).
 * Nutritionists add foods to the shared database or correct an existing one
   (`/api/v2/professional-food/`). The food is public like any other, marked
   as "Cadastro profissional" with the organization as author; a correction

@@ -5,11 +5,12 @@ import { Badge, Button, Card, Empty, Field, inputClass } from '@/components/ui';
 import { api } from '@/lib/api';
 import { exerciseNames } from '@/lib/catalog';
 import { DISCIPLINE_LABELS } from '@/lib/brand';
-import { MOMENT_LABELS, SCOPE_LABELS, STATUS_LABELS, date, dateTime, number, shiftDate } from '@/lib/format';
-import type { Note, Paginated, Prescription, Relationship } from '@/lib/types';
+import { GOAL_LABELS, MOMENT_LABELS, SCOPE_LABELS, STATUS_LABELS, date, dateTime, number, shiftDate } from '@/lib/format';
+import type { Note, Paginated, Prescription, Relationship, TrainingPlan } from '@/lib/types';
 import { userZone } from '@/lib/userZone';
 import { todayIn } from '@/lib/zone';
-import { addAssessment, addNote, createPlan, createProtocol, createRoutine, relationshipAction } from '../../actions';
+import { addAssessment, addNote, createPlan, createProtocol, createRoutine, createTrainingPlan, relationshipAction } from '../../actions';
+import { PeriodizationTimeline } from '@/components/PeriodizationTimeline';
 
 export const metadata: Metadata = { title: 'Paciente' };
 
@@ -107,6 +108,7 @@ export default async function PatientFilePage({
             {isOpen && <NewPrescription relationship={relationship} here={here} today={today} />}
           </Card>
 
+          {relationship.discipline === 'training' && <PeriodizationCard relationship={relationship} isOpen={isOpen} here={here} today={today} />}
           {isOpen && relationship.discipline === 'nutrition' && <DiaryCard rel={rel} day={data} here={here} />}
           {isOpen && relationship.discipline === 'training' && <WorkoutLogsCard rel={rel} />}
           {isOpen && relationship.discipline === 'physio' && <PhysioRecordsCard relationship={relationship} here={here} today={today} />}
@@ -211,6 +213,61 @@ function NewPrescription({ relationship, here, today }: { relationship: Relation
         <Button type="submit" variant="secondary">Criar rascunho</Button>
       </div>
     </form>
+  );
+}
+
+async function PeriodizationCard({ relationship, isOpen, here, today }: { relationship: Relationship; isOpen: boolean; here: string; today: string }) {
+  const plans = await api<Paginated<TrainingPlan>>('training-plan/', { query: { care_relationship: relationship.id, limit: 100 } });
+  const sorted = [...plans.results].sort((a, b) => b.version - a.version);
+  const current = sorted.find(p => p.status === 'published');
+  return (
+    <Card title="Periodização">
+      {current && current.blocks.length > 0 && (
+        <div className="mb-4">
+          <PeriodizationTimeline blocks={current.blocks} today={today} />
+        </div>
+      )}
+      {sorted.length === 0 ? (
+        <Empty title="Nenhuma periodização">Organize o treino em fases (mesociclos) com foco, semanas e o treino de cada uma.</Empty>
+      ) : (
+        <ul className="flex flex-col divide-y divide-navy-100">
+          {sorted.map(p => (
+            <li key={p.id}>
+              <Link href={`${here}/periodizacao/${p.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3 hover:bg-navy-100/40">
+                <span className="font-medium">
+                  {p.name} <span className="text-sm text-gray-500">v{p.version} · {GOAL_LABELS[p.goal]}</span>
+                </span>
+                <Badge tone={p.status === 'published' ? 'neon' : p.status === 'draft' ? 'amber' : 'gray'}>{STATUS_LABELS[p.status]}</Badge>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {isOpen && (
+        <form action={createTrainingPlan} className="mt-4 grid gap-2 sm:grid-cols-4">
+          <input type="hidden" name="back" value={here} />
+          <input type="hidden" name="relationship" value={relationship.id} />
+          <Field label="Nova periodização">
+            <input name="name" placeholder="Ex.: Temporada 2027" maxLength={100} className={inputClass} />
+          </Field>
+          <Field label="Objetivo">
+            <select name="goal" className={inputClass}>
+              {Object.entries(GOAL_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Início">
+            <input type="date" name="start" defaultValue={today} required className={inputClass} />
+          </Field>
+          <div className="flex items-end">
+            <Button type="submit" variant="secondary">Criar periodização</Button>
+          </div>
+        </form>
+      )}
+    </Card>
   );
 }
 

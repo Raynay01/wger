@@ -137,6 +137,7 @@ const KINDS: Record<string, { endpoint: string; path: string }> = {
   nutrition: { endpoint: 'nutritionplan', path: 'dieta' },
   training: { endpoint: 'routine', path: 'treino' },
   physio: { endpoint: 'physio-protocol', path: 'protocolo' },
+  periodization: { endpoint: 'training-plan', path: 'periodizacao' },
 };
 
 export async function prescriptionAction(formData: FormData) {
@@ -476,5 +477,66 @@ export async function appointmentAction(formData: FormData) {
     return;
   }
   await attempt(formData, () => api(`appointment/${text(formData, 'id')}/${action}/`, { method: 'POST' }));
+  redirect(back(formData));
+}
+
+// Periodization
+
+export async function createTrainingPlan(formData: FormData) {
+  const relationship = text(formData, 'relationship');
+  let id = '';
+  await attempt(formData, async () => {
+    const plan = await api<{ id: string }>('training-plan/', {
+      method: 'POST',
+      body: {
+        name: text(formData, 'name') || 'Periodização',
+        goal: text(formData, 'goal') || 'hypertrophy',
+        start: text(formData, 'start') || undefined,
+        care_relationship: relationship,
+      },
+    });
+    id = plan.id;
+  });
+  redirect(`/pro/pacientes/${relationship}/periodizacao/${id}`);
+}
+
+export async function updateTrainingPlan(formData: FormData) {
+  await attempt(formData, () =>
+    api(`training-plan/${text(formData, 'id')}/`, {
+      method: 'PATCH',
+      body: {
+        name: text(formData, 'name'),
+        goal: text(formData, 'goal'),
+        start: text(formData, 'start'),
+        description: text(formData, 'description'),
+      },
+    }),
+  );
+  redirect(back(formData));
+}
+
+export async function addTrainingBlock(formData: FormData) {
+  const routine = text(formData, 'routine');
+  await attempt(formData, () =>
+    api('training-block/', {
+      method: 'POST',
+      body: {
+        plan: text(formData, 'plan'),
+        order: optionalNumber(formData, 'order') ?? 1,
+        name: text(formData, 'name'),
+        focus: text(formData, 'focus'),
+        weeks: optionalNumber(formData, 'weeks'),
+        routine: routine ? Number(routine) : null,
+        intensity: text(formData, 'intensity'),
+        volume: text(formData, 'volume'),
+        notes: text(formData, 'notes'),
+      },
+    }),
+  );
+  redirect(back(formData));
+}
+
+export async function deleteTrainingBlock(formData: FormData) {
+  await attempt(formData, () => api(`training-block/${text(formData, 'id')}/`, { method: 'DELETE' }));
   redirect(back(formData));
 }

@@ -198,6 +198,54 @@ msgstr "Este acompanhamento não está ativo."
 msgid "Write a message or attach a photo or video."
 msgstr "Escreva uma mensagem ou anexe uma foto ou vídeo."
 
+#: manager/api/periodization.py
+msgid "A block cannot be moved to another plan."
+msgstr "Uma fase não pode ser movida para outra periodização."
+
+#: manager/api/periodization.py
+msgid "The routine must belong to the patient of the plan."
+msgstr "O treino precisa ser do mesmo paciente da periodização."
+
+#: manager/models/periodization.py
+msgid "Hypertrophy"
+msgstr "Hipertrofia"
+
+#: manager/models/periodization.py
+msgid "Fat loss"
+msgstr "Emagrecimento"
+
+#: manager/models/periodization.py
+msgid "Endurance"
+msgstr "Resistência"
+
+#: manager/models/periodization.py
+msgid "Sports performance"
+msgstr "Desempenho esportivo"
+
+#: manager/models/periodization.py
+msgid "Health and fitness"
+msgstr "Saúde e condicionamento"
+
+#: manager/models/periodization.py
+msgid "Adaptation"
+msgstr "Adaptação"
+
+#: manager/models/periodization.py
+msgid "Power"
+msgstr "Potência"
+
+#: manager/models/periodization.py
+msgid "Deload"
+msgstr "Deload (recuperação)"
+
+#: manager/models/periodization.py
+msgid "Peak"
+msgstr "Pico"
+
+#: manager/models/periodization.py
+msgid "Transition"
+msgstr "Transição"
+
 #: care/models/message.py
 msgid "Image"
 msgstr "Imagem"

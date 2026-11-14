@@ -72,7 +72,10 @@ def appointment_data(appointment: Appointment) -> dict:
 
 def patient_calendar(user: User, start: datetime.date, end: datetime.date) -> dict:
     # wger
-    from wger.manager.models import Routine
+    from wger.manager.models import (
+        Routine,
+        TrainingPlan,
+    )
     from wger.nutrition.models import NutritionPlan
     from wger.physio.models import PhysioProtocol
 
@@ -89,6 +92,26 @@ def patient_calendar(user: User, start: datetime.date, end: datetime.date) -> di
                         'day': entry.day.name,
                         'is_rest': entry.day.is_rest,
                     }
+
+    phases = {}
+    if Discipline.TRAINING in modules:
+        periodizations = TrainingPlan.objects.filter(
+            user=user,
+            status=PrescriptionStatus.PUBLISHED,
+            start__lte=end,
+        ).prefetch_related('blocks')
+        for periodization in periodizations.order_by('start'):
+            for scheduled in periodization.schedule():
+                day = max(scheduled.start, start)
+                while day <= min(scheduled.end, end):
+                    phases[day] = {
+                        'plan': periodization.name,
+                        'block': scheduled.block.name,
+                        'focus': scheduled.block.focus,
+                        'week': (day - scheduled.start).days // 7 + 1,
+                        'weeks': scheduled.block.weeks,
+                    }
+                    day += datetime.timedelta(days=1)
 
     plans = (
         list(_active(NutritionPlan.objects.filter(user=user), start, end))
@@ -127,6 +150,7 @@ def patient_calendar(user: User, start: datetime.date, end: datetime.date) -> di
             {
                 'date': day,
                 'training': training.get(day),
+                'phase': phases.get(day),
                 'nutrition': {'plan': plan.description, 'meals': meal_counts[plan.pk]}
                 if plan
                 else None,

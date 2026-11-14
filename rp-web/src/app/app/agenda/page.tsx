@@ -4,10 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { Badge, Button, Card, Empty } from '@/components/ui';
 import { api } from '@/lib/api';
 import { PROFESSION_LABELS } from '@/lib/brand';
-import { KIND_LABELS, shiftDate } from '@/lib/format';
+import { FOCUS_COLORS, FOCUS_LABELS, GOAL_LABELS, KIND_LABELS, shiftDate } from '@/lib/format';
+import { PeriodizationTimeline } from '@/components/PeriodizationTimeline';
 import { userZone } from '@/lib/userZone';
 import { formatDateTime, formatTime, todayIn } from '@/lib/zone';
-import type { Paginated } from '@/lib/types';
+import type { Paginated, TrainingPlan } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Agenda' };
 
@@ -26,6 +27,7 @@ type Appointment = {
 type Day = {
   date: string;
   training: null | { routine: string; day: string; is_rest: boolean };
+  phase: null | { plan: string; block: string; focus: string; week: number; weeks: number };
   nutrition: null | { plan: string; meals: number };
   physio: string[];
   appointments: Appointment[];
@@ -69,12 +71,17 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const start = shiftDate(first, -weekday);
   const end = shiftDate(start, 41);
 
-  const [calendar, upcoming] = await Promise.all([
+  const [calendar, upcoming, periodizations] = await Promise.all([
     api<{ modules: string[]; days: Day[] }>('care/calendar/', { query: { start, end } }),
     api<Paginated<Appointment>>('appointment/', {
       query: { start__gte: new Date().toISOString(), status: 'scheduled', limit: 10 },
     }),
+    api<Paginated<TrainingPlan>>('training-plan/', { query: { status: 'published', limit: 20 } }),
   ]);
+  // The periodization running today, else the next one
+  const periodization =
+    periodizations.results.find(p => p.blocks.length && p.start <= today && (p.end ?? '') >= today) ??
+    periodizations.results.filter(p => p.blocks.length && p.start > today).sort((a, b) => a.start.localeCompare(b.start))[0];
 
   const toggle = (key: string) => {
     const next = new Set(shown);
@@ -120,6 +127,12 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         </div>
       </div>
 
+      {periodization && shown.has('treino') && (
+        <Card title={`Periodização: ${periodization.name} · ${GOAL_LABELS[periodization.goal]}`}>
+          <PeriodizationTimeline blocks={periodization.blocks} today={today} />
+        </Card>
+      )}
+
       <div className="overflow-x-auto">
         <div className="grid min-w-[44rem] grid-cols-7 gap-px overflow-hidden rounded-2xl border border-navy-100 bg-navy-100">
           {WEEKDAYS.map(d => (
@@ -127,7 +140,9 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
               {d}
             </div>
           ))}
-          {calendar.days.map(day => {
+          {calendar.days.map((day, index) => {
+            const previous = calendar.days[index - 1]?.phase;
+            const phaseStarts = day.phase && (index % 7 === 0 || !previous || previous.week !== day.phase.week || previous.block !== day.phase.block);
             const inMonth = day.date.startsWith(month);
             const isToday = day.date === today;
             return (
@@ -136,6 +151,11 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                   {Number(day.date.slice(8))}
                 </p>
                 <div className="flex flex-col gap-1">
+                  {shown.has('treino') && day.phase && phaseStarts && (
+                    <span className={`rounded px-1.5 py-0.5 font-medium ${FOCUS_COLORS[day.phase.focus] ?? ''}`} title={day.phase.plan}>
+                      {day.phase.block || FOCUS_LABELS[day.phase.focus]} · sem. {day.phase.week}/{day.phase.weeks}
+                    </span>
+                  )}
                   {shown.has('consultas') &&
                     day.appointments.map(a => (
                       <span key={a.id} className="rounded bg-navy-900 px-1.5 py-0.5 text-white">
