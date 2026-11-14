@@ -30,6 +30,10 @@ from .grant import (
     ConsentRecord,
     SharingScope,
 )
+from .message import (
+    AttachmentKind,
+    Message,
+)
 from .note import (
     AccessLog,
     MultidisciplinaryNote,

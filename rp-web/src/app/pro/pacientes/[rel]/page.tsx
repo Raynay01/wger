@@ -55,26 +55,33 @@ export default async function PatientFilePage({
             {DISCIPLINE_LABELS[relationship.discipline]} · {STATUS_LABELS[relationship.status]} · desde {date(relationship.started)}
           </p>
         </div>
-        {isOpen && (
-          <div className="flex gap-2">
-            {(relationship.status === 'active' ? [['pause', 'Pausar']] : [['resume', 'Retomar']]).map(([action, label]) => (
-              <form key={action} action={relationshipAction}>
-                <input type="hidden" name="back" value={here} />
+        <div className="flex flex-wrap gap-2">
+          {relationship.status !== 'invited' && (
+            <Link href={`/pro/mensagens/${rel}`} className="rounded-xl bg-neon-500 px-4 py-2 text-sm font-semibold text-navy-900 hover:bg-neon-600">
+              Mensagens
+            </Link>
+          )}
+          {isOpen && (
+            <>
+              {(relationship.status === 'active' ? [['pause', 'Pausar']] : [['resume', 'Retomar']]).map(([action, label]) => (
+                <form key={action} action={relationshipAction}>
+                  <input type="hidden" name="back" value={here} />
+                  <input type="hidden" name="id" value={rel} />
+                  <Button name="action" value={action} variant="ghost" className="border border-navy-100">
+                    {label}
+                  </Button>
+                </form>
+              ))}
+              <form action={relationshipAction}>
+                <input type="hidden" name="back" value="/pro" />
                 <input type="hidden" name="id" value={rel} />
-                <Button name="action" value={action} variant="ghost" className="border border-navy-100">
-                  {label}
+                <Button name="action" value="end" variant="danger">
+                  Encerrar
                 </Button>
               </form>
-            ))}
-            <form action={relationshipAction}>
-              <input type="hidden" name="back" value="/pro" />
-              <input type="hidden" name="id" value={rel} />
-              <Button name="action" value="end" variant="danger">
-                Encerrar
-              </Button>
-            </form>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
       <ErrorFromQuery erro={erro} />
 

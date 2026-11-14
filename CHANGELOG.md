@@ -68,6 +68,14 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   gives the patient's days (training or rest, food plan, physio protocols,
   appointments) in the patient's timezone. Prescriptions created without a
   start date start on the patient's calendar day instead of the server's.
+* Chat between the patient and each professional (`/api/v2/care-message/`),
+  with photos and videos (e.g. of an exercise). Messages can be sent while the
+  follow-up is active or paused, both sides keep the history. Attachments are
+  stored in `PRIVATE_MEDIA_ROOT`, outside the public media folder, and only
+  served by `care-message/{id}/attachment/` (with range requests for videos) to
+  the two people of the follow-up. `care-message/unread/` counts unread
+  messages per follow-up, `care-message/read/` marks them as read. The data
+  export contains the patient's messages.
 * Nutritionists add foods to the shared database or correct an existing one
   (`/api/v2/professional-food/`). The food is public like any other, marked
   as "Cadastro profissional" with the organization as author; a correction
@@ -135,6 +143,9 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
 * `WGER_REQUEST_TIMEOUT` (default `60`): seconds to wait for an answer from a
   remote server, e.g. `WGER_INSTANCE` during the exercise and ingredient syncs,
   before giving up.
+* `DJANGO_PRIVATE_MEDIA_ROOT` (default `/home/wger/private-media`): folder of
+  the chat attachments. Keep it on a persistent volume and out of the paths
+  nginx serves; it is local storage also when media files go to S3.
 * `AWS_DEFAULT_ACL` (default empty): ACL for files uploaded to S3, e.g.
   `public-read` for buckets whose files aren't public by default.
 

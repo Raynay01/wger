@@ -15,13 +15,17 @@
 
 # Django
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 
 # Third Party
 from rest_framework import serializers
 
 # wger
-from wger.care import policy
+from wger.care import (
+    messages,
+    policy,
+)
 from wger.care.disciplines import COUNCIL_BY_DISCIPLINE
 from wger.care.models import (
     PENDING_STATUSES,
@@ -31,6 +35,7 @@ from wger.care.models import (
     ConsentRecord,
     DataRequest,
     Membership,
+    Message,
     MultidisciplinaryNote,
     Organization,
     ProfessionalRegistration,
@@ -359,6 +364,62 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if value.professional_id != self.context['request'].user.id or not value.is_open:
             raise serializers.ValidationError(_('You do not follow this patient.'))
         return value
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    attachment = serializers.FileField(write_only=True, required=False)
+    sender_name = serializers.SerializerMethodField()
+    mine = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = [
+            'id',
+            'relationship',
+            'sender',
+            'sender_name',
+            'mine',
+            'text',
+            'attachment',
+            'attachment_kind',
+            'attachment_name',
+            'created',
+            'read_at',
+        ]
+        read_only_fields = ['sender', 'attachment_kind', 'attachment_name', 'created', 'read_at']
+
+    def get_sender_name(self, obj) -> str | None:
+        if obj.sender is None:
+            return None
+        return obj.sender.get_full_name() or obj.sender.username
+
+    def get_mine(self, obj) -> bool:
+        return obj.sender_id == self.context['request'].user.id
+
+    def validate_relationship(self, value):
+        if not messages.is_party(self.context['request'].user, value):
+            raise serializers.ValidationError(_('You do not take part in this follow-up.'))
+        if not value.is_open:
+            raise serializers.ValidationError(_('This follow-up is not active.'))
+        return value
+
+    def validate(self, attrs):
+        attrs['text'] = attrs.get('text', '').strip()
+        upload = attrs.get('attachment')
+        if not attrs['text'] and not upload:
+            raise serializers.ValidationError(_('Write a message or attach a photo or video.'))
+        if upload:
+            original_name = upload.name[:200]
+            try:
+                attrs['attachment_kind'] = messages.classify_attachment(upload)
+            except DjangoValidationError as error:
+                raise serializers.ValidationError({'attachment': error.messages})
+            attrs['attachment_name'] = original_name
+        return attrs
+
+
+class MessageReadSerializer(serializers.Serializer):
+    relationship = serializers.PrimaryKeyRelatedField(queryset=CareRelationship.objects.all())
 
 
 class ModulesSerializer(serializers.Serializer):

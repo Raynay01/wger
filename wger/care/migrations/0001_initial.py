@@ -2,7 +2,10 @@
 
 import django.core.validators
 import django.db.models.deletion
+import django.utils.timezone
 import uuid
+import wger.care.models.message
+import wger.care.storage
 from django.conf import settings
 from django.db import migrations, models
 
@@ -543,6 +546,62 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['start'],
+            },
+        ),
+        migrations.CreateModel(
+            name='Message',
+            fields=[
+                (
+                    'id',
+                    models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False),
+                ),
+                ('text', models.TextField(blank=True, max_length=4000)),
+                (
+                    'attachment',
+                    models.FileField(
+                        blank=True,
+                        max_length=200,
+                        storage=wger.care.storage.PrivateStorage(),
+                        upload_to=wger.care.models.message.message_upload_dir,
+                    ),
+                ),
+                (
+                    'attachment_kind',
+                    models.CharField(
+                        blank=True,
+                        choices=[('image', 'Image'), ('video', 'Video')],
+                        max_length=5,
+                    ),
+                ),
+                ('attachment_name', models.CharField(blank=True, max_length=200)),
+                ('created', models.DateTimeField(default=django.utils.timezone.now)),
+                ('read_at', models.DateTimeField(blank=True, null=True)),
+                (
+                    'relationship',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='messages',
+                        to='care.carerelationship',
+                    ),
+                ),
+                (
+                    'sender',
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='+',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+            ],
+            options={
+                'ordering': ['created'],
+                'indexes': [
+                    models.Index(
+                        fields=['relationship', 'created'],
+                        name='care_messag_relatio_28cfda_idx',
+                    )
+                ],
             },
         ),
     ]

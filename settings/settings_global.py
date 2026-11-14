@@ -46,6 +46,8 @@ SITE_ROOT = Path(__file__).resolve().parent.parent / 'wger'
 
 # Static and media files (only during development)
 MEDIA_ROOT = BASE_DIR.parent / 'media'
+# Files only served after a permission check (chat attachments), never under MEDIA_URL
+PRIVATE_MEDIA_ROOT = BASE_DIR.parent / 'private-media'
 STATIC_ROOT = BASE_DIR.parent / 'static'
 MEDIA_URL = '/media/'
 STATIC_URL = '/static/'

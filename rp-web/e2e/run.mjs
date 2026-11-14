@@ -327,6 +327,54 @@ try {
   await carla.getByText('Cancelada').waitFor();
   log('Carla marcou uma sessão; Ana viu no calendário com treino e fisioterapia, cancelou, e Carla viu cancelada');
 
+  // Chat with a video and a photo of the exercise
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAE0lEQVR4nGM8858BK2DCLjxYJQBq5QHbT0Y1YwAAAABJRU5ErkJggg==', 'base64');
+  const MP4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypmp42'), Buffer.alloc(2048, 7)]);
+  await ana.goto(`${WEB}/app/mensagens`);
+  await ana.getByRole('link', { name: /Fisioterapeuta/ }).click();
+  await ana.getByText('Nenhuma mensagem ainda. Escreva a primeira.').waitFor();
+  await ana.locator('input[type=file]').setInputFiles({ name: 'agachamento.mp4', mimeType: 'video/mp4', buffer: MP4 });
+  await ana.getByLabel('Mensagem').fill('Fiz o agachamento, segue o vídeo. Doeu um pouco no fim.');
+  await ana.getByRole('button', { name: 'Enviar' }).click();
+  await ana.getByText('Fiz o agachamento, segue o vídeo.', { exact: false }).waitFor();
+  await ana.getByRole('button', { name: 'Enviando…' }).waitFor({ state: 'detached' });
+  await ana.locator('input[type=file]').setInputFiles({ name: 'joelho.png', mimeType: 'image/png', buffer: PNG });
+  await ana.getByRole('button', { name: 'Enviar' }).click();
+  await ana.locator('ol[aria-label=Mensagens] img').waitFor();
+  assert(await ana.locator('ol[aria-label=Mensagens] img').evaluate(img => img.complete && img.naturalWidth === 8), 'a foto enviada carrega');
+  assert(await ana.locator('ol[aria-label=Mensagens] video').count() === 1, 'o vídeo aparece na conversa');
+  log('Ana mandou um vídeo do exercício com texto e uma foto para a fisioterapeuta');
+
+  await carla.goto(`${WEB}/pro`);
+  await carla.getByRole('link', { name: /Mensagens\s*2/ }).waitFor();
+  await carla.goto(`${WEB}/pro/mensagens`);
+  await carla.getByText('2 novas').waitFor();
+  await carla.getByRole('link', { name: /Ana/ }).click();
+  await carla.getByText('Doeu um pouco no fim.', { exact: false }).waitFor();
+  const videoSrc = await carla.locator('ol[aria-label=Mensagens] video').getAttribute('src');
+  const partial = await carla.evaluate(async src => {
+    const response = await fetch(src, { headers: { Range: 'bytes=0-11' } });
+    return [response.status, response.headers.get('content-range'), (await response.arrayBuffer()).byteLength];
+  }, videoSrc);
+  assert(partial[0] === 206 && partial[1] === `bytes 0-11/${MP4.length}` && partial[2] === 12, `vídeo por partes: ${partial}`);
+  await carla.getByLabel('Mensagem').fill('Ótimo! Na próxima, desça mais devagar e pare antes da dor.');
+  await carla.getByLabel('Mensagem').press('Enter');
+  await carla.locator('ol[aria-label=Mensagens]').getByText('Na próxima, desça mais devagar', { exact: false }).waitFor();
+  // Opening the conversation marked Ana's messages as read: the menu badge goes away
+  await carla.getByRole('link', { name: 'Mensagens', exact: true }).waitFor();
+  await carla.getByText('Rendering').waitFor({ state: 'detached' }).catch(() => {});
+  await shot(carla, '11b-conversa-profissional');
+  const blocked = await bruno.evaluate(async src => (await fetch(src)).status, videoSrc);
+  assert(blocked === 404, `outro profissional não abre o anexo (${blocked})`);
+  log('Carla viu o aviso de 2 mensagens, assistiu ao vídeo (por partes) e respondeu; Bruno não abre o anexo');
+
+  // The open conversation refreshes by itself
+  await ana.locator('ol[aria-label=Mensagens]').getByText('Na próxima, desça mais devagar', { exact: false }).waitFor({ timeout: 25000 });
+  await ana.getByRole('link', { name: 'Mensagens', exact: true }).waitFor();
+  await ana.getByText('✓✓ lida').first().waitFor();
+  await shot(ana, '11-conversa-paciente');
+  log('A resposta apareceu sozinha na conversa da Ana, com as mensagens dela marcadas como lidas');
+
   // Sharing
   await ana.goto(`${WEB}/app/compartilhamento`);
   const brunoTraining = ana.locator('section', { hasText: 'Profissional de Educação Física' });
@@ -376,7 +424,8 @@ try {
   assert(exported.nutrition.NutritionPlan.length === 2, 'as duas versões da dieta na exportação');
   assert(exported.physio.PainRecord.length === 2, 'registros de dor na exportação');
   assert(exported.care.reads_of_your_shared_data.length > 0, 'acessos aos dados compartilhados na exportação');
-  log('Ana baixou os seus dados (dietas, dor e quem acessou o que ela compartilhou)');
+  assert(exported.care.messages.length === 3, 'as mensagens na exportação');
+  log('Ana baixou os seus dados (dietas, dor, mensagens e quem acessou o que ela compartilhou)');
 
   await visitor.goto(`${WEB}/app/privacidade`);
   await visitor.getByLabel('Digite EXCLUIR para confirmar').fill('excluir');

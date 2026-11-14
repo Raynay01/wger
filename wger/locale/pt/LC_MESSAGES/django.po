@@ -186,6 +186,26 @@ msgstr "O calendário abrange no máximo 62 dias."
 msgid "Only scheduled appointments can be changed."
 msgstr "Somente consultas marcadas podem ser alteradas."
 
+#: care/api/serializers.py
+msgid "You do not take part in this follow-up."
+msgstr "Você não participa deste acompanhamento."
+
+#: care/api/serializers.py
+msgid "This follow-up is not active."
+msgstr "Este acompanhamento não está ativo."
+
+#: care/api/serializers.py
+msgid "Write a message or attach a photo or video."
+msgstr "Escreva uma mensagem ou anexe uma foto ou vídeo."
+
+#: care/models/message.py
+msgid "Image"
+msgstr "Imagem"
+
+#: care/models/message.py
+msgid "Video"
+msgstr "Vídeo"
+
 #: care/disciplines.py:26 core/templates/navigation.html:28
 #: software/templates/features.html:461
 msgid "Training"
@@ -4047,9 +4067,6 @@ msgstr "Re-submeter"
 #~ msgid "Ingredient weight units"
 #~ msgstr "Unidade de peso dos ingredientes"
 
-#~ msgid "Image"
-#~ msgstr "Imagem"
-
 #~ msgid "Only PNG and JPEG formats are supported"
 #~ msgstr "Somente os formatos PNG e JPEG são suportados"
 
@@ -4112,9 +4129,6 @@ msgstr "Re-submeter"
 
 #~ msgid "Main video"
 #~ msgstr "Vídeo principal"
-
-#~ msgid "Video"
-#~ msgstr "Vídeo"
 
 #~ msgid "Size"
 #~ msgstr "Tamanho"

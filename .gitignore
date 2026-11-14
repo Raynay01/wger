@@ -80,6 +80,7 @@ venv-wger
 # Other files and folders
 /coverage.lcov
 /media/
+/private-media/
 /static/
 /db/
 /extras/docker/open-food-facts/dump/*.tar.gz

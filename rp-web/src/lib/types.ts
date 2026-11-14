@@ -199,3 +199,16 @@ export type MyDay = {
     pain: { moment: string; value: number; datetime: string; protocol: string | null }[];
   };
 };
+
+export type Message = {
+  id: string;
+  relationship: string;
+  sender: number | null;
+  sender_name: string | null;
+  mine: boolean;
+  text: string;
+  attachment_kind: '' | 'image' | 'video';
+  attachment_name: string;
+  created: string;
+  read_at: string | null;
+};

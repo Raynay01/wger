@@ -77,6 +77,7 @@ router.register(r'access-grant', care_api_views.AccessGrantViewSet, basename='ac
 router.register(r'consent', care_api_views.ConsentRecordViewSet, basename='consent')
 router.register(r'data-request', care_api_views.DataRequestViewSet, basename='data-request')
 router.register(r'appointment', care_api_views.AppointmentViewSet, basename='appointment')
+router.register(r'care-message', care_api_views.MessageViewSet, basename='care-message')
 router.register(
     r'multidisciplinary-note',
     care_api_views.MultidisciplinaryNoteViewSet,

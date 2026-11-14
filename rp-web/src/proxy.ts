@@ -48,5 +48,6 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth).*)'],
+  // Uploads stream to the API: the proxy would buffer (and cut) bodies over 10 MB
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth|api/mensagens).*)'],
 };

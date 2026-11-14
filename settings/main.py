@@ -148,6 +148,8 @@ WEB_APP_NAME = env.str('WEB_APP_NAME', 'Kinutri')
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 MEDIA_ROOT = env.str('DJANGO_MEDIA_ROOT', '/home/wger/media')
 STATIC_ROOT = env.str('DJANGO_STATIC_ROOT', '/home/wger/static')
+# Chat attachments, served only by the API. Not below MEDIA_ROOT and not served by nginx
+PRIVATE_MEDIA_ROOT = env.str('DJANGO_PRIVATE_MEDIA_ROOT', '/home/wger/private-media')
 
 # If you change these, adjust nginx alias definitions as well
 MEDIA_URL = env.str('MEDIA_URL', '/media/')

@@ -34,6 +34,10 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework.decorators import action
+from rest_framework.parsers import (
+    JSONParser,
+    MultiPartParser,
+)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -44,6 +48,7 @@ from wger.care import (
     deletion,
     export,
     invitations,
+    messages,
     policy,
     sharing,
 )
@@ -55,6 +60,8 @@ from wger.care.api.serializers import (
     ConsentRecordSerializer,
     DataRequestSerializer,
     MembershipSerializer,
+    MessageReadSerializer,
+    MessageSerializer,
     ModulesSerializer,
     MultidisciplinaryNoteSerializer,
     MyDaySerializer,
@@ -76,6 +83,7 @@ from wger.care.models import (
     DataRequestStatus,
     Membership,
     MembershipRole,
+    Message,
     MultidisciplinaryNote,
     Organization,
     ProfessionalRegistration,
@@ -769,6 +777,86 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         appointment.status = AppointmentStatus.DONE
         appointment.save()
         return Response(self.get_serializer(appointment).data)
+
+
+class MessageViewSet(
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    Chat between the patient and the professional of a follow-up, with photos
+    and videos. Messages can be sent while the follow-up is active or paused;
+    both sides keep reading the history afterwards. Senders can delete their
+    own messages.
+
+    Attachments are not public files: they are only served by the
+    `attachment` endpoint, to the two people of the follow-up.
+    """
+
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser]
+    filterset_fields = {
+        'relationship': ['exact'],
+        'created': ['gt', 'lt'],
+    }
+    ordering_fields = ('created',)
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Message.objects.none()
+        user = self.request.user
+        return Message.objects.filter(
+            Q(relationship__professional=user) | Q(relationship__patient=user)
+        ).select_related('sender')
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
+
+    def perform_destroy(self, instance):
+        if instance.sender_id != self.request.user.id:
+            raise exceptions.PermissionDenied()
+        instance.delete()
+
+    @extend_schema(responses={(200, 'application/octet-stream'): bytes})
+    @action(detail=True, methods=['get'])
+    def attachment(self, request, pk):
+        """The photo or video of the message, with support for range requests"""
+        message = self.get_object()
+        if not message.attachment:
+            raise exceptions.NotFound()
+        return messages.attachment_response(request, message.attachment)
+
+    @extend_schema(request=MessageReadSerializer, responses={200: dict})
+    @action(detail=False, methods=['post'])
+    def read(self, request):
+        """Marks the messages of the other side in a follow-up as read"""
+        serializer = MessageReadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        relationship = serializer.validated_data['relationship']
+        if not messages.is_party(request.user, relationship):
+            raise exceptions.PermissionDenied()
+        return Response({'marked': messages.mark_read(request.user, relationship)})
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                'role',
+                str,
+                enum=['professional', 'patient'],
+                description='Only the follow-ups where the user has this role',
+            )
+        ],
+        responses={200: dict},
+    )
+    @action(detail=False, methods=['get'])
+    def unread(self, request):
+        """Number of unread messages per follow-up"""
+        role = request.query_params.get('role')
+        return Response(messages.unread_counts(request.user, role))
 
 
 class ModulesView(APIView):

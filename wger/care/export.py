@@ -36,6 +36,7 @@ from wger.care.models import (
     ConsentRecord,
     DataRequest,
     Membership,
+    Message,
     MultidisciplinaryNote,
     ProfessionalRegistration,
 )
@@ -101,6 +102,17 @@ def export_user_data(user: User) -> dict:
                 for r in relationships
             ],
             'sharing': _rows(AccessGrant.objects.filter(relationship__patient=user)),
+            'messages': [
+                {
+                    'relationship': m.relationship_id,
+                    'mine': m.sender_id == user.id,
+                    'sender': (m.sender.get_full_name() or m.sender.username) if m.sender else None,
+                    'text': m.text,
+                    'attachment_name': m.attachment_name,
+                    'created': m.created,
+                }
+                for m in Message.objects.filter(relationship__patient=user).select_related('sender')
+            ],
             'notes_for_you': list(
                 MultidisciplinaryNote.objects.filter(
                     relationship__patient=user,
