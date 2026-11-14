@@ -5,6 +5,8 @@ import django.db.models.deletion
 import django.utils.timezone
 import wger.utils.uuid
 from decimal import Decimal
+import uuid
+
 from django.conf import settings
 from django.db import migrations, models
 
@@ -267,6 +269,56 @@ class Migration(migrations.Migration):
                         name='unique_meal_adherence_per_day',
                     )
                 ],
+            },
+        ),
+        migrations.CreateModel(
+            name='ProfessionalFood',
+            fields=[
+                (
+                    'id',
+                    models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False),
+                ),
+                ('created', models.DateTimeField(auto_now_add=True)),
+                ('updated', models.DateTimeField(auto_now=True)),
+                (
+                    'author',
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='+',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    'based_on',
+                    models.ForeignKey(
+                        blank=True,
+                        help_text='The food this one corrects, if any',
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='+',
+                        to='nutrition.ingredient',
+                    ),
+                ),
+                (
+                    'ingredient',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='professional_food',
+                        to='nutrition.ingredient',
+                    ),
+                ),
+                (
+                    'organization',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name='foods',
+                        to='care.organization',
+                    ),
+                ),
+            ],
+            options={
+                'ordering': ['-created'],
             },
         ),
     ]

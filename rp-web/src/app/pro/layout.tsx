@@ -7,6 +7,7 @@ export default function ProfessionalLayout({ children }: { children: React.React
       nav={[
         { href: '/pro', label: 'Pacientes' },
         { href: '/pro/pacientes/novo', label: 'Convidar' },
+        { href: '/pro/alimentos', label: 'Alimentos' },
         { href: '/pro/alertas', label: 'Alertas de dor' },
         { href: '/pro/configurar', label: 'Configurações' },
       ]}

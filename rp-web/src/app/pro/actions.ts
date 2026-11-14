@@ -398,3 +398,51 @@ export async function deleteSlot(formData: FormData) {
   await attempt(formData, () => api(`slot/${text(formData, 'id')}/`, { method: 'DELETE' }));
   redirect(back(formData));
 }
+
+// Foods added by the nutritionists of the organization (shared with everyone)
+
+function foodValues(formData: FormData) {
+  const sodiumMg = optionalNumber(formData, 'sodium_mg');
+  const values: Record<string, unknown> = {
+    energy: optionalNumber(formData, 'energy'),
+    protein: optionalNumber(formData, 'protein'),
+    carbohydrates: optionalNumber(formData, 'carbohydrates'),
+    fat: optionalNumber(formData, 'fat'),
+    fiber: optionalNumber(formData, 'fiber'),
+    sodium: sodiumMg === null ? null : sodiumMg / 1000,
+  };
+  // Empty fields of a correction take the values of the base food
+  return Object.fromEntries(Object.entries(values).filter(([, v]) => v !== null));
+}
+
+export async function createFood(formData: FormData) {
+  const basedOn = text(formData, 'based_on');
+  await attempt(formData, () =>
+    api('professional-food/', {
+      method: 'POST',
+      body: {
+        organization: text(formData, 'organization'),
+        name: text(formData, 'name'),
+        brand: text(formData, 'brand'),
+        based_on: basedOn ? Number(basedOn) : null,
+        ...foodValues(formData),
+      },
+    }),
+  );
+  redirect(withParam(back(formData), 'salvo', '1'));
+}
+
+export async function updateFood(formData: FormData) {
+  await attempt(formData, () =>
+    api(`professional-food/${text(formData, 'id')}/`, {
+      method: 'PATCH',
+      body: { name: text(formData, 'name'), brand: text(formData, 'brand'), ...foodValues(formData) },
+    }),
+  );
+  redirect(withParam(back(formData), 'salvo', '1'));
+}
+
+export async function deleteFood(formData: FormData) {
+  await attempt(formData, () => api(`professional-food/${text(formData, 'id')}/`, { method: 'DELETE' }));
+  redirect(back(formData));
+}

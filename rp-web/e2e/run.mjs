@@ -117,6 +117,23 @@ try {
   await carla.getByText('CREFITO 55555-F/SP').waitFor();
   log('Carla criou a clínica e registrou o CREFITO');
 
+  // Foods added by the nutritionist, shared with everyone
+  await bruno.goto(`${WEB}/pro/alimentos`);
+  await bruno.getByLabel('Nome', { exact: true }).fill(`Pão de queijo da casa ${run}`);
+  for (const [label, value] of [['Energia (kcal)', '363'], ['Proteínas (g)', '5,1'], ['Carboidratos (g)', '34,2'], ['Gorduras (g)', '24,6']]) {
+    await bruno.getByLabel(label).first().fill(value);
+  }
+  await bruno.getByRole('button', { name: 'Cadastrar alimento' }).click();
+  await bruno.getByText('Alimento salvo.').waitFor();
+  await pick(bruno, 'Corrigir um alimento existente (opcional)', 'Arroz, tipo 1, cozido');
+  await bruno.getByLabel('Nome', { exact: true }).first().fill(`Arroz tipo 1 cozido, corrigido ${run}`);
+  await bruno.getByLabel('Energia (kcal)').first().fill('130');
+  await bruno.getByRole('button', { name: 'Cadastrar alimento' }).click();
+  await bruno.getByText(`Arroz tipo 1 cozido, corrigido ${run}`).waitFor();
+  assert(await bruno.getByText('Correção').first().isVisible(), 'correção marcada');
+  await shot(bruno, '02b-alimentos');
+  log('Bruno cadastrou um alimento novo e corrigiu o arroz da TACO (o original continua igual)');
+
   // Invitations
   for (const discipline of ['nutrition', 'training']) {
     await bruno.goto(`${WEB}/pro/pacientes/novo`);

@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wger Workout Manager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-13 22:55+0000\n"
+"POT-Creation-Date: 2026-11-14 02:46+0000\n"
 "PO-Revision-Date: 2026-04-21 18:09+0000\n"
 "Last-Translator: Ninguém Mesmo <weblate@rasparta.org>\n"
 "Language-Team: Portuguese <https://hosted.weblate.org/projects/wger/web/pt/>\n"
@@ -2880,6 +2880,22 @@ msgstr "Treino"
 #, python-format
 msgid "Workout for %s"
 msgstr "Treino para %s"
+
+#: nutrition/api/views.py:650
+msgid "Only nutritionists of the organization can add foods."
+msgstr "Somente nutricionistas da organização podem cadastrar alimentos."
+
+#: nutrition/api/views.py:669
+msgid ""
+"This food is already used in published plans or diaries. Add a new one "
+"instead."
+msgstr ""
+"Este alimento já é usado em dietas publicadas ou diários. Cadastre um novo "
+"alimento."
+
+#: nutrition/api/views.py:681
+msgid "This food is used in plans or diaries."
+msgstr "Este alimento é usado em dietas ou diários."
 
 #: nutrition/extract_info/off.py:71 nutrition/extract_info/off.py:90
 #: nutrition/tests/test_off.py:311

@@ -11,6 +11,7 @@ type Ingredient = {
   fat: string;
   fiber: string | null;
   source_name: string;
+  license_author: string;
 };
 
 /** Food search for the diet builder, values per 100 g */
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
       protein: Number(i.protein),
       carbohydrates: Number(i.carbohydrates),
       fat: Number(i.fat),
-      source: i.source_name,
+      source: i.source_name === 'Cadastro profissional' ? `Cadastro profissional (${i.license_author})` : i.source_name,
     })),
   );
 }

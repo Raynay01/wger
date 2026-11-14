@@ -63,6 +63,12 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   that whole grams would change by more than 5% are left out.
 * `/api/v2/care/my-day/` gives the household measure and the grams of each
   prescribed meal item.
+* Nutritionists add foods to the shared database or correct an existing one
+  (`/api/v2/professional-food/`). The food is public like any other, marked
+  as "Cadastro profissional" with the organization as author; a correction
+  copies the values and household measures of the original, which stays
+  untouched. Only the organization changes its foods, and only while no
+  published plan or diary uses them.
 * Physiotherapy: protocols with exercises (`/api/v2/physio-protocol/`,
   `/api/v2/protocol-exercise/`), pain records on the 0-10 scale with alerts for
   the physiotherapist (`/api/v2/pain-record/`, `pain-record/alerts/`), exercise

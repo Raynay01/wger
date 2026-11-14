@@ -23,6 +23,7 @@ from .log import LogItem
 from .meal import Meal
 from .meal_item import MealItem
 from .plan import NutritionPlan
+from .professional_food import ProfessionalFood
 from .sources import Source
 from .substitution import (
     SubstitutionCriterion,

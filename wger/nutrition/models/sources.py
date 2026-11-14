@@ -22,3 +22,4 @@ class Source(Enum):
     OPEN_FOOD_FACTS = 'Open Food Facts'
     USDA = 'USDA'
     TACO = 'TACO'
+    PROFESSIONAL = 'Cadastro profissional'

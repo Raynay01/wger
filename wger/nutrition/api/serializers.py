@@ -44,6 +44,7 @@ from wger.nutrition.models import (
     MealAdherence,
     MealItem,
     NutritionPlan,
+    ProfessionalFood,
     SubstitutionOption,
     WaterLog,
 )
@@ -485,3 +486,66 @@ class WaterLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = WaterLog
         fields = ('id', 'datetime', 'amount_ml')
+
+
+class ProfessionalFoodSerializer(serializers.ModelSerializer):
+    """
+    A food added by a professional. The values are those of its ingredient;
+    without them, a food based on another one takes over its values.
+    """
+
+    name = serializers.CharField(source='ingredient.name', max_length=200)
+    brand = serializers.CharField(
+        source='ingredient.brand', max_length=200, required=False, allow_blank=True
+    )
+    energy = serializers.IntegerField(source='ingredient.energy', required=False, min_value=0)
+    protein = serializers.DecimalField(
+        source='ingredient.protein', max_digits=6, decimal_places=3, required=False
+    )
+    carbohydrates = serializers.DecimalField(
+        source='ingredient.carbohydrates', max_digits=6, decimal_places=3, required=False
+    )
+    fat = serializers.DecimalField(
+        source='ingredient.fat', max_digits=6, decimal_places=3, required=False
+    )
+    fiber = serializers.DecimalField(
+        source='ingredient.fiber', max_digits=6, decimal_places=3, required=False, allow_null=True
+    )
+    sodium = serializers.DecimalField(
+        source='ingredient.sodium', max_digits=6, decimal_places=3, required=False, allow_null=True
+    )
+    in_use = serializers.SerializerMethodField()
+    author_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProfessionalFood
+        fields = (
+            'id',
+            'ingredient',
+            'organization',
+            'based_on',
+            'name',
+            'brand',
+            'energy',
+            'protein',
+            'carbohydrates',
+            'fat',
+            'fiber',
+            'sodium',
+            'in_use',
+            'author_name',
+            'created',
+            'updated',
+        )
+        read_only_fields = ('ingredient', 'created', 'updated')
+
+    def get_in_use(self, obj) -> bool:
+        # wger
+        from wger.nutrition.professional_foods import in_use
+
+        return in_use(obj.ingredient)
+
+    def get_author_name(self, obj) -> str | None:
+        if obj.author is None:
+            return None
+        return obj.author.get_full_name() or obj.author.username

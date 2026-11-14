@@ -288,6 +288,11 @@ router.register(
     basename='meal-adherence',
 )
 router.register(r'water-log', nutrition_api_views.WaterLogViewSet, basename='water-log')
+router.register(
+    r'professional-food',
+    nutrition_api_views.ProfessionalFoodViewSet,
+    basename='professional-food',
+)
 router.register(r'ingredient-image', nutrition_api_views.ImageViewSet, basename='ingredientimage')
 
 # Weight app

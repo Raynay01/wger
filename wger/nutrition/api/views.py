@@ -22,6 +22,7 @@ import logging
 from django.conf import settings
 from django.db.models import Prefetch
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext as _
 from django.views.decorators.cache import cache_page
 
 # Third Party
@@ -32,18 +33,24 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 from rest_framework import (
+    exceptions,
     status,
     viewsets,
 )
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 # wger
+from wger.care import policy
 from wger.care.api.prescription import (
     PrescriptionViewSetMixin,
     PrescriptionWriteGuardMixin,
 )
+from wger.care.disciplines import Discipline
+from wger.care.models import Membership
 from wger.care.prescription import visible_prescriptions_q
+from wger.nutrition import professional_foods
 from wger.nutrition.api.filtersets import (
     IngredientFilterSet,
     LogItemFilterSet,
@@ -61,6 +68,7 @@ from wger.nutrition.api.serializers import (
     NutritionalValuesSerializer,
     NutritionPlanInfoSerializer,
     NutritionPlanSerializer,
+    ProfessionalFoodSerializer,
     SubstitutionOptionSerializer,
     WaterLogSerializer,
 )
@@ -74,6 +82,7 @@ from wger.nutrition.models import (
     MealAdherence,
     MealItem,
     NutritionPlan,
+    ProfessionalFood,
     SubstitutionOption,
     WaterLog,
 )
@@ -601,3 +610,73 @@ class WaterLogViewSet(WgerOwnerObjectModelViewSet):
     @staticmethod
     def get_owner_objects():
         return []
+
+
+class ProfessionalFoodViewSet(viewsets.ModelViewSet):
+    """
+    Foods added to the shared food database by the nutritionists of the user's
+    organizations. They are visible to everyone like any other food; only the
+    organization changes them, and only while no published plan or diary uses them.
+    """
+
+    serializer_class = ProfessionalFoodSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = ('organization',)
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return ProfessionalFood.objects.none()
+        organizations = Membership.objects.filter(
+            user=self.request.user,
+            is_active=True,
+        ).values('organization')
+        return ProfessionalFood.objects.filter(organization__in=organizations).select_related(
+            'ingredient',
+            'author',
+        )
+
+    @staticmethod
+    def _values(data: dict) -> dict:
+        fields = data.get('ingredient', {})
+        return {f: fields[f] for f in professional_foods.VALUE_FIELDS if f in fields}
+
+    def perform_create(self, serializer):
+        data = serializer.validated_data
+        organization = data['organization']
+        if not policy.is_caring_member(
+            self.request.user, organization
+        ) or not policy.has_registration(self.request.user, Discipline.NUTRITION):
+            raise exceptions.ValidationError(
+                {'organization': _('Only nutritionists of the organization can add foods.')}
+            )
+        try:
+            food = professional_foods.create_food(
+                organization=organization,
+                author=self.request.user,
+                name=data['ingredient']['name'],
+                brand=data['ingredient'].get('brand', ''),
+                values=self._values(data),
+                based_on=data.get('based_on'),
+            )
+        except ValueError as error:
+            raise exceptions.ValidationError({'detail': str(error)})
+        serializer.instance = food
+
+    def perform_update(self, serializer):
+        food = serializer.instance
+        if professional_foods.in_use(food.ingredient):
+            raise exceptions.ValidationError(
+                _('This food is already used in published plans or diaries. Add a new one instead.')
+            )
+        data = serializer.validated_data
+        try:
+            professional_foods.update_food(
+                food, data.get('name'), data.get('brand'), self._values(data)
+            )
+        except ValueError as error:
+            raise exceptions.ValidationError({'detail': str(error)})
+
+    def perform_destroy(self, instance):
+        if professional_foods.referenced(instance.ingredient):
+            raise exceptions.ValidationError(_('This food is used in plans or diaries.'))
+        instance.ingredient.delete()
