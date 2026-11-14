@@ -26,7 +26,10 @@ from wger.care.deletion import (
     request_deletion,
 )
 from wger.care.export import export_user_data
-from wger.care.models import RelationshipStatus
+from wger.care.models import (
+    RelationshipStatus,
+    SharingScope,
+)
 from wger.care.tests.helpers import CareScenarioMixin
 from wger.core.tests.base_testcase import BaseTestCase
 
@@ -229,3 +232,20 @@ class NutritionalAssessmentTestCase(CareScenarioMixin, BaseTestCase, APITestCase
             {'protein': 104, 'carbohydrates': 157, 'fat': 49},
         )
         self.assertIsNone(self.create().data['macros'])
+
+    def test_shared_with_the_trainer(self):
+        """With the body measurements scope the trainer sees the anthropometry, not the rest"""
+        self.create(notes='Paciente relata compulsão à noite', body_fat='24')
+        url = reverse('care-relationship-shared', kwargs={'pk': self.training_rel.pk})
+
+        self.client.force_authenticate(self.trainer)
+        self.assertNotIn(SharingScope.BODY_MEASUREMENTS, self.client.get(url).data['scopes'])
+
+        self.grant(self.training_rel, SharingScope.BODY_MEASUREMENTS)
+        data = self.client.get(url).data['data'][SharingScope.BODY_MEASUREMENTS]
+        [entry] = data['anthropometry']
+        self.assertEqual(str(entry['weight']), '65.00')
+        self.assertEqual(str(entry['bmi']), '23.9')
+        self.assertEqual(str(entry['body_fat']), '24.0')
+        self.assertNotIn('notes', entry)
+        self.assertNotIn('target_energy', entry)

@@ -497,12 +497,32 @@ function SharedData({ scope, data }: { scope: string; data: any }) {
     );
   }
   if (scope === 'body.measurements') {
-    return data.body_weight.length ? (
-      <p className="text-sm text-gray-700">
-        Último peso: {number(data.body_weight[0].value, 1)} kg em {date(data.body_weight[0].date)}
-      </p>
-    ) : (
-      <p className="text-sm text-gray-500">Sem registros de peso.</p>
+    const anthropometry: any[] = data.anthropometry ?? [];
+    if (!data.body_weight.length && !anthropometry.length) {
+      return <p className="text-sm text-gray-500">Sem registros de peso.</p>;
+    }
+    const latest = anthropometry[0];
+    return (
+      <div className="flex flex-col gap-1 text-sm text-gray-700">
+        {data.body_weight.length > 0 && (
+          <p>
+            Último peso: {number(data.body_weight[0].value, 1)} kg em {date(data.body_weight[0].date)}
+          </p>
+        )}
+        {latest && (
+          <p>
+            Avaliação nutricional de {date(latest.date)}: {number(latest.weight, 1)} kg · IMC {number(latest.bmi, 1)}
+            {latest.waist && ` · cintura ${number(latest.waist, 1)} cm`}
+            {latest.body_fat && ` · ${number(latest.body_fat, 1)}% de gordura`}
+            {latest.lean_mass && ` · massa magra ${number(latest.lean_mass, 1)} kg`}
+          </p>
+        )}
+        {anthropometry.length > 1 && (
+          <p className="text-xs text-gray-500">
+            Antes: {anthropometry.slice(1).map(a => `${date(a.date)} ${number(a.weight, 1)} kg`).join(' · ')}
+          </p>
+        )}
+      </div>
     );
   }
   if (scope === 'notes.multidisciplinary') {

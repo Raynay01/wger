@@ -480,6 +480,18 @@ try {
   await shot(ana, '12b-evolucao-paciente');
   log('Ana vê a avaliação e a meta na Evolução');
 
+  await ana.goto(`${WEB}/app/compartilhamento`);
+  await ana
+    .locator('section', { hasText: 'Profissional de Educação Física' })
+    .getByRole('button', { name: 'Compartilhar Peso e medidas' })
+    .click();
+  await ana.getByRole('button', { name: 'Parar de compartilhar Peso e medidas' }).waitFor();
+  await bruno.goto(`${WEB}/pro`);
+  await bruno.getByRole('link', { name: /Ana Treino · desde/ }).first().click();
+  await bruno.getByText(/Avaliação nutricional de .*: 65 kg · IMC 23,9 · cintura 70 cm · 23,5% de gordura/).waitFor();
+  assert(!(await bruno.getByText('1.484 kcal').isVisible()), 'o personal não vê a meta de calorias');
+  log('Ana compartilhou peso e medidas com o personal: ele vê a antropometria, não as metas');
+
   // Planned versus done: three sets logged today (as the mobile app does)
   execFileSync(
     'uv',

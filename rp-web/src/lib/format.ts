@@ -18,7 +18,7 @@ export const SCOPE_LABELS: Record<string, { title: string; text: string }> = {
   'nutrition.goals': { title: 'Metas nutricionais', text: 'Calorias, macros e horários das refeições.' },
   'nutrition.adherence': { title: 'Resumo do diário alimentar', text: 'Dias com registro e refeições seguidas.' },
   'physio.pain': { title: 'Registros de dor', text: 'Média e últimos registros de dor.' },
-  'body.measurements': { title: 'Peso e medidas', text: 'Seus últimos registros de peso.' },
+  'body.measurements': { title: 'Peso e medidas', text: 'Seus últimos registros de peso e as medidas das avaliações nutricionais (sem as anotações e metas do nutricionista).' },
   'notes.multidisciplinary': { title: 'Observações dos profissionais', text: 'O que os seus outros profissionais anotaram.' },
 };
 

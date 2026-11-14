@@ -101,6 +101,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   Jackson-Pollock 3 or 7 sites or Durnin-Womersley, `skinfolds` in mm, Siri's
   equation) and split the target into macronutrients (`protein_per_kg`,
   `fat_percent`; carbohydrates take the rest, returned in `macros`).
+  The sharing scope `body.measurements` now also gives the professionals of
+  other disciplines the measurements of the last nutritional assessments
+  (`anthropometry`: weight, height, BMI, waist, hip, body fat, lean mass),
+  without the nutritionist's notes, energy target or macros.
 * Nutritionists add foods to the shared database or correct an existing one
   (`/api/v2/professional-food/`). The food is public like any other, marked
   as "Cadastro profissional" with the organization as author; a correction

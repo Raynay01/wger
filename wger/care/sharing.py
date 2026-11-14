@@ -164,13 +164,30 @@ def body_measurements(patient: User, relationship: CareRelationship) -> dict:
     # wger
     from wger.measurements.models import Measurement
     from wger.measurements.models.category import MetricType
+    from wger.nutrition.models import NutritionalAssessment
 
     entries = Measurement.objects.filter(
         category__user=patient,
         category__metric_type=MetricType.BODY_WEIGHT,
     ).order_by('-date')[:10]
+    # Measurements of the nutritional assessments, without energy, macros or notes
+    assessments = NutritionalAssessment.objects.filter(relationship__patient=patient)[:5]
     return {
         'body_weight': [{'date': e.date, 'value': e.value} for e in entries],
+        'anthropometry': [
+            {
+                'date': a.date,
+                'weight': a.weight,
+                'height': a.height,
+                'bmi': a.bmi,
+                'waist': a.waist,
+                'hip': a.hip,
+                'waist_hip_ratio': a.waist_hip_ratio,
+                'body_fat': a.body_fat,
+                'lean_mass': a.lean_mass,
+            }
+            for a in assessments
+        ],
     }
 
 
