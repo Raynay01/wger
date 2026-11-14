@@ -31,6 +31,10 @@ from wger.manager.models import (
     WorkoutLog,
     WorkoutSession,
 )
+from wger.manager.rest_days import (
+    only_rest_between,
+    prescribed_rest_days,
+)
 from wger.trophies.models import UserStatistics
 from wger.utils.units import AbstractWeight
 
@@ -100,7 +104,8 @@ class UserStatisticsService:
         # Calculate streaks and other date-based stats
         workout_dates = sorted({day for session in sessions if (day := session.local_day_in(tz))})
         today = timezone.localdate(timezone=tz)
-        current_streak, longest_streak = cls._calculate_streaks(workout_dates, today)
+        rest_days = prescribed_rest_days(user, workout_dates[0], today) if workout_dates else set()
+        current_streak, longest_streak = cls._calculate_streaks(workout_dates, today, rest_days)
         stats.current_streak = current_streak
         stats.longest_streak = longest_streak
 
@@ -183,8 +188,16 @@ class UserStatisticsService:
                 # Update streak
                 if stats.last_workout_date:
                     days_gap = (session_date - stats.last_workout_date).days
-                    if days_gap == 1:
-                        # Consecutive day - extend streak
+                    if days_gap == 1 or only_rest_between(
+                        prescribed_rest_days(
+                            user,
+                            stats.last_workout_date + datetime.timedelta(days=1),
+                            session_date - datetime.timedelta(days=1),
+                        ),
+                        stats.last_workout_date,
+                        session_date,
+                    ):
+                        # Consecutive day, or only prescribed rest days in between
                         stats.current_streak += 1
                     elif days_gap > 1:
                         # Gap in workouts - check for Phoenix trophy trigger
@@ -275,17 +288,24 @@ class UserStatisticsService:
         return total
 
     @classmethod
-    def _calculate_streaks(cls, workout_dates: list, today: datetime.date) -> tuple:
+    def _calculate_streaks(
+        cls,
+        workout_dates: list,
+        today: datetime.date,
+        rest_days: set = frozenset(),
+    ) -> tuple:
         """
         Calculate current and longest workout streaks.
 
-        A streak is consecutive days with at least one workout. Whether it is
-        still alive depends on what "today" is, which is a day in the user's
+        A streak is consecutive days with at least one workout; prescribed rest
+        days in between keep it going without counting. Whether it is still
+        alive depends on what "today" is, which is a day in the user's
         timezone like the workout dates themselves.
 
         Args:
             workout_dates: List of dates with workouts, sorted ascending
             today: the current day in the timezone the dates were cut in
+            rest_days: prescribed rest days of the user's routines
 
         Returns:
             Tuple of (current_streak, longest_streak)
@@ -301,7 +321,7 @@ class UserStatisticsService:
         streak = 1
 
         for i in range(1, len(unique_dates)):
-            if (unique_dates[i] - unique_dates[i - 1]).days == 1:
+            if only_rest_between(rest_days, unique_dates[i - 1], unique_dates[i]):
                 streak += 1
             else:
                 streak = 1
@@ -313,7 +333,7 @@ class UserStatisticsService:
         if unique_dates:
             last_workout = unique_dates[-1]
             days_since_last = (today - last_workout).days
-            if days_since_last <= 1:
+            if days_since_last <= 1 or only_rest_between(rest_days, last_workout, today):
                 current_streak = streak
             else:
                 current_streak = 0

@@ -97,6 +97,13 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   rest, food recorded, water goal reached, physio exercise done, and the streak
   of days with a record. Only records count, never amounts; prescribed rest
   days and the current day do not break the streak.
+* Achievements: `/api/v2/care/gamification/` says whether the patient gets
+  achievements and streaks and why not: turned off by the patient
+  (`trophies_enabled`), by a professional of an open follow-up
+  (`care-relationship/{id}/gamification/`, `gamification_enabled` on the
+  relationship), or suspended for 14 days after pain at the alert threshold of
+  a physio protocol. Trophies are not evaluated meanwhile. The workout streak of
+  the trophies no longer breaks on rest days of the user's routine.
 * Nutritional assessment: nutritionists record the anamnesis
   (`/api/v2/nutritional-anamnesis/`: goal, history, medications, allergies,
   preferences, habits) and anthropometric assessments

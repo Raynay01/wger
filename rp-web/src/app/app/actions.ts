@@ -101,3 +101,8 @@ export async function revokeGrant(formData: FormData) {
   await api(`access-grant/${formData.get('id')}/`, { method: 'DELETE' });
   revalidatePath('/app/compartilhamento');
 }
+
+export async function setTrophies(formData: FormData) {
+  await api('userprofile/', { method: 'PATCH', body: { trophies_enabled: formData.get('enabled') === 'true' } });
+  revalidatePath('/app/constancia');
+}

@@ -101,6 +101,9 @@ class CareRelationship(models.Model):
 
     ended = models.DateTimeField(null=True, blank=True)
 
+    gamification_enabled = models.BooleanField(default=True)
+    """Off: no achievements or streaks for the patient while this follow-up is open"""
+
     def __str__(self):
         return f'{self.professional} → {self.patient or self.invited_email} ({self.discipline})'
 

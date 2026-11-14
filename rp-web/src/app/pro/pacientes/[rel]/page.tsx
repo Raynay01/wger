@@ -9,7 +9,7 @@ import { GOAL_LABELS, MOMENT_LABELS, SCOPE_LABELS, STATUS_LABELS, date, dateTime
 import type { Note, NutritionalAssessment, Paginated, Prescription, Relationship, TrainingPlan } from '@/lib/types';
 import { userZone } from '@/lib/userZone';
 import { todayIn } from '@/lib/zone';
-import { addAssessment, addNote, createPlan, createProtocol, createRoutine, createTrainingPlan, relationshipAction } from '../../actions';
+import { addAssessment, addNote, createPlan, createProtocol, createRoutine, createTrainingPlan, relationshipAction, setGamification } from '../../actions';
 import { NutritionalAssessmentSummary } from '@/components/NutritionalAssessmentSummary';
 import { PeriodizationTimeline } from '@/components/PeriodizationTimeline';
 
@@ -131,6 +131,24 @@ export default async function PatientFilePage({
               </div>
             )}
           </Card>
+
+          {isOpen && (
+            <Card title="Conquistas e sequência">
+              <p className="text-sm text-gray-700">
+                {relationship.gamification_enabled
+                  ? 'Ativadas: o paciente vê a sequência de dias com registro e ganha conquistas de treino. Nenhuma conquista vem de comer menos ou perder peso, e as de treino pausam após dor no limite do protocolo de fisioterapia.'
+                  : 'Desativadas por você: o paciente não vê a sequência nem ganha conquistas enquanto você o acompanha.'}
+              </p>
+              <form action={setGamification} className="mt-3">
+                <input type="hidden" name="back" value={here} />
+                <input type="hidden" name="relationship" value={rel} />
+                <input type="hidden" name="enabled" value={relationship.gamification_enabled ? 'false' : 'true'} />
+                <Button type="submit" variant="ghost" className="border border-navy-100">
+                  {relationship.gamification_enabled ? 'Desativar para este paciente' : 'Ativar de novo'}
+                </Button>
+              </form>
+            </Card>
+          )}
 
           <Card title="Observações multidisciplinares">
             {isOpen && (

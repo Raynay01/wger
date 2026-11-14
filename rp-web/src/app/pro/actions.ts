@@ -604,3 +604,13 @@ export async function deleteTrainingBlock(formData: FormData) {
   await attempt(formData, () => api(`training-block/${text(formData, 'id')}/`, { method: 'DELETE' }));
   redirect(back(formData));
 }
+
+export async function setGamification(formData: FormData) {
+  await attempt(formData, () =>
+    api(`care-relationship/${text(formData, 'relationship')}/gamification/`, {
+      method: 'POST',
+      body: { enabled: text(formData, 'enabled') === 'true' },
+    }),
+  );
+  redirect(back(formData));
+}

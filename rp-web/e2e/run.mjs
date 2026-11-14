@@ -546,8 +546,23 @@ try {
   await ana.getByRole('img', { name: `Treino, ${todayBr}: treino feito` }).waitFor();
   await ana.getByRole('img', { name: `Refeições registradas, ${todayBr}: refeições registradas` }).waitFor();
   await ana.getByRole('img', { name: `Fisioterapia, ${todayBr}: exercícios feitos` }).waitFor();
+  await ana.getByRole('heading', { name: 'Conquistas' }).waitFor();
   await shot(ana, '14-constancia');
   log('Ana vê a constância: treino, refeições e fisioterapia de hoje, sequência de 1 dia');
+
+  // The trainer turns achievements and the streak off for Ana, then on again
+  await bruno.goto(`${WEB}/pro`);
+  await bruno.getByRole('link', { name: /Ana Treino · desde/ }).first().click();
+  await bruno.getByRole('button', { name: 'Desativar para este paciente' }).click();
+  await bruno.getByText('Desativadas por você').waitFor();
+  await ana.reload();
+  await ana.getByText(/Conquistas e sequência desativadas por .*, que acompanha você/).waitFor();
+  assert(!(await ana.getByText('Sequência', { exact: true }).isVisible()), 'sequência escondida');
+  await bruno.getByRole('button', { name: 'Ativar de novo' }).click();
+  await bruno.getByRole('button', { name: 'Desativar para este paciente' }).waitFor();
+  await ana.reload();
+  await ana.getByText('Sequência', { exact: true }).waitFor();
+  log('O personal desativou as conquistas e a sequência da Ana e ativou de novo');
 
   // LGPD: export and deletion request
   await ana.goto(`${WEB}/app/privacidade`);

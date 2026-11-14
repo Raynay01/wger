@@ -156,6 +156,7 @@ class CareRelationshipSerializer(serializers.ModelSerializer):
             'created',
             'started',
             'ended',
+            'gamification_enabled',
             'my_role',
         ]
         read_only_fields = [
@@ -166,6 +167,7 @@ class CareRelationshipSerializer(serializers.ModelSerializer):
             'created',
             'started',
             'ended',
+            'gamification_enabled',
         ]
 
     def _user(self):
@@ -478,6 +480,28 @@ class ConsistencySerializer(serializers.Serializer):
     )
     weeks = ConsistencyWeekSerializer(many=True)
     days = ConsistencyDaySerializer(many=True)
+
+
+class GamificationSerializer(serializers.Serializer):
+    enabled = serializers.BooleanField(help_text='Achievements and streaks are shown')
+    reason = serializers.ChoiceField(
+        choices=['patient', 'professional', 'pain'],
+        allow_null=True,
+        help_text='Turned off by the patient, by a professional, or suspended for pain at '
+        'the alert threshold of a physio protocol',
+    )
+    disabled_by = serializers.ListField(
+        child=serializers.CharField(),
+        help_text='Professionals who turned them off',
+    )
+    pain_until = serializers.DateTimeField(
+        allow_null=True,
+        help_text='End of the suspension if no further pain at the threshold is recorded',
+    )
+
+
+class GamificationSwitchSerializer(serializers.Serializer):
+    enabled = serializers.BooleanField()
 
 
 class SharedDataSerializer(serializers.Serializer):

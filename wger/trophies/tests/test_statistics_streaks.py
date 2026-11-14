@@ -23,7 +23,10 @@ from django.utils import timezone
 
 # wger
 from wger.core.tests.base_testcase import WgerTestCase
-from wger.manager.models import WorkoutSession
+from wger.manager.models import (
+    Routine,
+    WorkoutSession,
+)
 from wger.trophies.models import UserStatistics
 from wger.trophies.services.statistics import UserStatisticsService
 
@@ -77,6 +80,33 @@ class CalculateStreaksTestCase(SimpleTestCase):
             datetime.date(2024, 1, 1),
         ]
         self.assertEqual(self.calculate(dates), (0, 3))
+
+    def test_prescribed_rest_days_bridge_without_counting(self):
+        """Rest days of the routine between workouts keep the streak, they don't add to it"""
+        dates = [days_ago(4), days_ago(2), FROZEN_TODAY]
+        rest = {days_ago(3), days_ago(1)}
+        self.assertEqual(
+            UserStatisticsService._calculate_streaks(dates, FROZEN_TODAY, rest),
+            (3, 3),
+        )
+
+    def test_rest_days_keep_the_current_streak_alive(self):
+        dates = [days_ago(4), days_ago(3)]
+        self.assertEqual(
+            UserStatisticsService._calculate_streaks(
+                dates,
+                FROZEN_TODAY,
+                {days_ago(2), days_ago(1)},
+            ),
+            (2, 2),
+        )
+
+    def test_a_day_that_is_not_rest_breaks_the_streak(self):
+        dates = [days_ago(4), days_ago(2), FROZEN_TODAY]
+        self.assertEqual(
+            UserStatisticsService._calculate_streaks(dates, FROZEN_TODAY, {days_ago(3)}),
+            (1, 2),
+        )
 
 
 class CalculateWorkoutTimesTestCase(SimpleTestCase):
@@ -244,6 +274,27 @@ class IncrementWorkoutStreakTestCase(WgerTestCase):
 
         self.assertEqual(stats.current_streak, 1)
         self.assertEqual(stats.last_inactive_date, datetime.date(2024, 3, 1))
+
+    def test_prescribed_rest_days_do_not_break_the_streak(self):
+        """Training every other day of a routine with rest days in between is a streak"""
+        routine = Routine.objects.create(
+            user=self.user,
+            name='A + descanso',
+            start=datetime.date(2024, 3, 1),
+            end=datetime.date(2024, 3, 31),
+        )
+        routine.days.create(name='A', order=1)
+        routine.days.create(name='', order=2, is_rest=True)
+
+        self.increment(datetime.date(2024, 3, 1))
+        self.increment(datetime.date(2024, 3, 3))
+        stats = self.increment(datetime.date(2024, 3, 5))
+        self.assertEqual(stats.current_streak, 3)
+
+        # 6 March is a rest day, 7 March a training day without a workout
+        stats = self.increment(datetime.date(2024, 3, 8))
+        self.assertEqual(stats.current_streak, 1)
+        self.assertEqual(stats.longest_streak, 3)
 
     def test_jan_first_workout_is_flagged(self):
         stats = self.increment(datetime.date(2024, 1, 1))

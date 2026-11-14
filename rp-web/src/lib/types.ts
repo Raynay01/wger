@@ -35,6 +35,7 @@ export type Relationship = {
   invitation_sent_at: string | null;
   created: string;
   started: string | null;
+  gamification_enabled: boolean;
   my_role: 'professional' | 'patient';
 };
 
@@ -349,3 +350,17 @@ export type ConsistencyWeek = {
 };
 
 export type Consistency = { modules: string[]; today: string; streak: number; weeks: ConsistencyWeek[]; days: ConsistencyDay[] };
+
+export type Gamification = {
+  enabled: boolean;
+  reason: 'patient' | 'professional' | 'pain' | null;
+  disabled_by: string[];
+  pain_until: string | null;
+};
+
+export type TrophyProgress = {
+  trophy: { id: number; name: string; description: string; image: string | null; is_progressive: boolean };
+  is_earned: boolean;
+  earned_at: string | null;
+  progress: number;
+};

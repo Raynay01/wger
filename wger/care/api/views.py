@@ -48,6 +48,7 @@ from wger.care import (
     consistency,
     deletion,
     export,
+    gamification,
     invitations,
     messages,
     policy,
@@ -61,6 +62,8 @@ from wger.care.api.serializers import (
     ConsentRecordSerializer,
     ConsistencySerializer,
     DataRequestSerializer,
+    GamificationSerializer,
+    GamificationSwitchSerializer,
     MembershipSerializer,
     MessageReadSerializer,
     MessageSerializer,
@@ -387,6 +390,23 @@ class CareRelationshipViewSet(
         relationship.ended = timezone.now()
         relationship.save()
         relationship.grants.filter(revoked_at__isnull=True).update(revoked_at=timezone.now())
+        return self._respond(relationship)
+
+    @extend_schema(request=GamificationSwitchSerializer, responses=CareRelationshipSerializer)
+    @action(detail=True, methods=['post'])
+    def gamification(self, request, pk):
+        """
+        Turn the patient's achievements and streaks on or off. Only the
+        professional of an open relationship; off wins over the other
+        professionals and over the patient's own setting.
+        """
+        relationship = self._get_professional_relationship()
+        if not relationship.is_open:
+            raise exceptions.PermissionDenied()
+        serializer = GamificationSwitchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        relationship.gamification_enabled = serializer.validated_data['enabled']
+        relationship.save(update_fields=['gamification_enabled'])
         return self._respond(relationship)
 
     @extend_schema(responses=SharedDataSerializer)
@@ -756,6 +776,22 @@ class ConsistencyView(APIView):
             )
         data = consistency.consistency(request.user, end, weeks)
         return Response(ConsistencySerializer(data).data)
+
+
+class GamificationView(APIView):
+    """
+    Whether the patient gets achievements and streaks, and why not: turned
+    off by the patient (``trophies_enabled`` in the profile), by a
+    professional, or suspended after pain at the alert threshold of a physio
+    protocol in the last 14 days
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=GamificationSerializer)
+    def get(self, request):
+        data = gamification.gamification_status(request.user)
+        return Response(GamificationSerializer(data).data)
 
 
 class AppointmentViewSet(viewsets.ModelViewSet):

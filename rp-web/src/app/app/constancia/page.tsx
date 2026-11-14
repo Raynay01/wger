@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { Card, Empty } from '@/components/ui';
+import { Button, Card, Empty, Notice } from '@/components/ui';
 import { api } from '@/lib/api';
 import { date, number } from '@/lib/format';
-import type { Consistency, ConsistencyDay } from '@/lib/types';
+import type { Consistency, ConsistencyDay, Gamification, TrophyProgress } from '@/lib/types';
+import { setTrophies } from '../actions';
 
 export const metadata: Metadata = { title: 'Constância' };
 
@@ -95,10 +96,101 @@ function AreaGrid({ area, consistency }: { area: Area; consistency: Consistency 
   );
 }
 
+function Achievements({ gamification, trophies }: { gamification: Gamification; trophies: TrophyProgress[] }) {
+  const earned = trophies.filter(t => t.is_earned).sort((a, b) => (b.earned_at ?? '').localeCompare(a.earned_at ?? ''));
+  const next = trophies
+    .filter(t => !t.is_earned && t.trophy.is_progressive && t.progress > 0)
+    .sort((a, b) => b.progress - a.progress)
+    .slice(0, 3);
+
+  if (gamification.reason === 'patient') {
+    return (
+      <Card title="Conquistas">
+        <p className="text-sm text-gray-700">Você desativou as conquistas e a sequência. Seus registros continuam aparecendo acima.</p>
+        <form action={setTrophies} className="mt-3">
+          <input type="hidden" name="enabled" value="true" />
+          <Button type="submit" variant="secondary">
+            Ativar conquistas e sequência
+          </Button>
+        </form>
+      </Card>
+    );
+  }
+  if (gamification.reason === 'professional') {
+    return (
+      <Card title="Conquistas">
+        <p className="text-sm text-gray-700">
+          Conquistas e sequência desativadas por {gamification.disabled_by.join(' e ')}, que acompanha você. Seus registros continuam aparecendo acima.
+        </p>
+      </Card>
+    );
+  }
+  return (
+    <Card title="Conquistas">
+      {gamification.reason === 'pain' && (
+        <div className="mb-3">
+          <Notice>
+            Conquistas de treino pausadas até {date(gamification.pain_until)}: você registrou dor no limite combinado no protocolo de fisioterapia. Converse com
+            sua fisioterapeuta antes de aumentar o treino.
+          </Notice>
+        </div>
+      )}
+      {earned.length === 0 && next.length === 0 ? (
+        <p className="text-sm text-gray-600">Registre seus treinos para ganhar as primeiras conquistas.</p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {earned.length > 0 && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-navy-900">Conquistadas</p>
+              <ul className="flex flex-col gap-2 text-sm">
+                {earned.map(t => (
+                  <li key={t.trophy.id}>
+                    <span className="font-semibold">{t.trophy.name}</span> · {date(t.earned_at)}
+                    <span className="block text-xs text-gray-500">{t.trophy.description}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {next.length > 0 && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-navy-900">Próximas</p>
+              <ul className="flex flex-col gap-3 text-sm">
+                {next.map(t => (
+                  <li key={t.trophy.id}>
+                    <span className="font-semibold">{t.trophy.name}</span>
+                    <span className="block text-xs text-gray-500">{t.trophy.description}</span>
+                    <span className="mt-1 block h-1.5 rounded-full bg-gray-200" role="img" aria-label={`${t.trophy.name}: ${Math.round(t.progress)}%`}>
+                      <span className="block h-1.5 rounded-full" style={{ width: `${t.progress}%`, background: DONE }} />
+                    </span>
+                    <span className="text-xs text-gray-500">{Math.round(t.progress)}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+      <form action={setTrophies} className="mt-4">
+        <input type="hidden" name="enabled" value="false" />
+        <button type="submit" className="text-xs text-gray-600 underline">
+          Desativar conquistas e sequência
+        </button>
+      </form>
+    </Card>
+  );
+}
+
 export default async function ConsistencyPage() {
-  const consistency = await api<Consistency>('care/consistency/', { query: { weeks: 8 } });
+  const [consistency, gamification, trophies] = await Promise.all([
+    api<Consistency>('care/consistency/', { query: { weeks: 8 } }),
+    api<Gamification>('care/gamification/'),
+    api<TrophyProgress[]>('trophy/progress/'),
+  ]);
   const areas = AREAS.filter(area => consistency.modules.includes(area.module));
   const current = consistency.weeks[consistency.weeks.length - 1];
+  // Pain pauses training achievements only; the streak counts records of every area
+  const showStreak = gamification.enabled || gamification.reason === 'pain';
 
   return (
     <div className="flex flex-col gap-6">
@@ -111,7 +203,8 @@ export default async function ConsistencyPage() {
         <Empty title="Nada para acompanhar ainda">Quando um profissional publicar seu treino, plano alimentar ou protocolo, a constância aparece aqui.</Empty>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-[14rem_1fr]">
+          <div className={`grid gap-3 ${showStreak ? 'sm:grid-cols-[14rem_1fr]' : ''}`}>
+            {showStreak && (
             <div className="rounded-2xl bg-navy-900 p-4 text-white">
               <p className="text-sm text-navy-100">Sequência</p>
               <p className="mt-1 text-4xl font-bold tabular-nums text-neon-500">
@@ -119,6 +212,7 @@ export default async function ConsistencyPage() {
               </p>
               <p className="mt-1 text-xs text-navy-100">seguidos com algum registro. Dias de descanso do treino não quebram a sequência.</p>
             </div>
+            )}
             <Card title={`Esta semana (${date(current.start)} a ${date(current.end)})`}>
               <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                 {consistency.modules.includes('training') && (
@@ -217,6 +311,8 @@ export default async function ConsistencyPage() {
               </div>
             </details>
           </Card>
+
+          <Achievements gamification={gamification} trophies={trophies} />
         </>
       )}
     </div>

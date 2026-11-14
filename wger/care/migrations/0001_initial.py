@@ -90,6 +90,7 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('started', models.DateTimeField(blank=True, null=True)),
                 ('ended', models.DateTimeField(blank=True, null=True)),
+                ('gamification_enabled', models.BooleanField(default=True)),
                 (
                     'patient',
                     models.ForeignKey(

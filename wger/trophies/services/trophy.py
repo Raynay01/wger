@@ -265,6 +265,8 @@ class TrophyService:
         Users are skipped if:
         - The trophy system is globally disabled (WGER_SETTINGS['TROPHIES_ENABLED'])
         - They have disabled trophies in their profile (userprofile.trophies_enabled)
+        - A professional following them turned them off, or they recorded pain
+          at the alert threshold of a physio protocol recently
         - They haven't logged in for more than TROPHIES_INACTIVE_USER_DAYS
 
         Args:
@@ -282,6 +284,14 @@ class TrophyService:
             profile = user.userprofile
             if hasattr(profile, 'trophies_enabled') and not profile.trophies_enabled:
                 return True
+
+        # wger
+        from wger.care.gamification import trophies_blocked
+
+        # A professional turned them off, or there is recent pain at the alert
+        # threshold of a physio protocol
+        if trophies_blocked(user):
+            return True
 
         # Check for inactivity
         if user.last_login:

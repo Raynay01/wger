@@ -421,6 +421,11 @@ urlpatterns += [
         care_api_views.ConsistencyView.as_view(),
         name='care-consistency',
     ),
+    path(
+        'api/v2/care/gamification/',
+        care_api_views.GamificationView.as_view(),
+        name='care-gamification',
+    ),
     path('api/v2/', include(router.urls)),
     path('api/v2/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v2/token/verify', TokenVerifyView.as_view(), name='token_verify'),
