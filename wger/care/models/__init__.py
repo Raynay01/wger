@@ -14,6 +14,11 @@
 # along with Workout Manager.  If not, see <http://www.gnu.org/licenses/>.
 
 # Local
+from .appointment import (
+    Appointment,
+    AppointmentKind,
+    AppointmentStatus,
+)
 from .data_request import (
     DataRequest,
     DataRequestKind,

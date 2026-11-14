@@ -61,7 +61,7 @@ const browser = await playwright.chromium.launch();
 const errors = [];
 
 async function session(name, viewport = { width: 1280, height: 900 }) {
-  const context = await browser.newContext({ viewport, deviceScaleFactor: 2, locale: 'pt-BR' });
+  const context = await browser.newContext({ viewport, deviceScaleFactor: 2, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
   const page = await context.newPage();
   page.on('pageerror', e => errors.push(`${name}: ${e.message}`));
   await page.goto(`${WEB}/entrar`);
@@ -72,6 +72,12 @@ async function session(name, viewport = { width: 1280, height: 900 }) {
   await page.fill('input[name=password]', PASSWORD);
   await page.click('form[action="/api/auth/password"] button[type=submit]');
   await page.waitForURL(/\/(app|inicio|pro)/);
+  // The app stores the browser's timezone in the profile on the first page
+  if (!page.url().includes('/inicio')) {
+    for (let i = 0; i < 50 && !(await context.cookies()).some(c => c.name === 'kn_tz'); i++) {
+      await page.waitForTimeout(200);
+    }
+  }
   return page;
 }
 
@@ -165,7 +171,7 @@ try {
   await bruno.locator('select[name=discipline]').selectOption('nutrition');
   await bruno.getByRole('button', { name: 'Enviar convite' }).click();
   const daniLink = await bruno.getByLabel('Link do convite').inputValue();
-  const visitor = await (await browser.newContext({ locale: 'pt-BR' })).newPage();
+  const visitor = await (await browser.newContext({ locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' })).newPage();
   await visitor.goto(daniLink.replace(/^https?:\/\/[^/]+/, WEB));
   await visitor.getByRole('link', { name: 'Entrar para aceitar' }).click();
   await visitor.fill('input[name=username]', users.dani);
@@ -288,7 +294,7 @@ try {
   await shot(ana, '06-meu-dia');
   log('Ana usou o Meu Dia: seguiu a refeição, bebeu água, fez o exercício e registrou dor');
 
-  const phone = await browser.newContext({ ...playwright.devices['iPhone 13'], locale: 'pt-BR' });
+  const phone = await browser.newContext({ ...playwright.devices['iPhone 13'], locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
   await phone.addCookies(await ana.context().cookies());
   const mobile = await phone.newPage();
   await mobile.goto(`${WEB}/app`);
@@ -296,6 +302,30 @@ try {
   await mobile.goto(`${WEB}/app?ver=alimentacao`);
   assert(!(await mobile.getByText('Treino · Força').isVisible()), 'somente alimentação esconde o treino');
   log('Meu Dia no celular e filtro "Só alimentação" conferidos');
+
+  // Agenda: the physiotherapist schedules, the patient sees and cancels
+  const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  await carla.goto(`${WEB}/pro/agenda`);
+  await carla.locator('select[name=kind]').selectOption('session');
+  await carla.locator('input[name=date]').fill(tomorrow);
+  await carla.locator('input[name=time]').fill('14:00');
+  await carla.getByLabel('Duração (min)').fill('50');
+  await carla.getByRole('button', { name: 'Marcar', exact: true }).click();
+  await carla.getByText('Consulta marcada.').waitFor();
+  await carla.goto(`${WEB}/pro/agenda?semana=${tomorrow}`);
+  await carla.getByText(/14:00 · Sessão · Ana/).waitFor();
+  await shot(carla, '10b-agenda-profissional');
+
+  await ana.goto(`${WEB}/app/agenda?mes=${tomorrow.slice(0, 7)}`);
+  await ana.getByText('14:00 Sessão').first().waitFor();
+  assert(await ana.getByText('Treino: Pernas').first().isVisible(), 'treino no calendário');
+  assert(await ana.getByText('Fisio: Joelho direito').first().isVisible(), 'fisioterapia no calendário');
+  await shot(ana, '10c-agenda-paciente');
+  await ana.getByRole('button', { name: 'Cancelar' }).first().click();
+  await ana.getByText('Nenhuma consulta marcada').waitFor();
+  await carla.goto(`${WEB}/pro/agenda?semana=${tomorrow}`);
+  await carla.getByText('Cancelada').waitFor();
+  log('Carla marcou uma sessão; Ana viu no calendário com treino e fisioterapia, cancelou, e Carla viu cancelada');
 
   // Sharing
   await ana.goto(`${WEB}/app/compartilhamento`);

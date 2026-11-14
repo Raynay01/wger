@@ -26,6 +26,7 @@ from wger.care.disciplines import COUNCIL_BY_DISCIPLINE
 from wger.care.models import (
     PENDING_STATUSES,
     AccessGrant,
+    Appointment,
     CareRelationship,
     ConsentRecord,
     DataRequest,
@@ -318,6 +319,45 @@ class DataRequestSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 _('Please confirm that you want to delete your account.')
             )
+        return value
+
+
+class AppointmentSerializer(serializers.ModelSerializer):
+    professional = serializers.SerializerMethodField()
+    patient = serializers.SerializerMethodField()
+    discipline = serializers.CharField(source='relationship.discipline', read_only=True)
+
+    class Meta:
+        model = Appointment
+        fields = [
+            'id',
+            'relationship',
+            'kind',
+            'start',
+            'duration_minutes',
+            'location',
+            'notes',
+            'status',
+            'discipline',
+            'professional',
+            'patient',
+            'created',
+        ]
+        read_only_fields = ['status', 'created']
+
+    def get_professional(self, obj) -> str:
+        user = obj.relationship.professional
+        return user.get_full_name() or user.username
+
+    def get_patient(self, obj) -> str | None:
+        user = obj.relationship.patient
+        return (user.get_full_name() or user.username) if user else None
+
+    def validate_relationship(self, value):
+        if self.instance is not None and value != self.instance.relationship:
+            raise serializers.ValidationError(_('The patient of an appointment cannot be changed.'))
+        if value.professional_id != self.context['request'].user.id or not value.is_open:
+            raise serializers.ValidationError(_('You do not follow this patient.'))
         return value
 
 

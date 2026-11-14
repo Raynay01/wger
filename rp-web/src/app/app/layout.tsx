@@ -8,6 +8,7 @@ export default async function PatientLayout({ children }: { children: React.Reac
       area="Meu acompanhamento"
       nav={[
         { href: '/app', label: 'Meu Dia' },
+        { href: '/app/agenda', label: 'Agenda' },
         { href: '/app/convites', label: 'Profissionais' },
         { href: '/app/compartilhamento', label: 'Compartilhamento' },
         { href: '/app/evolucao', label: 'Evolução' },

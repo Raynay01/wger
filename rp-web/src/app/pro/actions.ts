@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
+import { userZone } from '@/lib/userZone';
+import { zonedToUtcIso } from '@/lib/zone';
 
 // Every form posts a hidden "back" path; errors are shown there as ?erro=
 
@@ -444,5 +446,35 @@ export async function updateFood(formData: FormData) {
 
 export async function deleteFood(formData: FormData) {
   await attempt(formData, () => api(`professional-food/${text(formData, 'id')}/`, { method: 'DELETE' }));
+  redirect(back(formData));
+}
+
+// Agenda
+
+export async function scheduleAppointment(formData: FormData) {
+  const zone = await userZone();
+  const local = `${text(formData, 'date')}T${text(formData, 'time')}`;
+  await attempt(formData, () =>
+    api('appointment/', {
+      method: 'POST',
+      body: {
+        relationship: text(formData, 'relationship'),
+        kind: text(formData, 'kind') || 'consultation',
+        start: zonedToUtcIso(local, zone),
+        duration_minutes: optionalNumber(formData, 'duration_minutes') ?? 60,
+        location: text(formData, 'location'),
+        notes: text(formData, 'notes'),
+      },
+    }),
+  );
+  redirect(withParam(back(formData), 'salvo', '1'));
+}
+
+export async function appointmentAction(formData: FormData) {
+  const action = text(formData, 'action');
+  if (!['cancel', 'done'].includes(action)) {
+    return;
+  }
+  await attempt(formData, () => api(`appointment/${text(formData, 'id')}/${action}/`, { method: 'POST' }));
   redirect(back(formData));
 }

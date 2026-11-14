@@ -36,6 +36,13 @@ export const ADHERENCE_LABELS: Record<string, string> = {
   skipped: 'Não segui',
 };
 
+export const KIND_LABELS: Record<string, string> = {
+  consultation: 'Consulta',
+  session: 'Sessão',
+  assessment: 'Avaliação',
+  follow_up: 'Retorno',
+};
+
 export const LOCATION_LABELS: Record<string, string> = {
   home: 'Em casa',
   gym: 'Na academia',

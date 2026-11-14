@@ -7,6 +7,8 @@ import { exerciseNames } from '@/lib/catalog';
 import { DISCIPLINE_LABELS } from '@/lib/brand';
 import { MOMENT_LABELS, SCOPE_LABELS, STATUS_LABELS, date, dateTime, number, shiftDate } from '@/lib/format';
 import type { Note, Paginated, Prescription, Relationship } from '@/lib/types';
+import { userZone } from '@/lib/userZone';
+import { todayIn } from '@/lib/zone';
 import { addAssessment, addNote, createPlan, createProtocol, createRoutine, relationshipAction } from '../../actions';
 
 export const metadata: Metadata = { title: 'Paciente' };
@@ -30,6 +32,7 @@ export default async function PatientFilePage({
   const config = PRESCRIPTION[relationship.discipline];
   const isOpen = relationship.status === 'active' || relationship.status === 'paused';
   const here = `/pro/pacientes/${rel}`;
+  const today = todayIn(await userZone());
 
   const [prescriptions, notes, shared] = await Promise.all([
     api<Paginated<Prescription & Record<string, any>>>(`${config.endpoint}/`, { query: { care_relationship: rel, limit: 100 } }),
@@ -94,12 +97,12 @@ export default async function PatientFilePage({
                 ))}
               </ul>
             )}
-            {isOpen && <NewPrescription relationship={relationship} here={here} />}
+            {isOpen && <NewPrescription relationship={relationship} here={here} today={today} />}
           </Card>
 
           {isOpen && relationship.discipline === 'nutrition' && <DiaryCard rel={rel} day={data} here={here} />}
           {isOpen && relationship.discipline === 'training' && <WorkoutLogsCard rel={rel} />}
-          {isOpen && relationship.discipline === 'physio' && <PhysioRecordsCard relationship={relationship} here={here} />}
+          {isOpen && relationship.discipline === 'physio' && <PhysioRecordsCard relationship={relationship} here={here} today={today} />}
         </div>
 
         <div className="flex flex-col gap-6">
@@ -159,8 +162,7 @@ export default async function PatientFilePage({
   );
 }
 
-function NewPrescription({ relationship, here }: { relationship: Relationship; here: string }) {
-  const today = new Date().toISOString().slice(0, 10);
+function NewPrescription({ relationship, here, today }: { relationship: Relationship; here: string; today: string }) {
   if (relationship.discipline === 'nutrition') {
     return (
       <form action={createPlan} className="mt-4 flex flex-wrap items-end gap-2">
@@ -288,7 +290,7 @@ async function WorkoutLogsCard({ rel }: { rel: string }) {
   );
 }
 
-async function PhysioRecordsCard({ relationship, here }: { relationship: Relationship; here: string }) {
+async function PhysioRecordsCard({ relationship, here, today }: { relationship: Relationship; here: string; today: string }) {
   const [pain, assessments] = await Promise.all([
     api<Paginated<any>>('pain-record/', { query: { user: relationship.patient ?? undefined, limit: 30 } }),
     api<Paginated<any>>('functional-assessment/', { query: { relationship: relationship.id, limit: 100 } }),
@@ -356,7 +358,7 @@ async function PhysioRecordsCard({ relationship, here }: { relationship: Relatio
             <input name="unit" placeholder="°, s, pontos, kg" className={inputClass} />
           </Field>
           <Field label="Data">
-            <input type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} className={inputClass} />
+            <input type="date" name="date" defaultValue={today} className={inputClass} />
           </Field>
           <div className="sm:col-span-3">
             <Button type="submit">Registrar avaliação</Button>

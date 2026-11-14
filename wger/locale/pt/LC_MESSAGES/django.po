@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: wger Workout Manager\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-14 02:46+0000\n"
+"POT-Creation-Date: 2026-11-14 02:57+0000\n"
 "PO-Revision-Date: 2026-04-21 18:09+0000\n"
 "Last-Translator: Ninguém Mesmo <weblate@rasparta.org>\n"
 "Language-Team: Portuguese <https://hosted.weblate.org/projects/wger/web/pt/>\n"
@@ -26,153 +26,165 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
 "X-Generator: Weblate 5.17.1-dev\n"
 
-#: care/api/prescription.py:78
+#: care/api/prescription.py:79
 msgid "A prescription cannot be moved to another patient."
 msgstr "Uma prescrição não pode ser transferida para outro paciente."
 
-#: care/api/prescription.py:89 physio/api/serializers.py:161
+#: care/api/prescription.py:90 physio/api/serializers.py:161
 msgid "You do not follow this patient in this discipline."
 msgstr "Você não acompanha este paciente nesta especialidade."
 
-#: care/api/prescription.py:93 care/api/serializers.py:208
+#: care/api/prescription.py:94 care/api/serializers.py:209
 msgid "You need a council registration for this discipline."
 msgstr "Você precisa de registro no conselho desta especialidade."
 
-#: care/api/prescription.py:131
+#: care/api/prescription.py:137
 msgid "You cannot change this prescription."
 msgstr "Você não pode alterar esta prescrição."
 
-#: care/api/prescription.py:149
+#: care/api/prescription.py:155
 msgid "Published versions are kept as history."
 msgstr "Versões publicadas são mantidas como histórico."
 
-#: care/api/prescription.py:165
+#: care/api/prescription.py:171
 msgid "Only drafts can be published."
 msgstr "Somente rascunhos podem ser publicados."
 
-#: care/api/prescription.py:176
+#: care/api/prescription.py:182
 msgid "This version is still a draft."
 msgstr "Esta versão ainda é um rascunho."
 
-#: care/api/prescription.py:185
+#: care/api/prescription.py:191
 msgid "There already is a draft for this prescription."
 msgstr "Já existe um rascunho para esta prescrição."
 
-#: care/api/prescription.py:195
+#: care/api/prescription.py:201
 msgid "Only published versions can be archived."
 msgstr "Somente versões publicadas podem ser arquivadas."
 
-#: care/api/serializers.py:81 care/api/serializers.py:197
+#: care/api/serializers.py:82 care/api/serializers.py:198
 msgid "This field is required."
 msgstr "Este campo é obrigatório."
 
-#: care/api/serializers.py:85
+#: care/api/serializers.py:86
 msgid "There is no user with this email address."
 msgstr "Não existe usuário com este e-mail."
 
-#: care/api/serializers.py:89
+#: care/api/serializers.py:90
 msgid "This user is already a member of the organization."
 msgstr "Este usuário já é membro da organização."
 
-#: care/api/serializers.py:107
+#: care/api/serializers.py:108
 msgid "Use the two letter code of the state."
 msgstr "Use a sigla de duas letras do estado."
 
-#: care/api/serializers.py:114
+#: care/api/serializers.py:115
 msgid "The discipline of a registration cannot be changed."
 msgstr "A especialidade de um registro não pode ser alterada."
 
-#: care/api/serializers.py:122
+#: care/api/serializers.py:123
 msgid "You already have a registration for this discipline."
 msgstr "Você já tem um registro para esta especialidade."
 
-#: care/api/serializers.py:188
+#: care/api/serializers.py:189
 msgid "Use the actions to change the status of a relationship."
 msgstr "Use as ações para mudar a situação de um acompanhamento."
 
-#: care/api/serializers.py:200
+#: care/api/serializers.py:201
 msgid "You cannot follow yourself as a patient."
 msgstr "Você não pode acompanhar a si mesmo como paciente."
 
-#: care/api/serializers.py:204
+#: care/api/serializers.py:205
 msgid "You cannot follow patients in this organization."
 msgstr "Você não pode acompanhar pacientes nesta organização."
 
-#: care/api/serializers.py:226
+#: care/api/serializers.py:227
 msgid "You already follow or invited this patient."
 msgstr "Você já acompanha ou convidou este paciente."
 
-#: care/api/serializers.py:238
+#: care/api/serializers.py:239
 msgid "You need to agree to be followed by this professional."
 msgstr "Você precisa concordar em ser acompanhado por este profissional."
 
-#: care/api/serializers.py:253
+#: care/api/serializers.py:254
 msgid "You can only share your own data."
 msgstr "Você só pode compartilhar os seus próprios dados."
 
-#: care/api/serializers.py:257
+#: care/api/serializers.py:258
 msgid "This professional does not follow you anymore."
 msgstr "Este profissional não acompanha mais você."
 
-#: care/api/serializers.py:264
+#: care/api/serializers.py:265
 msgid "You already share this."
 msgstr "Você já compartilha isto."
 
-#: care/api/serializers.py:302
+#: care/api/serializers.py:303
 msgid "The relationship of a note cannot be changed."
 msgstr "O acompanhamento de uma observação não pode ser alterado."
 
-#: care/api/serializers.py:304
+#: care/api/serializers.py:305 care/api/serializers.py:360
 msgid "You do not follow this patient."
 msgstr "Você não acompanha este paciente."
 
-#: care/api/serializers.py:319
+#: care/api/serializers.py:320
 msgid "Please confirm that you want to delete your account."
 msgstr "Confirme que você quer excluir a sua conta."
 
-#: care/api/views.py:162
+#: care/api/serializers.py:358
+msgid "The patient of an appointment cannot be changed."
+msgstr "O paciente de uma consulta não pode ser alterado."
+
+#: care/api/views.py:166
 msgid "An organization needs at least one owner."
 msgstr "Uma organização precisa de pelo menos um proprietário."
 
-#: care/api/views.py:273 care/api/views.py:307 care/api/views.py:336
+#: care/api/views.py:277 care/api/views.py:311 care/api/views.py:340
 msgid "This invitation is not open anymore."
 msgstr "Este convite não está mais aberto."
 
-#: care/api/views.py:276
+#: care/api/views.py:280
 msgid "The invitation was sent a few minutes ago, please wait a moment."
 msgstr "O convite foi enviado há poucos minutos, aguarde um pouco."
 
-#: care/api/views.py:279
+#: care/api/views.py:283
 msgid "The email could not be sent, please try again later."
 msgstr "Não foi possível enviar o e-mail, tente novamente mais tarde."
 
-#: care/api/views.py:314
+#: care/api/views.py:318
 msgid "This professional already follows you."
 msgstr "Este profissional já acompanha você."
 
-#: care/api/views.py:347
+#: care/api/views.py:351
 msgid "Only active relationships can be paused."
 msgstr "Somente acompanhamentos ativos podem ser pausados."
 
-#: care/api/views.py:357
+#: care/api/views.py:361
 msgid "Only paused relationships can be resumed."
 msgstr "Somente acompanhamentos pausados podem ser retomados."
 
-#: care/api/views.py:371
+#: care/api/views.py:375
 msgid "This relationship has already ended."
 msgstr "Este acompanhamento já foi encerrado."
 
-#: care/api/views.py:408 care/api/views.py:616
+#: care/api/views.py:412 care/api/views.py:620
 msgid "Use the format YYYY-MM-DD."
 msgstr "Use o formato AAAA-MM-DD."
 
-#: care/api/views.py:582
+#: care/api/views.py:586
 msgid "A valid integer is required."
 msgstr "Informe um número inteiro válido."
 
-#: care/api/views.py:677
+#: care/api/views.py:681
 msgid "Only pending requests can be cancelled."
 msgstr "Somente pedidos em análise podem ser cancelados."
+
+#: care/api/views.py:714
+msgid "The calendar covers at most 62 days."
+msgstr "O calendário abrange no máximo 62 dias."
+
+#: care/api/views.py:748 care/api/views.py:756 care/api/views.py:768
+msgid "Only scheduled appointments can be changed."
+msgstr "Somente consultas marcadas podem ser alteradas."
 
 #: care/disciplines.py:26 core/templates/navigation.html:28
 #: software/templates/features.html:461
@@ -205,6 +217,34 @@ msgstr "Nutricionista"
 msgid "%(professional)s invited you to %(app)s"
 msgstr "%(professional)s convidou você para o %(app)s"
 
+#: care/models/appointment.py:33
+msgid "Consultation"
+msgstr "Consulta"
+
+#: care/models/appointment.py:34
+msgid "Session"
+msgstr "Sessão"
+
+#: care/models/appointment.py:35
+msgid "Assessment"
+msgstr "Avaliação"
+
+#: care/models/appointment.py:36
+msgid "Follow-up"
+msgstr "Retorno"
+
+#: care/models/appointment.py:40
+msgid "Scheduled"
+msgstr "Marcada"
+
+#: care/models/appointment.py:41 care/models/data_request.py:32
+msgid "Done"
+msgstr "Concluído"
+
+#: care/models/appointment.py:42 care/models/data_request.py:33
+msgid "Cancelled"
+msgstr "Cancelado"
+
 #: care/models/data_request.py:26
 msgid "Data export"
 msgstr "Exportação dos dados"
@@ -216,14 +256,6 @@ msgstr "Exclusão da conta"
 #: care/models/data_request.py:31 care/models/registration.py:29
 msgid "Pending"
 msgstr "Pendente"
-
-#: care/models/data_request.py:32
-msgid "Done"
-msgstr "Concluído"
-
-#: care/models/data_request.py:33
-msgid "Cancelled"
-msgstr "Cancelado"
 
 #: care/models/data_request.py:34 care/models/registration.py:31
 msgid "Rejected"
@@ -4102,9 +4134,6 @@ msgstr "Re-submeter"
 #~ msgid "Order"
 #~ msgstr "Ordem"
 
-#~ msgid "Session"
-#~ msgstr "Sessão"
-
 #~ msgid "Creation date"
 #~ msgstr "Data criação"
 
@@ -4515,9 +4544,6 @@ msgstr "Re-submeter"
 
 #~ msgid "Add schedule"
 #~ msgstr "Adicionar cronograma"
-
-#~ msgid "Schedule"
-#~ msgstr "Agendar"
 
 #~ msgid ""
 #~ "This schedule is a loop and will go through the workouts above till you "

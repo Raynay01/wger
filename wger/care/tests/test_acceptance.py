@@ -459,6 +459,21 @@ class PrescriptionTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         response = self.client.get(reverse('nutritionplan-detail', kwargs={'pk': plan.pk}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_start_is_the_patients_today(self):
+        """A plan without start date starts on the calendar day of the patient"""
+        # A zone whose calendar day differs from the UTC one right now
+        zone = 'Pacific/Pago_Pago' if timezone.now().hour < 11 else 'Pacific/Kiritimati'
+        self.patient.userprofile.time_zone = zone
+        self.patient.userprofile.save()
+        self.client.force_authenticate(self.nutritionist)
+        response = self.client.post(
+            reverse('nutritionplan-list'),
+            {'description': 'Plano', 'care_relationship': str(self.nutrition_rel.pk)},
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        expected = timezone.localdate(timezone=self.patient.userprofile.zone_info)
+        self.assertEqual(response.data['start'], expected.isoformat())
+
     def test_self_managed_plans_unchanged(self):
         """Users without professionals keep editing their own plans"""
         self.client.force_authenticate(self.patient)

@@ -19,6 +19,7 @@
 | Fisioterapia: protocolos, exercícios com dosagem e vídeo, dor 0 a 10 por momento, alertas, exercícios realizados, avaliações funcionais | Pronto | `wger/physio` |
 | Banco de alimentos TACO: 590 alimentos brasileiros em português, com categoria, fibra e sódio, fonte citada | Pronto: `manage.py import-taco-products` (rodar uma vez em cada servidor; rodar de novo atualiza). Ficam de fora os 7 itens sem valores na própria TACO (6 laticínios e a aguardente). Óleos recebem proteína e carboidrato 0 por balanço de massa (99,5 g ou mais de gordura em 100 g). Inclui 688 medidas caseiras (colher de sopa, concha, xícara...) com os gramas da POF/IBGE, que o nutricionista escolhe no construtor de dietas | `wger/nutrition/extract_info/taco.py` |
 | Alimentos cadastrados por nutricionistas (novos ou correções de alimentos existentes), compartilhados com todos e marcados com a organização como autora | Pronto: tela Alimentos na área profissional. A correção copia valores e medidas do original, que não muda; edição e exclusão só enquanto o alimento não estiver em dietas publicadas ou diários | `wger/nutrition/professional_foods.py` |
+| Agenda e calendário integrado: consultas, sessões e avaliações marcadas pelo profissional; calendário mensal do paciente com treino ou descanso, plano alimentar, fisioterapia e consultas, com filtros por área | Pronto. O app web grava o fuso do navegador no perfil, e os dias contam no fuso do paciente | `wger/care/agenda.py` |
 | LGPD: exportar todos os dados (JSON) e pedir a exclusão da conta | Pronto. O pedido encerra os acompanhamentos na hora; a exclusão é feita pelo administrador no admin do Django, que bloqueia enquanto houver registros clínicos de profissionais (avaliações, observações) | `wger/care/export.py`, `wger/care/deletion.py` |
 
 Testes: 59 novos testes em `wger/care/tests` e `wger/physio/tests`. A suíte completa (2.569 testes) passa, exceto `test_sync_exercises`, que depende de acesso a `wger.de` (bloqueado nesta sessão; falha igual sem as mudanças).
@@ -79,7 +80,7 @@ O mesmo vale para treino (`/api/v2/routine/`, vínculo `training`) e fisioterapi
 - TBCA (após autorização) e nutrientes anuláveis.
 - Anamnese e avaliação nutricional, antropometria, cálculo de necessidades energéticas.
 - Periodização (macro e mesociclos), vídeos de execução enviados pelo aluno.
-- Agenda e calendário integrado, chat com mídia.
+- Chat com mídia.
 - RP Intelligence (Fase 5), assinaturas e pagamentos (Fase 6), Row Level Security.
 - Política de guarda de prontuário: decidir com um advogado o que fazer com avaliações e observações clínicas quando o paciente pede a exclusão (hoje a exclusão fica bloqueada até essa decisão).
 - Traduções em português: as novas mensagens estão nos arquivos `.po`, traduzidas via Weblate. Em um fork próprio, as traduções `pt_BR` podem ser feitas direto no arquivo.

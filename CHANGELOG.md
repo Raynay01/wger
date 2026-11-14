@@ -63,6 +63,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   that whole grams would change by more than 5% are left out.
 * `/api/v2/care/my-day/` gives the household measure and the grams of each
   prescribed meal item.
+* Agenda: professionals schedule consultations, sessions and assessments
+  (`/api/v2/appointment/`), both sides can cancel. `/api/v2/care/calendar/`
+  gives the patient's days (training or rest, food plan, physio protocols,
+  appointments) in the patient's timezone. Prescriptions created without a
+  start date start on the patient's calendar day instead of the server's.
 * Nutritionists add foods to the shared database or correct an existing one
   (`/api/v2/professional-food/`). The food is public like any other, marked
   as "Cadastro profissional" with the organization as author; a correction

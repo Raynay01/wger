@@ -19,6 +19,7 @@ API pieces shared by the prescription endpoints of all modules
 
 # Django
 from django.db import transaction
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 # Third Party
@@ -102,6 +103,11 @@ class PrescriptionSerializerMixin(serializers.Serializer):
 
         instance = self.Meta.model()
         start_prescription(instance, relationship, self.context['request'].user)
+        # Without a start date the prescription starts on the patient's today, not the server's
+        if 'start' not in self.initial_data and 'start' in self.fields:
+            validated_data['start'] = timezone.localdate(
+                timezone=relationship.patient.userprofile.zone_info
+            )
         for field in (
             'user',
             'author',

@@ -40,6 +40,7 @@ from rest_framework.views import APIView
 
 # wger
 from wger.care import (
+    agenda,
     deletion,
     export,
     invitations,
@@ -49,6 +50,7 @@ from wger.care import (
 from wger.care.api.serializers import (
     AcceptInvitationSerializer,
     AccessGrantSerializer,
+    AppointmentSerializer,
     CareRelationshipSerializer,
     ConsentRecordSerializer,
     DataRequestSerializer,
@@ -64,6 +66,8 @@ from wger.care.disciplines import Discipline
 from wger.care.models import (
     OPEN_STATUSES,
     AccessGrant,
+    Appointment,
+    AppointmentStatus,
     CareRelationship,
     ConsentKind,
     ConsentRecord,
@@ -679,6 +683,92 @@ class DataRequestViewSet(
         data_request.completed_at = timezone.now()
         data_request.save()
         return Response(self.get_serializer(data_request).data)
+
+
+class CalendarView(APIView):
+    """
+    The patient's calendar: training or rest, food plan, physio protocols and
+    appointments of each day, in the patient's timezone (at most 62 days)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter('start', str, description='First day, YYYY-MM-DD'),
+            OpenApiParameter('end', str, description='Last day, YYYY-MM-DD'),
+        ],
+        responses={200: dict},
+    )
+    def get(self, request):
+        today = timezone.localdate(timezone=request.user.userprofile.zone_info)
+        try:
+            start = datetime.date.fromisoformat(request.query_params.get('start') or '')
+        except ValueError:
+            start = today.replace(day=1)
+        try:
+            end = datetime.date.fromisoformat(request.query_params.get('end') or '')
+        except ValueError:
+            end = start + datetime.timedelta(days=41)
+        if end < start or (end - start).days >= agenda.MAX_DAYS:
+            raise exceptions.ValidationError({'end': _('The calendar covers at most 62 days.')})
+        return Response(agenda.patient_calendar(request.user, start, end))
+
+
+class AppointmentViewSet(viewsets.ModelViewSet):
+    """
+    Appointments of the user, as professional or as patient. Professionals
+    schedule, change and complete them; both sides can cancel.
+    """
+
+    serializer_class = AppointmentSerializer
+    permission_classes = [IsAuthenticated]
+    filterset_fields = {
+        'start': ['gte', 'lt'],
+        'status': ['exact'],
+        'relationship': ['exact'],
+    }
+    http_method_names = ['get', 'post', 'patch', 'head', 'options']
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Appointment.objects.none()
+        user = self.request.user
+        return Appointment.objects.filter(
+            Q(relationship__professional=user) | Q(relationship__patient=user)
+        ).select_related('relationship__professional', 'relationship__patient')
+
+    def _check_professional(self, appointment):
+        if appointment.relationship.professional_id != self.request.user.id:
+            raise exceptions.PermissionDenied()
+
+    def perform_update(self, serializer):
+        self._check_professional(serializer.instance)
+        if serializer.instance.status != AppointmentStatus.SCHEDULED:
+            raise exceptions.ValidationError(_('Only scheduled appointments can be changed.'))
+        serializer.save()
+
+    @extend_schema(request=None, responses=AppointmentSerializer)
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk):
+        appointment = self.get_object()
+        if appointment.status != AppointmentStatus.SCHEDULED:
+            raise exceptions.ValidationError(_('Only scheduled appointments can be changed.'))
+        appointment.status = AppointmentStatus.CANCELLED
+        appointment.cancelled_by = request.user
+        appointment.save()
+        return Response(self.get_serializer(appointment).data)
+
+    @extend_schema(request=None, responses=AppointmentSerializer)
+    @action(detail=True, methods=['post'])
+    def done(self, request, pk):
+        appointment = self.get_object()
+        self._check_professional(appointment)
+        if appointment.status != AppointmentStatus.SCHEDULED:
+            raise exceptions.ValidationError(_('Only scheduled appointments can be changed.'))
+        appointment.status = AppointmentStatus.DONE
+        appointment.save()
+        return Response(self.get_serializer(appointment).data)
 
 
 class ModulesView(APIView):

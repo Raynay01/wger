@@ -1,9 +1,12 @@
+import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { ZONE_COOKIE } from '@/lib/zone';
+import { TimezoneSync } from './TimezoneSync';
 import { Logo } from './ui';
 
 type NavItem = { href: string; label: string };
 
-export function AppShell({
+export async function AppShell({
   area,
   nav,
   switchTo,
@@ -14,8 +17,10 @@ export function AppShell({
   switchTo?: { href: string; label: string };
   children: React.ReactNode;
 }) {
+  const zone = (await cookies()).get(ZONE_COOKIE)?.value ?? null;
   return (
     <div className="min-h-dvh">
+      <TimezoneSync current={zone} />
       <header className="sticky top-0 z-10 bg-navy-900 text-white shadow">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <Link href="/inicio" aria-label="Início">
