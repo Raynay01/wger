@@ -1,4 +1,4 @@
-import { ACTIVITY_LABELS, EQUATION_LABELS, bmiClass, date, number } from '@/lib/format';
+import { ACTIVITY_LABELS, EQUATION_LABELS, SKINFOLD_PROTOCOLS, bmiClass, date, number } from '@/lib/format';
 import type { NutritionalAssessment } from '@/lib/types';
 
 function Tile({ label, value, hint, strong = false }: { label: string; value: string; hint?: string; strong?: boolean }) {
@@ -30,7 +30,14 @@ export function NutritionalAssessmentSummary({ assessment }: { assessment: Nutri
         <Tile
           label="Gordura corporal"
           value={assessment.body_fat ? `${number(assessment.body_fat, 1)}%` : '–'}
-          hint={assessment.lean_mass ? `Massa magra ${number(assessment.lean_mass, 1)} kg` : undefined}
+          hint={
+            [
+              assessment.lean_mass && `Massa magra ${number(assessment.lean_mass, 1)} kg`,
+              assessment.skinfold_protocol && `${SKINFOLD_PROTOCOLS[assessment.skinfold_protocol].label}, soma ${number(assessment.skinfold_sum, 1)} mm`,
+            ]
+              .filter(Boolean)
+              .join(' · ') || undefined
+          }
         />
       </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -43,6 +50,13 @@ export function NutritionalAssessmentSummary({ assessment }: { assessment: Nutri
           strong
         />
       </div>
+      {assessment.macros && (
+        <div className="grid grid-cols-3 gap-2">
+          <Tile label="Proteínas" value={`${number(assessment.macros.protein)} g`} hint={`${number(assessment.protein_per_kg, 1)} g/kg`} />
+          <Tile label="Carboidratos" value={`${number(assessment.macros.carbohydrates)} g`} hint="O restante das calorias" />
+          <Tile label="Gorduras" value={`${number(assessment.macros.fat)} g`} hint={`${assessment.fat_percent}% das calorias`} />
+        </div>
+      )}
       {assessment.notes && <p className="text-sm text-gray-700">{assessment.notes}</p>}
     </div>
   );

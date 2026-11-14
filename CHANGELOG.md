@@ -97,6 +97,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   expenditure with the activity factor and the daily target with the goal's
   adjustment. The patient reads them; the records are exported and, like the
   functional assessments, block the account deletion until clarified.
+  An assessment can compute the body fat from skinfolds (`skinfold_protocol`
+  Jackson-Pollock 3 or 7 sites or Durnin-Womersley, `skinfolds` in mm, Siri's
+  equation) and split the target into macronutrients (`protein_per_kg`,
+  `fat_percent`; carbohydrates take the rest, returned in `macros`).
 * Nutritionists add foods to the shared database or correct an existing one
   (`/api/v2/professional-food/`). The food is public like any other, marked
   as "Cadastro profissional" with the organization as author; a correction

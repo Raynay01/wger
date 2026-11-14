@@ -251,9 +251,15 @@ export type NutritionalAssessment = {
   waist: string | null;
   hip: string | null;
   body_fat: string | null;
+  skinfold_protocol: '' | 'jp3' | 'jp7' | 'durnin';
+  skinfolds: Record<string, number>;
+  skinfold_sum: string | null;
   activity_level: string;
   equation: string;
   energy_adjustment: number;
+  protein_per_kg: string | null;
+  fat_percent: number | null;
+  macros: { protein: number; carbohydrates: number; fat: number } | null;
   notes: string;
   bmi: string;
   waist_hip_ratio: string | null;

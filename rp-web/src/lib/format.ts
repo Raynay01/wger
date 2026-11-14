@@ -149,3 +149,20 @@ export function bmiClass(bmi: number): string {
   if (bmi < 40) return 'Obesidade grau II';
   return 'Obesidade grau III';
 }
+
+export const SKINFOLD_PROTOCOLS: Record<string, { label: string; sites: string }> = {
+  jp3: { label: 'Jackson-Pollock 3 dobras', sites: 'Homens: peitoral, abdominal, coxa. Mulheres: tríceps, suprailíaca, coxa.' },
+  jp7: { label: 'Jackson-Pollock 7 dobras', sites: 'Peitoral, axilar média, tríceps, subescapular, abdominal, suprailíaca, coxa.' },
+  durnin: { label: 'Durnin-Womersley 4 dobras', sites: 'Bíceps, tríceps, subescapular, suprailíaca.' },
+};
+
+export const SKINFOLD_SITES: [string, string][] = [
+  ['chest', 'Peitoral'],
+  ['midaxillary', 'Axilar média'],
+  ['triceps', 'Tríceps'],
+  ['subscapular', 'Subescapular'],
+  ['abdomen', 'Abdominal'],
+  ['suprailiac', 'Suprailíaca'],
+  ['thigh', 'Coxa'],
+  ['biceps', 'Bíceps'],
+];

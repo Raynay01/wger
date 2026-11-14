@@ -160,9 +160,17 @@ export async function addNutritionalAssessment(formData: FormData) {
         waist: optionalNumber(formData, 'waist'),
         hip: optionalNumber(formData, 'hip'),
         body_fat: optionalNumber(formData, 'body_fat'),
+        skinfold_protocol: text(formData, 'skinfold_protocol'),
+        skinfolds: Object.fromEntries(
+          ['chest', 'midaxillary', 'triceps', 'subscapular', 'abdomen', 'suprailiac', 'thigh', 'biceps']
+            .map(site => [site, optionalNumber(formData, `skinfold_${site}`)])
+            .filter(([, mm]) => mm !== null),
+        ),
         activity_level: text(formData, 'activity_level'),
         equation: text(formData, 'equation'),
         energy_adjustment: optionalNumber(formData, 'energy_adjustment') ?? 0,
+        protein_per_kg: optionalNumber(formData, 'protein_per_kg'),
+        fat_percent: optionalNumber(formData, 'fat_percent'),
         notes: text(formData, 'notes'),
       },
     }),
@@ -219,6 +227,11 @@ export async function createPlan(formData: FormData) {
         description: text(formData, 'description') || 'Plano alimentar',
         care_relationship: relationship,
         ...(optionalNumber(formData, 'goal_energy') !== null && { goal_energy: optionalNumber(formData, 'goal_energy'), has_goal_calories: true }),
+        ...Object.fromEntries(
+          ['goal_protein', 'goal_carbohydrates', 'goal_fat']
+            .map(key => [key, optionalNumber(formData, key)])
+            .filter(([, value]) => value !== null),
+        ),
       },
     });
     id = plan.id;

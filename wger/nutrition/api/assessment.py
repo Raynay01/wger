@@ -40,6 +40,10 @@ from wger.nutrition.models import (
     NutritionalAnamnesis,
     NutritionalAssessment,
 )
+from wger.nutrition.models.assessment import (
+    SKINFOLD_SITES,
+    skinfold_sites,
+)
 
 
 class ClinicalRecordSerializerMixin(serializers.Serializer):
@@ -87,6 +91,12 @@ class NutritionalAnamnesisSerializer(ClinicalRecordSerializerMixin, serializers.
         read_only_fields = ('created',)
 
 
+class MacrosSerializer(serializers.Serializer):
+    protein = serializers.IntegerField(help_text='g')
+    carbohydrates = serializers.IntegerField(help_text='g')
+    fat = serializers.IntegerField(help_text='g')
+
+
 class NutritionalAssessmentSerializer(
     ClinicalRecordSerializerMixin,
     serializers.ModelSerializer,
@@ -104,6 +114,13 @@ class NutritionalAssessmentSerializer(
         read_only=True,
         allow_null=True,
     )
+    skinfold_sum = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        read_only=True,
+        allow_null=True,
+    )
+    macros = MacrosSerializer(read_only=True, allow_null=True)
     basal_energy = serializers.IntegerField(read_only=True)
     total_energy = serializers.IntegerField(read_only=True)
     target_energy = serializers.IntegerField(read_only=True)
@@ -122,9 +139,15 @@ class NutritionalAssessmentSerializer(
             'waist',
             'hip',
             'body_fat',
+            'skinfold_protocol',
+            'skinfolds',
+            'skinfold_sum',
             'activity_level',
             'equation',
             'energy_adjustment',
+            'protein_per_kg',
+            'fat_percent',
+            'macros',
             'notes',
             'bmi',
             'waist_hip_ratio',
@@ -136,11 +159,35 @@ class NutritionalAssessmentSerializer(
         )
         read_only_fields = ('created',)
 
+    def validate_skinfolds(self, value):
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(_('This must be an object.'))
+        for site, mm in value.items():
+            if site not in SKINFOLD_SITES:
+                raise serializers.ValidationError(_('Unknown skinfold site: %s') % site)
+            if not isinstance(mm, (int, float)) or isinstance(mm, bool) or not 1 <= mm <= 80:
+                raise serializers.ValidationError(
+                    _('A skinfold must be between 1 and 80 mm (%s).') % site
+                )
+        return value
+
     def validate(self, data):
         data = super().validate(data)
-        equation = data.get('equation', getattr(self.instance, 'equation', None))
-        body_fat = data.get('body_fat', getattr(self.instance, 'body_fat', None))
-        if equation == EnergyEquation.KATCH_MCARDLE and body_fat is None:
+
+        def current(key):
+            return data.get(key, getattr(self.instance, key, None))
+
+        protocol = current('skinfold_protocol')
+        if protocol:
+            skinfolds = current('skinfolds') or {}
+            missing = [s for s in skinfold_sites(protocol, current('sex')) if s not in skinfolds]
+            if missing:
+                raise serializers.ValidationError(
+                    {'skinfolds': _('Missing skinfolds: %s') % ', '.join(missing)}
+                )
+
+        has_body_fat = current('body_fat') is not None or bool(protocol)
+        if current('equation') == EnergyEquation.KATCH_MCARDLE and not has_body_fat:
             raise serializers.ValidationError(
                 {'body_fat': _('The Katch-McArdle equation needs the body fat.')}
             )

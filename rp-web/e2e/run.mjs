@@ -90,6 +90,7 @@ async function pick(page, label, term, scope = page) {
 }
 
 async function shot(page, name) {
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: path.join(shots, `${name}.png`), fullPage: true, caret: 'initial' });
 }
 
@@ -456,13 +457,23 @@ try {
   await bruno.getByLabel('Cintura (cm)').fill('70');
   await bruno.getByLabel('Quadril (cm)').fill('98');
   await bruno.getByLabel('Ajuste (kcal)').fill('-400');
+  await bruno.getByText('Dobras cutâneas (mm)').click();
+  await bruno.getByRole('combobox', { name: /^Protocolo/ }).selectOption('jp3');
+  await bruno.getByLabel('Tríceps', { exact: true }).fill('18');
+  await bruno.getByLabel('Suprailíaca', { exact: true }).fill('15');
+  await bruno.getByLabel('Coxa', { exact: true }).fill('25');
+  await bruno.getByLabel('Proteína (g/kg)').fill('1,6');
+  await bruno.getByLabel('Gordura (% das kcal)').fill('30');
   await bruno.getByRole('button', { name: 'Calcular e registrar' }).click();
   await bruno.getByRole('button', { name: /Criar plano com 1\.484 kcal/ }).waitFor();
   assert(await bruno.getByText('1.370 kcal').isVisible(), 'taxa metabólica basal (Mifflin)');
   assert(await bruno.getByText('1.884 kcal').isVisible(), 'gasto energético total');
   assert(await bruno.getByText('Eutrofia').isVisible(), 'classificação do IMC');
+  assert(await bruno.getByText('23,5%').isVisible(), '% de gordura pelas dobras (Jackson-Pollock 3)');
+  assert(await bruno.getByText('104 g').isVisible(), 'proteínas: 1,6 g/kg');
+  assert(await bruno.getByText('157 g').isVisible(), 'carboidratos: o restante');
   await shot(bruno, '12-avaliacao-nutricional');
-  log('Bruno registrou a anamnese e a avaliação; a meta de 1.484 kcal foi calculada');
+  log('Bruno registrou a anamnese e a avaliação com dobras; meta de 1.484 kcal dividida em macros');
 
   await ana.goto(`${WEB}/app/evolucao`);
   await ana.getByText('1.484 kcal').waitFor();

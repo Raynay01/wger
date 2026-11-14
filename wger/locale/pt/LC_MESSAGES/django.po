@@ -207,6 +207,33 @@ msgid "The routine must belong to the patient of the plan."
 msgstr "O treino precisa ser do mesmo paciente da periodização."
 
 #: nutrition/models/assessment.py
+msgid "Jackson-Pollock, 3 skinfolds"
+msgstr "Jackson-Pollock, 3 dobras"
+
+#: nutrition/models/assessment.py
+msgid "Jackson-Pollock, 7 skinfolds"
+msgstr "Jackson-Pollock, 7 dobras"
+
+#: nutrition/models/assessment.py
+msgid "Durnin-Womersley, 4 skinfolds"
+msgstr "Durnin-Womersley, 4 dobras"
+
+#: nutrition/api/assessment.py
+#, python-format
+msgid "Unknown skinfold site: %s"
+msgstr "Local de dobra desconhecido: %s"
+
+#: nutrition/api/assessment.py
+#, python-format
+msgid "A skinfold must be between 1 and 80 mm (%s)."
+msgstr "Uma dobra precisa ter entre 1 e 80 mm (%s)."
+
+#: nutrition/api/assessment.py
+#, python-format
+msgid "Missing skinfolds: %s"
+msgstr "Faltam as dobras: %s"
+
+#: nutrition/models/assessment.py
 msgid "Sedentary"
 msgstr "Sedentário"
 

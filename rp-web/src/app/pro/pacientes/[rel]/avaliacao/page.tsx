@@ -4,7 +4,7 @@ import { ErrorFromQuery } from '@/components/ErrorFromQuery';
 import { NutritionalAssessmentSummary } from '@/components/NutritionalAssessmentSummary';
 import { Button, Card, Empty, Field, inputClass } from '@/components/ui';
 import { api } from '@/lib/api';
-import { ACTIVITY_LABELS, EQUATION_LABELS, date, number } from '@/lib/format';
+import { ACTIVITY_LABELS, EQUATION_LABELS, SKINFOLD_PROTOCOLS, SKINFOLD_SITES, date, number } from '@/lib/format';
 import { ANAMNESIS_FIELDS } from '@/lib/types';
 import type { NutritionalAnamnesis, NutritionalAssessment, Paginated, Relationship } from '@/lib/types';
 import { userZone } from '@/lib/userZone';
@@ -52,6 +52,13 @@ export default async function NutritionalAssessmentPage({
                   <input type="hidden" name="back" value={here} />
                   <input type="hidden" name="relationship" value={rel} />
                   <input type="hidden" name="goal_energy" value={latest.target_energy} />
+                  {latest.macros && (
+                    <>
+                      <input type="hidden" name="goal_protein" value={latest.macros.protein} />
+                      <input type="hidden" name="goal_carbohydrates" value={latest.macros.carbohydrates} />
+                      <input type="hidden" name="goal_fat" value={latest.macros.fat} />
+                    </>
+                  )}
                   <Field label="Plano alimentar com esta meta">
                     <input name="description" placeholder="Ex.: Emagrecimento" maxLength={80} className={inputClass} />
                   </Field>
@@ -134,9 +141,38 @@ export default async function NutritionalAssessmentPage({
               <Field label="Quadril (cm)">
                 <input name="hip" inputMode="decimal" className={inputClass} />
               </Field>
-              <Field label="Gordura corporal (%)" hint="Dobras ou bioimpedância">
+              <Field label="Gordura corporal (%)" hint="Bioimpedância, ou deixe para as dobras">
                 <input name="body_fat" inputMode="decimal" className={inputClass} />
               </Field>
+              <details className="sm:col-span-4 rounded-xl border border-navy-100 p-3" open={Boolean(latest?.skinfold_protocol)}>
+                <summary className="cursor-pointer text-sm font-semibold text-navy-700">Dobras cutâneas (mm)</summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                  <div className="sm:col-span-4">
+                    <Field label="Protocolo" hint="Com protocolo, o % de gordura é calculado pelas dobras (equação de Siri).">
+                      <select name="skinfold_protocol" defaultValue={latest?.skinfold_protocol ?? ''} className={inputClass}>
+                        <option value="">Não usar dobras</option>
+                        {Object.entries(SKINFOLD_PROTOCOLS).map(([value, { label }]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <ul className="mt-2 text-xs text-gray-500">
+                      {Object.values(SKINFOLD_PROTOCOLS).map(({ label, sites }) => (
+                        <li key={label}>
+                          <strong className="font-semibold">{label}:</strong> {sites}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {SKINFOLD_SITES.map(([site, label]) => (
+                    <Field key={site} label={label}>
+                      <input name={`skinfold_${site}`} inputMode="decimal" className={inputClass} />
+                    </Field>
+                  ))}
+                </div>
+              </details>
               <div className="sm:col-span-2">
                 <Field label="Nível de atividade">
                   <select name="activity_level" defaultValue={latest?.activity_level ?? 'light'} className={inputClass}>
@@ -159,6 +195,12 @@ export default async function NutritionalAssessmentPage({
               </Field>
               <Field label="Ajuste (kcal)" hint="Ex.: −500 para perder peso">
                 <input name="energy_adjustment" type="number" min={-1500} max={1500} step={50} defaultValue={latest?.energy_adjustment ?? 0} className={inputClass} />
+              </Field>
+              <Field label="Proteína (g/kg)" hint="Com a gordura, divide a meta em macros">
+                <input name="protein_per_kg" inputMode="decimal" defaultValue={latest?.protein_per_kg ?? ''} className={inputClass} />
+              </Field>
+              <Field label="Gordura (% das kcal)">
+                <input name="fat_percent" type="number" min={10} max={70} defaultValue={latest?.fat_percent ?? ''} className={inputClass} />
               </Field>
               <div className="sm:col-span-4">
                 <Field label="Observações">

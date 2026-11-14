@@ -57,6 +57,7 @@ class NutritionalAssessmentTestCase(CareScenarioMixin, BaseTestCase, APITestCase
         return self.client.post(
             reverse('nutritional-assessment-list'),
             {'relationship': str(self.nutrition_rel.pk), **self.payload, **data},
+            format='json',
         )
 
     def test_energy_needs(self):
@@ -84,7 +85,7 @@ class NutritionalAssessmentTestCase(CareScenarioMixin, BaseTestCase, APITestCase
         # 447.593 + 9.247 * 65 + 3.098 * 165 - 4.330 * 30 = 1429.9
         self.assertEqual(response.data['basal_energy'], 1430)
 
-        response = self.create(equation='katch_mcardle', body_fat='25', waist='', hip='')
+        response = self.create(equation='katch_mcardle', body_fat='25', waist=None, hip=None)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         # 370 + 21.6 * 48.75 = 1423
         self.assertEqual(response.data['basal_energy'], 1423)
@@ -166,3 +167,65 @@ class NutritionalAssessmentTestCase(CareScenarioMixin, BaseTestCase, APITestCase
         done, reason = execute_deletion(request_deletion(self.patient))
         self.assertFalse(done)
         self.assertIn('nutritional_assessments', reason)
+
+    def test_skinfolds(self):
+        """Jackson-Pollock 3 and 7 and Durnin-Womersley set the body fat by Siri's equation"""
+        response = self.create(
+            skinfold_protocol='jp3',
+            skinfolds={'triceps': 18, 'suprailiac': 15, 'thigh': 25.0, 'chest': 9},
+            body_fat='40',
+            equation='katch_mcardle',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        # Sum 58 mm, density 1.04547, 495 / density - 450 = 23.47
+        self.assertEqual(response.data['skinfold_sum'], '58.0')
+        self.assertEqual(response.data['body_fat'], '23.5')
+        # 370 + 21.6 * 65 * 0.765
+        self.assertEqual(response.data['basal_energy'], 1444)
+
+        response = self.create(
+            sex='male',
+            age=42,
+            skinfold_protocol='jp7',
+            skinfolds={
+                'chest': 10,
+                'midaxillary': 12,
+                'triceps': 9,
+                'subscapular': 14,
+                'abdomen': 20,
+                'suprailiac': 13,
+                'thigh': 15,
+            },
+        )
+        self.assertEqual(response.data['body_fat'], '15.1')
+
+        response = self.create(
+            age=35,
+            skinfold_protocol='durnin',
+            skinfolds={'biceps': 6, 'triceps': 12, 'subscapular': 14, 'suprailiac': 15},
+        )
+        # Women 30 to 39: density 1.1423 - 0.0632 * log10(47)
+        self.assertEqual(response.data['body_fat'], '27.5')
+
+    def test_skinfolds_validation(self):
+        """Every site of the protocol is needed; unknown sites and values are refused"""
+        response = self.create(skinfold_protocol='jp3', skinfolds={'triceps': 18})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('suprailiac', str(response.data['skinfolds']))
+
+        response = self.create(skinfolds={'nose': 3})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = self.create(skinfolds={'triceps': 120})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_macros(self):
+        """Protein by g/kg, fat by its share of the target, carbohydrates the rest"""
+        response = self.create(protein_per_kg='1.6', fat_percent=30)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        # 65 * 1.6 = 104 g; 1484 * 0.3 / 9 = 49 g; (1484 - 416 - 441) / 4 = 157 g
+        self.assertEqual(
+            response.data['macros'],
+            {'protein': 104, 'carbohydrates': 157, 'fat': 49},
+        )
+        self.assertIsNone(self.create().data['macros'])

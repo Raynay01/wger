@@ -22,6 +22,7 @@ from .assessment import (
     NutritionalAnamnesis,
     NutritionalAssessment,
     Sex,
+    SkinfoldProtocol,
 )
 from .image import Image
 from .ingredient import Ingredient

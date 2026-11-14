@@ -471,6 +471,27 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
+                    'skinfold_protocol',
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ('jp3', 'Jackson-Pollock, 3 skinfolds'),
+                            ('jp7', 'Jackson-Pollock, 7 skinfolds'),
+                            ('durnin', 'Durnin-Womersley, 4 skinfolds'),
+                        ],
+                        help_text='When set, the body fat is computed from the skinfolds',
+                        max_length=6,
+                    ),
+                ),
+                (
+                    'skinfolds',
+                    models.JSONField(
+                        blank=True,
+                        default=dict,
+                        help_text='Skinfolds in mm by site, e.g. {"triceps": 18}',
+                    ),
+                ),
+                (
                     'activity_level',
                     models.CharField(
                         choices=[
@@ -504,6 +525,32 @@ class Migration(migrations.Migration):
                         validators=[
                             django.core.validators.MinValueValidator(-1500),
                             django.core.validators.MaxValueValidator(1500),
+                        ],
+                    ),
+                ),
+                (
+                    'protein_per_kg',
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=1,
+                        help_text='Protein target in g per kg of body weight',
+                        max_digits=3,
+                        null=True,
+                        validators=[
+                            django.core.validators.MinValueValidator(Decimal('0.5')),
+                            django.core.validators.MaxValueValidator(Decimal('4')),
+                        ],
+                    ),
+                ),
+                (
+                    'fat_percent',
+                    models.PositiveSmallIntegerField(
+                        blank=True,
+                        help_text='Share of the target energy from fat, in percent',
+                        null=True,
+                        validators=[
+                            django.core.validators.MinValueValidator(10),
+                            django.core.validators.MaxValueValidator(70),
                         ],
                     ),
                 ),
