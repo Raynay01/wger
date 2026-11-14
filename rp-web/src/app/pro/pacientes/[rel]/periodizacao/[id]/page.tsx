@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import { ErrorFromQuery } from '@/components/ErrorFromQuery';
 import { PeriodizationTimeline } from '@/components/PeriodizationTimeline';
+import { PlanProgressChart } from '@/components/PlanProgressChart';
 import { PrescriptionHeader } from '@/components/PrescriptionHeader';
 import { Button, Card, Empty, Field, inputClass } from '@/components/ui';
 import { addTrainingBlock, deleteTrainingBlock, updateTrainingPlan } from '@/app/pro/actions';
 import { api } from '@/lib/api';
 import { FOCUS_COLORS, FOCUS_LABELS, GOAL_LABELS, STATUS_LABELS, date } from '@/lib/format';
-import type { Paginated, TrainingPlan } from '@/lib/types';
+import type { Paginated, PlanProgress, TrainingPlan } from '@/lib/types';
 import { userZone } from '@/lib/userZone';
 import { todayIn } from '@/lib/zone';
 
@@ -31,6 +32,7 @@ export default async function PeriodizationBuilderPage({
     ? (await api<Paginated<TrainingPlan>>('training-plan/', { query: { lineage_id: plan.lineage_id, limit: 100 } })).results
     : [plan];
   const editable = plan.status === 'draft';
+  const progress = !editable && plan.blocks.length > 0 ? await api<PlanProgress>(`training-plan/${id}/progress/`) : null;
   const here = `/pro/pacientes/${rel}/periodizacao/${id}`;
   const today = todayIn(await userZone());
   const routineChoices = routines.results.filter(r => r.status === 'published' || r.status === 'draft');
@@ -47,6 +49,12 @@ export default async function PeriodizationBuilderPage({
           <PeriodizationTimeline blocks={plan.blocks} today={today} />
         )}
       </Card>
+
+      {progress && (
+        <Card title="Planejado x realizado">
+          <PlanProgressChart progress={progress} today={today} />
+        </Card>
+      )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
         <Card title="Fases (mesociclos)">

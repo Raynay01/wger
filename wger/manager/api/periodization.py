@@ -24,10 +24,13 @@ import datetime
 from django.utils.translation import gettext_lazy as _
 
 # Third Party
+from drf_spectacular.utils import extend_schema
 from rest_framework import (
     serializers,
     viewsets,
 )
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 # wger
 from wger.care.api.prescription import (
@@ -43,6 +46,7 @@ from wger.manager.models import (
     TrainingBlock,
     TrainingPlan,
 )
+from wger.manager.periodization_progress import plan_progress
 from wger.utils.viewsets import WgerOwnerObjectModelViewSet
 
 
@@ -159,6 +163,38 @@ class TrainingPlanSerializer(PrescriptionSerializerMixin, serializers.ModelSeria
         return out
 
 
+class ProgressSummarySerializer(serializers.Serializer):
+    start = serializers.DateField()
+    end = serializers.DateField()
+    planned_sessions = serializers.IntegerField()
+    done_sessions = serializers.IntegerField()
+    planned_sets = serializers.IntegerField()
+    done_sets = serializers.IntegerField()
+    planned_load = serializers.IntegerField(help_text='Repetitions times weight, in kg')
+    done_load = serializers.IntegerField(help_text='Repetitions times weight, in kg')
+    average_rir = serializers.DecimalField(max_digits=4, decimal_places=1, allow_null=True)
+    average_rpe = serializers.DecimalField(max_digits=4, decimal_places=1, allow_null=True)
+
+
+class ProgressWeekSerializer(ProgressSummarySerializer):
+    week = serializers.IntegerField()
+
+
+class ProgressBlockSerializer(ProgressSummarySerializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    focus = serializers.CharField()
+    intensity = serializers.CharField()
+    volume = serializers.CharField()
+    weeks = ProgressWeekSerializer(many=True)
+
+
+class PlanProgressSerializer(serializers.Serializer):
+    start = serializers.DateField()
+    end = serializers.DateField(allow_null=True)
+    blocks = ProgressBlockSerializer(many=True)
+
+
 class TrainingPlanViewSet(PrescriptionViewSetMixin, viewsets.ModelViewSet):
     """
     Periodizations (macrocycles) of a patient. A trainer creates one by passing
@@ -179,6 +215,17 @@ class TrainingPlanViewSet(PrescriptionViewSetMixin, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @extend_schema(responses=PlanProgressSerializer)
+    @action(detail=True, methods=['get'])
+    def progress(self, request, pk):
+        """
+        Planned versus done per block and per week: sessions, sets and load
+        (repetitions times kg). Planned comes from the block's routine as
+        prescribed, done from all training logs of the patient in that week.
+        """
+        data = plan_progress(self.get_object())
+        return Response(PlanProgressSerializer(data).data)
 
     @staticmethod
     def get_owner_objects():

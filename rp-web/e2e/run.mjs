@@ -274,6 +274,7 @@ try {
   await shot(bruno, '04b-periodizacao');
   await bruno.getByRole('button', { name: 'Publicar para o paciente' }).click();
   await bruno.getByRole('button', { name: 'Criar nova versão para editar' }).waitFor();
+  const periodizationUrl = bruno.url();
   log('Bruno montou e publicou a periodização: 4 semanas de base com o treino Força e 1 de deload');
 
   // Physio protocol
@@ -467,6 +468,44 @@ try {
   await ana.getByText('1.484 kcal').waitFor();
   await shot(ana, '12b-evolucao-paciente');
   log('Ana vê a avaliação e a meta na Evolução');
+
+  // Planned versus done: three sets logged today (as the mobile app does)
+  execFileSync(
+    'uv',
+    [
+      'run',
+      './manage.py',
+      'shell',
+      '-c',
+      [
+        'from django.contrib.auth.models import User',
+        'from django.utils import timezone',
+        'from wger.manager.models import Routine, SlotEntry, WorkoutLog',
+        `user = User.objects.get(username='${users.ana}')`,
+        "routine = Routine.objects.get(user=user, status='published')",
+        'entry = SlotEntry.objects.filter(slot__day__routine=routine).first()',
+        'for _ in range(3):',
+        '    WorkoutLog.objects.create(user=user, routine=routine, exercise=entry.exercise, date=timezone.now(), repetitions=10, weight=60, rir=2)',
+      ].join('\n'),
+    ],
+    { cwd: repo, env: { ...process.env, DJANGO_SETTINGS_MODULE: 'settings.local_dev' }, stdio: 'ignore' },
+  );
+  await bruno.goto(periodizationUrl);
+  await bruno.getByText('Planejado x realizado').waitFor();
+  // One training day repeated daily: 7 sessions of 3 sets a week, 4 weeks
+  await bruno.getByText('3 de 84 séries (4%) · RIR médio 2').waitFor();
+  await bruno.getByRole('radio', { name: 'Tonelagem' }).click();
+  await bruno.getByText('1.800 de 50.400 kg (4%) · RIR médio 2').waitFor();
+  await bruno.getByRole('radio', { name: 'Séries' }).click();
+  await bruno.getByRole('img', { name: /Base · semana 1/ }).hover();
+  await bruno.getByText('Realizado: 3 séries (14%)').waitFor();
+  await shot(bruno, '13-planejado-realizado');
+  log('O personal comparou o planejado com o realizado na fase (séries e tonelagem)');
+
+  await ana.goto(`${WEB}/app/evolucao`);
+  await ana.getByText('Treino planejado x realizado · Temporada de verão').waitFor();
+  await ana.getByText('3 de 84 séries (4%) · RIR médio 2').waitFor();
+  log('Ana vê o próprio planejado x realizado na Evolução');
 
   // LGPD: export and deletion request
   await ana.goto(`${WEB}/app/privacidade`);

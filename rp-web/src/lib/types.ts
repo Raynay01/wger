@@ -282,3 +282,22 @@ export const ANAMNESIS_FIELDS = [
 export type AnamnesisField = (typeof ANAMNESIS_FIELDS)[number][0];
 
 export type NutritionalAnamnesis = { id: string; relationship: string; date: string; created: string } & Record<AnamnesisField, string>;
+
+export type ProgressSummary = {
+  start: string;
+  end: string;
+  planned_sessions: number;
+  done_sessions: number;
+  planned_sets: number;
+  done_sets: number;
+  planned_load: number;
+  done_load: number;
+  average_rir: string | null;
+  average_rpe: string | null;
+};
+
+export type PlanProgress = {
+  start: string;
+  end: string | null;
+  blocks: (ProgressSummary & { id: string; name: string; focus: string; intensity: string; volume: string; weeks: (ProgressSummary & { week: number })[] })[];
+};

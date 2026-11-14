@@ -84,6 +84,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   API returns the dates of each block and the current published version of its
   routine. Training plans are prescriptions like routines (draft, publish, new
   version). `/api/v2/care/calendar/` gives each day's block and week (`phase`).
+  `/api/v2/training-plan/{id}/progress/` compares planned and done per block
+  and per week: sessions, sets and load (repetitions times kg, pounds
+  converted). Planned comes from the block's routine as prescribed, done from
+  all training logs of the patient in that week, by their own time zone.
 * Nutritional assessment: nutritionists record the anamnesis
   (`/api/v2/nutritional-anamnesis/`: goal, history, medications, allergies,
   preferences, habits) and anthropometric assessments

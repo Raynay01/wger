@@ -3,7 +3,10 @@ import { Card, Empty } from '@/components/ui';
 import { api } from '@/lib/api';
 import { MOMENT_LABELS, date, dateTime, number } from '@/lib/format';
 import { NutritionalAssessmentSummary } from '@/components/NutritionalAssessmentSummary';
-import type { NutritionalAssessment, Paginated } from '@/lib/types';
+import { PlanProgressChart } from '@/components/PlanProgressChart';
+import type { NutritionalAssessment, Paginated, PlanProgress, TrainingPlan } from '@/lib/types';
+import { userZone } from '@/lib/userZone';
+import { todayIn } from '@/lib/zone';
 
 export const metadata: Metadata = { title: 'Evolução' };
 
@@ -12,12 +15,18 @@ type Pain = { id: string; datetime: string; moment: string; value: number; body_
 type Water = { id: string; datetime: string; amount_ml: number };
 
 export default async function ProgressPage() {
-  const [assessments, pain, water, nutritional] = await Promise.all([
+  const [assessments, pain, water, nutritional, periodizations, today] = await Promise.all([
     api<Paginated<Assessment>>('functional-assessment/', { query: { limit: 100, ordering: 'date' } }),
     api<Paginated<Pain>>('pain-record/', { query: { limit: 30 } }),
     api<Paginated<Water>>('water-log/', { query: { limit: 200 } }),
     api<Paginated<NutritionalAssessment>>('nutritional-assessment/', { query: { limit: 100 } }),
+    api<Paginated<TrainingPlan>>('training-plan/', { query: { status: 'published', limit: 20 } }),
+    userZone().then(todayIn),
   ]);
+  // The periodization running today, else the latest one already started
+  const started = periodizations.results.filter(p => p.blocks.length && p.start <= today).sort((a, b) => b.start.localeCompare(a.start));
+  const periodization = started.find(p => (p.end ?? '') >= today) ?? started[0];
+  const progress = periodization ? await api<PlanProgress>(`training-plan/${periodization.id}/progress/`) : null;
   const weights = [...nutritional.results].reverse();
   const maxWeight = Math.max(...weights.map(a => Number(a.weight)), 1);
 
@@ -36,6 +45,12 @@ export default async function ProgressPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold">Evolução</h1>
+
+      {periodization && progress && (
+        <Card title={`Treino planejado x realizado · ${periodization.name}`}>
+          <PlanProgressChart progress={progress} today={today} />
+        </Card>
+      )}
 
       {nutritional.results.length > 0 && (
         <Card title="Avaliação nutricional">

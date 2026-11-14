@@ -28,9 +28,17 @@ from wger.care.export import export_user_data
 from wger.care.prescription import start_prescription
 from wger.care.tests.helpers import CareScenarioMixin
 from wger.core.tests.base_testcase import BaseTestCase
+from wger.exercises.models import Exercise
 from wger.manager.models import (
+    Day,
+    RepetitionsConfig,
     Routine,
+    SetsConfig,
+    Slot,
+    SlotEntry,
     TrainingPlan,
+    WeightConfig,
+    WorkoutLog,
 )
 
 
@@ -213,3 +221,68 @@ class PeriodizationTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         exported = export_user_data(self.patient)['manager']
         self.assertEqual([p['name'] for p in exported['TrainingPlan']], ['Temporada 2026'])
         self.assertEqual([b['weeks'] for b in exported['TrainingBlock']], [3])
+
+    def test_planned_versus_done(self):
+        """Per week: sessions, sets and load of the routine against the patient's logs"""
+        day = Day.objects.create(routine=self.routine, order=1, name='A')
+        Day.objects.create(routine=self.routine, order=2, name='Descanso', is_rest=True)
+        squat, plank = Exercise.objects.all()[:2]
+        entry = SlotEntry.objects.create(
+            slot=Slot.objects.create(day=day, order=1),
+            exercise=squat,
+            order=1,
+        )
+        SetsConfig.objects.create(slot_entry=entry, iteration=1, value=3)
+        RepetitionsConfig.objects.create(slot_entry=entry, iteration=1, value=10)
+        WeightConfig.objects.create(slot_entry=entry, iteration=1, value=50)
+
+        plan = self.create_plan()
+        self.add_block(plan['id'], order=1, focus='hypertrophy', weeks=1, routine=self.routine.pk)
+        self.add_block(plan['id'], order=2, focus='deload', weeks=1)
+        self.publish(plan['id'])
+
+        profile = self.patient.userprofile
+        profile.time_zone = 'America/Sao_Paulo'
+        profile.save()
+
+        def log(when, exercise=squat, **data):
+            WorkoutLog.objects.create(
+                user=self.patient,
+                exercise=exercise,
+                date=datetime.datetime.fromisoformat(when),
+                **data,
+            )
+
+        # 23:30 in Sao Paulo on the first day of the block, already the next day in UTC
+        for _ in range(3):
+            log('2026-03-03T02:30:00+00:00', repetitions=10, weight=50, rir=2)
+        log('2026-03-04T12:00:00+00:00', repetitions=10, weight=100, weight_unit_id=2)
+        log('2026-03-04T12:10:00+00:00', exercise=plank, repetitions=60, repetitions_unit_id=3)
+        log('2026-03-09T12:00:00+00:00', repetitions=5, weight=40)
+        log('2026-03-02T02:00:00+00:00', repetitions=5, weight=40)
+
+        self.client.force_authenticate(self.patient)
+        response = self.client.get(reverse('training-plan-progress', kwargs={'pk': plan['id']}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        first, second = response.data['blocks']
+
+        # Training every other day: 2, 4, 6 and 8 March, 3 x 10 x 50 kg each
+        self.assertEqual(first['planned_sessions'], 4)
+        self.assertEqual(first['planned_sets'], 12)
+        self.assertEqual(first['planned_load'], 6000)
+        # 3 x 10 x 50 kg plus 10 x 100 lb; the plank counts as a set without load
+        self.assertEqual(first['done_sessions'], 2)
+        self.assertEqual(first['done_sets'], 5)
+        self.assertEqual(first['done_load'], 1954)
+        self.assertEqual(first['average_rir'], '2.0')
+        self.assertEqual(first['weeks'][0]['week'], 1)
+        self.assertEqual(first['weeks'][0]['done_sets'], 5)
+
+        self.assertEqual(second['start'], '2026-03-09')
+        self.assertEqual(second['planned_sessions'], 0)
+        self.assertEqual(second['done_sessions'], 1)
+        self.assertEqual(second['done_load'], 200)
+
+        self.client.force_authenticate(self.physio)
+        response = self.client.get(reverse('training-plan-progress', kwargs={'pk': plan['id']}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
