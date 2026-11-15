@@ -1,5 +1,5 @@
 // The app name lives here only, so a rename is a one-line change (or NEXT_PUBLIC_APP_NAME).
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Kinutri';
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'ALMOVA';
 
 export const APP_TAGLINE = 'Treino, reabilitação e nutrição';
 

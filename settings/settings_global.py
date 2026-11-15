@@ -713,7 +713,7 @@ WGER_SOCIAL_PROVIDERS = []
 # Web app for patients and professionals (rp-web). The invitation emails link
 # to it; without an address they only ask to log in with the invited email.
 WEB_APP_URL = ''
-WEB_APP_NAME = 'Kinutri'
+WEB_APP_NAME = 'ALMOVA'
 
 # Whether to link to the mobile app in the app stores in the footer and on the landing page.
 WGER_SHOW_APP_STORE_LINKS = True

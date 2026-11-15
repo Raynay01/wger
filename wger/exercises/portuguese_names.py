@@ -38,7 +38,7 @@ from wger.exercises.models import (
 )
 
 
-AUTHOR = 'Kinutri (nome em português do Brasil)'
+AUTHOR = 'ALMOVA (nome em português do Brasil)'
 """Marks the translations created here, so they are updated or replaced, never upstream ones"""
 
 DATA_FILE = pathlib.Path(__file__).with_name('portuguese_names.json')

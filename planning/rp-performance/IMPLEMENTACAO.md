@@ -32,9 +32,9 @@
 
 Testes: 59 novos testes em `wger/care/tests` e `wger/physio/tests`. A suíte completa (2.569 testes) passa, exceto `test_sync_exercises`, que depende de acesso a `wger.de` (bloqueado nesta sessão; falha igual sem as mudanças).
 
-## 1.1 App web Kinutri (`rp-web/`)
+## 1.1 App web ALMOVA (`rp-web/`)
 
-Nome escolhido: **Kinutri** (cinesioterapia/movimento + nutrição), subtítulo "Treino, reabilitação e nutrição". Na busca feita em 13/11/2026 não apareceu app, marca ou site com esse nome. Antes de registrar, confirme no INPI (classes 9, 42 e 44) e a disponibilidade dos domínios. O nome fica só em `rp-web/src/lib/brand.ts`.
+Nome escolhido: **ALMOVA** (antes Kinutri), subtítulo "Treino, reabilitação e nutrição". Na busca feita em 15/11/2026 não apareceu app, marca ou site com esse nome (o mais próximo é o assistente "ALMO AI"). Antes de registrar, confirme no INPI (classes 9, 42 e 44) e a disponibilidade dos domínios. O nome fica só em `rp-web/src/lib/brand.ts`.
 
 | Área | Telas |
 |---|---|

@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import { APP_NAME } from '@/lib/brand';
 
 export function Logo({ dark = false }: { dark?: boolean }) {
   return (
     <span className={`inline-flex items-center gap-2 font-bold tracking-tight ${dark ? 'text-white' : 'text-navy-900'}`}>
-      <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-neon-500 text-navy-900">K</span>
-      <span className="text-lg">{process.env.NEXT_PUBLIC_APP_NAME || 'Kinutri'}</span>
+      <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-neon-500 text-navy-900">A</span>
+      <span className="text-lg">{APP_NAME}</span>
     </span>
   );
 }

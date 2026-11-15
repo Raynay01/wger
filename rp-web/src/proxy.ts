@@ -38,8 +38,11 @@ export default async function proxy(request: NextRequest) {
   }
 
   if (isProtected) {
-    // Relative, so the host (and with it the cookie jar) stays the same
-    const response = new NextResponse(null, { status: 307, headers: { Location: '/entrar' } });
+    // Built from the request's own URL, so the host (and with it the cookie jar) stays the same
+    const login = request.nextUrl.clone();
+    login.pathname = '/entrar';
+    login.search = '';
+    const response = NextResponse.redirect(login, 307);
     response.cookies.delete(ACCESS_COOKIE);
     response.cookies.delete(REFRESH_COOKIE);
     return response;

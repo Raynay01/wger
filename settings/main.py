@@ -142,7 +142,7 @@ TURNSTILE_SECRET_KEY = env.str('TURNSTILE_SECRET_KEY', '')
 # properly served.
 SITE_URL = env.str('SITE_URL', 'http://localhost:8000')
 WEB_APP_URL = env.str('WEB_APP_URL', '')
-WEB_APP_NAME = env.str('WEB_APP_NAME', 'Kinutri')
+WEB_APP_NAME = env.str('WEB_APP_NAME', 'ALMOVA')
 
 # Path to uploaded files
 # Absolute filesystem path to the directory that will hold user-uploaded files.

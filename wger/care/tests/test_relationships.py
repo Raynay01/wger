@@ -183,7 +183,7 @@ class InvitationTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         self.assertEqual(relationship.status, RelationshipStatus.PAUSED)
 
 
-@override_settings(WEB_APP_URL='https://app.example.com/', WEB_APP_NAME='Kinutri')
+@override_settings(WEB_APP_URL='https://app.example.com/', WEB_APP_NAME='ALMOVA')
 class InvitationEmailTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
     """
     The invitation email goes out only when the professional sends it
@@ -216,7 +216,7 @@ class InvitationEmailTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         self.assertEqual(len(mail.outbox), 1)
         message = mail.outbox[0]
         self.assertEqual(message.to, ['new.patient@example.com'])
-        self.assertIn('Kinutri', message.subject)
+        self.assertIn('ALMOVA', message.subject)
         self.assertIn(
             f'https://app.example.com/convite/{self.relationship.pk}'
             f'?token={self.relationship.invitation_token}',

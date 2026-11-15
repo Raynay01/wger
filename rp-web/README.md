@@ -1,6 +1,6 @@
-# Kinutri web
+# ALMOVA web
 
-App web do Kinutri (treino, reabilitação e nutrição) para pacientes e profissionais, sobre a API do backend Django
+App web do ALMOVA (treino, reabilitação e nutrição) para pacientes e profissionais, sobre a API do backend Django
 deste repositório. Next.js 16 (App Router), React 19 e Tailwind CSS 4, tudo em português.
 
 - **Paciente** (`/app`): Meu Dia (treino, refeições, metas, água e fisioterapia do dia), convites com consentimento,
@@ -20,7 +20,7 @@ API. Os tokens ficam em cookies `httpOnly`; o `src/proxy.ts` os renova antes de 
 Configuração do Google:
 
 1. No Google Cloud Console, crie um "ID do cliente OAuth" do tipo **Aplicativo da Web** e cadastre a origem do app
-   (ex.: `https://app.kinutri.com.br` e `http://localhost:3000`).
+   (ex.: `https://app.almova.com.br` e `http://localhost:3000`).
 2. No Django: `GOOGLE_CLIENT_ID` (e `GOOGLE_CLIENT_SECRET`).
 3. No app web: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` com o mesmo ID.
 
@@ -32,7 +32,7 @@ produção.
 Criar um convite não envia nada. O profissional envia quando quiser, pelo botão "Enviar convite por e-mail"
 (reenvio no máximo a cada 10 minutos), ou copia o link do convite e manda por outro canal. O e-mail sai pelo
 servidor de e-mail configurado no Django (variáveis de SMTP do wger) e o link aponta para `WEB_APP_URL`
-(ex.: `https://app.kinutri.com.br`). Em desenvolvimento os e-mails só aparecem no terminal do Django.
+(ex.: `https://app.almova.com.br`). Em desenvolvimento os e-mails só aparecem no terminal do Django.
 
 ## Rodar localmente
 

@@ -616,6 +616,13 @@ try {
   assert(!(await bruno.getByRole('link', { name: /Dani Nutrição · desde/ }).isVisible()), 'Dani saiu da lista do nutricionista');
   log('Dani pediu a exclusão: o acompanhamento terminou na hora e o pedido ficou em análise');
 
+  const anonymous = await (await browser.newContext()).newPage();
+  const protectedPage = await anonymous.goto(`${WEB}/pro`);
+  assert(protectedPage.ok(), `área protegida sem login: ${protectedPage.status()}`);
+  await anonymous.waitForURL(/\/entrar$/);
+  await anonymous.getByText('ALMOVA').first().waitFor();
+  log('Sem login, a área profissional leva à tela de entrada do ALMOVA');
+
   assert(errors.length === 0, `erros no navegador: ${errors.join(' | ')}`);
   console.log('\nTudo certo. Capturas em e2e/screenshots/');
 } catch (error) {

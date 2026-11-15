@@ -1,5 +1,5 @@
 {
-  "name": "kinutri-web",
+  "name": "almova-web",
   "version": "0.1.0",
   "private": true,
   "description": "Web app (patients and professionals) on top of the wger API",
