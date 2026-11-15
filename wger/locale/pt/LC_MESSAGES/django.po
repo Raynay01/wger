@@ -26,6 +26,18 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
 "X-Generator: Weblate 5.17.1-dev\n"
 
+#: care/api/serializers.py
+msgid "Only a video of the patient to the trainer shows an exercise."
+msgstr "Só o vídeo do aluno para o personal indica um exercício."
+
+#: care/api/views.py
+msgid "Use true or false."
+msgstr "Use true ou false."
+
+#: care/api/views.py
+msgid "Only videos of the patient are reviewed."
+msgstr "Só os vídeos do paciente são revisados."
+
 #: care/api/prescription.py:79
 msgid "A prescription cannot be moved to another patient."
 msgstr "Uma prescrição não pode ser transferida para outro paciente."

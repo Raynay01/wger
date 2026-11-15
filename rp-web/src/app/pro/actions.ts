@@ -614,3 +614,15 @@ export async function setGamification(formData: FormData) {
   );
   redirect(back(formData));
 }
+
+// Execution videos
+
+export async function reviewVideo(formData: FormData) {
+  await attempt(formData, () =>
+    api(`care-message/${text(formData, 'id')}/review/`, {
+      method: 'POST',
+      body: { feedback: text(formData, 'feedback') },
+    }),
+  );
+  redirect(back(formData));
+}

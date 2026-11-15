@@ -15,6 +15,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('exercises', '0041_alter_historicaltranslation_description_and_more'),
     ]
 
     operations = [
@@ -577,6 +578,17 @@ class Migration(migrations.Migration):
                 ('attachment_name', models.CharField(blank=True, max_length=200)),
                 ('created', models.DateTimeField(default=django.utils.timezone.now)),
                 ('read_at', models.DateTimeField(blank=True, null=True)),
+                ('reviewed_at', models.DateTimeField(blank=True, null=True)),
+                (
+                    'exercise',
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='+',
+                        to='exercises.exercise',
+                    ),
+                ),
                 (
                     'relationship',
                     models.ForeignKey(

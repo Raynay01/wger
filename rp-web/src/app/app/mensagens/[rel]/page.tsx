@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { Chat } from '@/components/Chat';
 import { api, ApiError } from '@/lib/api';
 import { PROFESSION_LABELS } from '@/lib/brand';
+import { routineExercises } from '@/lib/routineExercises';
 import type { Relationship } from '@/lib/types';
 import { userZone } from '@/lib/userZone';
 
@@ -20,6 +21,7 @@ export default async function PatientConversationPage({ params }: { params: Prom
   if (relationship.my_role !== 'patient') {
     notFound();
   }
+  const exercises = relationship.discipline === 'training' ? await routineExercises(rel) : [];
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
       <div>
@@ -31,7 +33,7 @@ export default async function PatientConversationPage({ params }: { params: Prom
           {PROFESSION_LABELS[relationship.discipline]} · {relationship.organization_name}
         </p>
       </div>
-      <Chat relationship={relationship} otherSide={relationship.professional_name} zone={await userZone()} back={`/app/mensagens/${rel}`} />
+      <Chat relationship={relationship} otherSide={relationship.professional_name} zone={await userZone()} back={`/app/mensagens/${rel}`} exercises={exercises} />
     </div>
   );
 }

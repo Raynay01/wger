@@ -66,6 +66,7 @@ from wger.care.api.serializers import (
     GamificationSwitchSerializer,
     MembershipSerializer,
     MessageReadSerializer,
+    MessageReviewSerializer,
     MessageSerializer,
     ModulesSerializer,
     MultidisciplinaryNoteSerializer,
@@ -73,6 +74,7 @@ from wger.care.api.serializers import (
     OrganizationSerializer,
     ProfessionalRegistrationSerializer,
     SharedDataSerializer,
+    VideoSerializer,
 )
 from wger.care.disciplines import Discipline
 from wger.care.models import (
@@ -80,6 +82,7 @@ from wger.care.models import (
     AccessGrant,
     Appointment,
     AppointmentStatus,
+    AttachmentKind,
     CareRelationship,
     ConsentKind,
     ConsentRecord,
@@ -928,6 +931,63 @@ class MessageViewSet(
         """Number of unread messages per follow-up"""
         role = request.query_params.get('role')
         return Response(messages.unread_counts(request.user, role))
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                'reviewed',
+                bool,
+                description='true: only reviewed videos, newest first; '
+                'false (default): only the videos to review, oldest first',
+            )
+        ],
+        responses=VideoSerializer(many=True),
+    )
+    @action(detail=False, methods=['get'])
+    def videos(self, request):
+        """Videos the patients of the user sent, as their professional"""
+        reviewed = request.query_params.get('reviewed', 'false')
+        if reviewed not in ('true', 'false'):
+            raise exceptions.ValidationError({'reviewed': _('Use true or false.')})
+        queryset = messages.patient_videos(request.user, reviewed == 'true')
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = VideoSerializer(page, many=True, context=self.get_serializer_context())
+            return self.get_paginated_response(serializer.data)
+        serializer = VideoSerializer(queryset, many=True, context=self.get_serializer_context())
+        return Response(serializer.data)
+
+    @extend_schema(request=MessageReviewSerializer, responses=MessageSerializer)
+    @action(detail=True, methods=['post'])
+    def review(self, request, pk):
+        """
+        Marks a patient's video as reviewed. A feedback is sent as a message of
+        the professional in the same conversation.
+        """
+        video = self.get_object()
+        relationship = video.relationship
+        if request.user.id != relationship.professional_id:
+            raise exceptions.PermissionDenied()
+        if (
+            video.attachment_kind != AttachmentKind.VIDEO
+            or video.sender_id != relationship.patient_id
+        ):
+            raise exceptions.ValidationError(_('Only videos of the patient are reviewed.'))
+        if not relationship.is_open:
+            raise exceptions.ValidationError(_('This follow-up is not active.'))
+        serializer = MessageReviewSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        feedback = serializer.validated_data.get('feedback', '')
+        with transaction.atomic():
+            video.reviewed_at = timezone.now()
+            video.save(update_fields=['reviewed_at'])
+            if feedback:
+                Message.objects.create(
+                    relationship=relationship,
+                    sender=request.user,
+                    text=feedback,
+                )
+        return Response(self.get_serializer(video).data)
 
 
 class ModulesView(APIView):

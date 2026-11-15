@@ -36,6 +36,7 @@ from wger.care.models import (
 )
 from wger.care.tests.helpers import CareScenarioMixin
 from wger.core.tests.base_testcase import BaseTestCase
+from wger.exercises.models import Exercise
 
 
 VIDEO = b'\x00\x00\x00\x18ftypmp42' + bytes(range(256)) * 4
@@ -47,10 +48,8 @@ def png_upload(name: str = 'foto.jpg') -> SimpleUploadedFile:
     return SimpleUploadedFile(name, buffer.getvalue(), content_type='image/jpeg')
 
 
-class MessageTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
-    """
-    Chat between the patient and the professional of a follow-up
-    """
+class MessageScenarioMixin(CareScenarioMixin):
+    """The care team, private media in a temporary folder and chat helpers"""
 
     def setUp(self):
         super().setUp()
@@ -84,6 +83,12 @@ class MessageTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
             reverse('care-message-attachment', kwargs={'pk': message_id}),
             **headers,
         )
+
+
+class MessageTestCase(MessageScenarioMixin, BaseTestCase, APITestCase):
+    """
+    Chat between the patient and the professional of a follow-up
+    """
 
     def test_conversation(self):
         """Both sides see the messages in order, each marked as theirs or not"""
@@ -250,3 +255,135 @@ class MessageTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
             [(m['text'], m['mine']) for m in exported],
             [('Posso trocar o arroz?', True), ('Pode', False)],
         )
+
+
+class ExecutionVideoTestCase(MessageScenarioMixin, BaseTestCase, APITestCase):
+    """
+    Videos of the patient with the exercise they show, the professional's
+    queue of videos to review and the review with feedback
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.exercise = Exercise.objects.first()
+
+    def video(self, user=None, relationship=None, **data):
+        return self.send(
+            user or self.patient,
+            relationship,
+            attachment=SimpleUploadedFile('agachamento.mp4', VIDEO, content_type='video/mp4'),
+            **data,
+        )
+
+    def queue(self, user=None, **params):
+        self.client.force_authenticate(user or self.trainer)
+        response = self.client.get(reverse('care-message-videos'), params)
+        return response
+
+    def review(self, video_id, user=None, **data):
+        self.client.force_authenticate(user or self.trainer)
+        return self.client.post(
+            reverse('care-message-review', kwargs={'pk': video_id}),
+            data,
+            format='json',
+        )
+
+    def test_video_with_exercise(self):
+        """The patient's video to the trainer names the exercise it shows"""
+        response = self.video(exercise=self.exercise.pk)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['exercise'], self.exercise.pk)
+        self.assertEqual(
+            response.data['exercise_name'],
+            self.exercise.get_translation('en').name,
+        )
+        self.assertIsNone(response.data['reviewed_at'])
+
+    def test_exercise_only_on_patient_videos_to_the_trainer(self):
+        """A photo, a text, the trainer's video or a video to another area show no exercise"""
+        cases = [
+            self.send(self.patient, text='Assim?', exercise=self.exercise.pk),
+            self.send(self.patient, attachment=png_upload(), exercise=self.exercise.pk),
+            self.video(self.trainer, exercise=self.exercise.pk),
+            self.video(relationship=self.physio_rel, exercise=self.exercise.pk),
+        ]
+        for response in cases:
+            self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertIn('exercise', response.data)
+        self.assertFalse(Message.objects.exists())
+
+    def test_queue(self):
+        """The professional sees the patients' videos to review, oldest first"""
+        first = self.video(exercise=self.exercise.pk).data['id']
+        second = self.video().data['id']
+        self.send(self.patient, attachment=png_upload())
+        self.video(self.trainer)
+        self.video(relationship=self.physio_rel)
+
+        response = self.queue()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        result = response.data['results']
+        self.assertEqual([v['id'] for v in result], [first, second])
+        self.assertEqual(result[0]['patient_name'], 'rp_patient')
+        self.assertEqual(result[0]['exercise'], self.exercise.pk)
+
+        # Each professional only sees the videos sent to them
+        physio = self.queue(self.physio).data['results']
+        self.assertEqual(len(physio), 1)
+        self.assertEqual(self.queue(self.nutritionist).data['results'], [])
+        self.assertEqual(self.queue(self.patient).data['results'], [])
+
+    def test_review_with_feedback(self):
+        """The review leaves the queue and the feedback is a message of the trainer"""
+        video = self.video(exercise=self.exercise.pk).data['id']
+        response = self.review(video, feedback='Joelhos para fora na descida.')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(response.data['reviewed_at'])
+
+        self.assertEqual(self.queue().data['results'], [])
+        reviewed = self.queue(reviewed='true').data['results']
+        self.assertEqual([v['id'] for v in reviewed], [video])
+
+        result = self.messages(self.patient)
+        self.assertEqual(result[0]['id'], video)
+        self.assertIsNotNone(result[0]['reviewed_at'])
+        self.assertEqual(result[1]['text'], 'Joelhos para fora na descida.')
+        self.assertFalse(result[1]['mine'])
+
+    def test_review_without_feedback(self):
+        video = self.video().data['id']
+        self.assertEqual(self.review(video).status_code, status.HTTP_200_OK)
+        self.assertEqual(len(self.messages(self.patient)), 1)
+        self.assertEqual(self.queue().data['results'], [])
+
+    def test_only_the_professional_reviews_patient_videos(self):
+        video = self.video().data['id']
+        own = self.video(self.trainer).data['id']
+        photo = self.send(self.patient, attachment=png_upload()).data['id']
+
+        self.assertEqual(self.review(video, self.patient).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            self.review(video, self.nutritionist).status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        self.assertEqual(self.review(own).status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.review(photo).status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIsNone(Message.objects.get(pk=video).reviewed_at)
+
+    def test_ended_follow_up(self):
+        """Videos of an ended follow-up leave the queue and are no longer reviewed"""
+        video = self.video().data['id']
+        self.training_rel.status = RelationshipStatus.ENDED
+        self.training_rel.save()
+        self.assertEqual(self.queue().data['results'], [])
+        self.assertEqual(self.review(video).status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_queue_validation(self):
+        self.assertEqual(self.queue(reviewed='sim').status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_export_has_exercise_and_review(self):
+        video = self.video(exercise=self.exercise.pk).data['id']
+        self.review(video)
+        (exported,) = export_user_data(self.patient)['care']['messages']
+        self.assertEqual(exported['exercise'], self.exercise.pk)
+        self.assertIsNotNone(exported['reviewed_at'])

@@ -26,11 +26,15 @@ from wger.care import (
     messages,
     policy,
 )
-from wger.care.disciplines import COUNCIL_BY_DISCIPLINE
+from wger.care.disciplines import (
+    COUNCIL_BY_DISCIPLINE,
+    Discipline,
+)
 from wger.care.models import (
     PENDING_STATUSES,
     AccessGrant,
     Appointment,
+    AttachmentKind,
     CareRelationship,
     ConsentRecord,
     DataRequest,
@@ -40,6 +44,7 @@ from wger.care.models import (
     Organization,
     ProfessionalRegistration,
 )
+from wger.utils.language import load_language
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
@@ -372,6 +377,7 @@ class MessageSerializer(serializers.ModelSerializer):
     attachment = serializers.FileField(write_only=True, required=False)
     sender_name = serializers.SerializerMethodField()
     mine = serializers.SerializerMethodField()
+    exercise_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
@@ -385,10 +391,26 @@ class MessageSerializer(serializers.ModelSerializer):
             'attachment',
             'attachment_kind',
             'attachment_name',
+            'exercise',
+            'exercise_name',
             'created',
             'read_at',
+            'reviewed_at',
         ]
-        read_only_fields = ['sender', 'attachment_kind', 'attachment_name', 'created', 'read_at']
+        read_only_fields = [
+            'sender',
+            'attachment_kind',
+            'attachment_name',
+            'created',
+            'read_at',
+            'reviewed_at',
+        ]
+
+    def get_exercise_name(self, obj) -> str | None:
+        if obj.exercise is None:
+            return None
+        translation = obj.exercise.get_translation(load_language().short_name)
+        return translation.name if translation else None
 
     def get_sender_name(self, obj) -> str | None:
         if obj.sender is None:
@@ -417,7 +439,34 @@ class MessageSerializer(serializers.ModelSerializer):
             except DjangoValidationError as error:
                 raise serializers.ValidationError({'attachment': error.messages})
             attrs['attachment_name'] = original_name
+        if attrs.get('exercise'):
+            relationship = attrs['relationship']
+            if (
+                attrs.get('attachment_kind') != AttachmentKind.VIDEO
+                or relationship.discipline != Discipline.TRAINING
+                or self.context['request'].user.id != relationship.patient_id
+            ):
+                raise serializers.ValidationError(
+                    {'exercise': _('Only a video of the patient to the trainer shows an exercise.')}
+                )
         return attrs
+
+
+class MessageReviewSerializer(serializers.Serializer):
+    feedback = serializers.CharField(required=False, allow_blank=True, max_length=4000)
+
+
+class VideoSerializer(MessageSerializer):
+    """A video a patient sent, with the patient's name for the professional's queue"""
+
+    patient_name = serializers.SerializerMethodField()
+
+    class Meta(MessageSerializer.Meta):
+        fields = MessageSerializer.Meta.fields + ['patient_name']
+
+    def get_patient_name(self, obj) -> str:
+        patient = obj.relationship.patient
+        return patient.get_full_name() or patient.username
 
 
 class MessageReadSerializer(serializers.Serializer):

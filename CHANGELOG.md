@@ -76,6 +76,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   the two people of the follow-up. `care-message/unread/` counts unread
   messages per follow-up, `care-message/read/` marks them as read. The data
   export contains the patient's messages.
+  A patient's video to the trainer can name the exercise it shows
+  (`exercise`, `exercise_name`). `care-message/videos/` is the professional's
+  queue of the videos their patients sent (`reviewed=true` for the reviewed
+  ones), `care-message/{id}/review/` marks one as reviewed (`reviewed_at`) and
+  sends an optional `feedback` as a message in the same conversation.
 * Periodization: trainers plan macrocycles (`/api/v2/training-plan/`, with a
   goal and a start date) made of blocks (`/api/v2/training-block/`): focus
   (adaptation, hypertrophy, strength, power, endurance, deload, peak,

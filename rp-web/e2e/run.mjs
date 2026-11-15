@@ -405,6 +405,30 @@ try {
   await shot(ana, '11-conversa-paciente');
   log('A resposta apareceu sozinha na conversa da Ana, com as mensagens dela marcadas como lidas');
 
+  // Execution video to the trainer, with the exercise of the routine; he reviews it from the queue
+  await ana.goto(`${WEB}/app/mensagens`);
+  await ana.getByRole('link', { name: /Educação Física/ }).click();
+  await ana.locator('input[type=file]').setInputFiles({ name: 'serie.mp4', mimeType: 'video/mp4', buffer: MP4 });
+  const exerciseSelect = ana.getByLabel('Exercício do vídeo (opcional)');
+  const squatName = (await exerciseSelect.locator('option').nth(1).textContent()).trim();
+  await exerciseSelect.selectOption({ index: 1 });
+  await ana.getByRole('button', { name: 'Enviar' }).click();
+  await ana.getByText(`Execução: ${squatName}`).waitFor();
+  await ana.getByText('aguardando revisão').waitFor();
+  await bruno.goto(`${WEB}/pro`);
+  await bruno.getByRole('link', { name: /Vídeos\s*1/ }).click();
+  await bruno.getByRole('heading', { name: 'A revisar (1)' }).waitFor();
+  await bruno.getByText(`${squatName} · enviado em`, { exact: false }).waitFor();
+  await shot(bruno, '11c-videos-para-revisar');
+  await bruno.getByLabel('Comentário para o paciente (opcional)').fill('Boa descida. Mantenha os joelhos alinhados com os pés.');
+  await bruno.getByRole('button', { name: 'Marcar como revisado' }).click();
+  await bruno.getByText('Nenhum vídeo para revisar').waitFor();
+  await bruno.getByText('revisado em', { exact: false }).waitFor();
+  await ana.reload();
+  await ana.getByText('vídeo revisado').waitFor();
+  await ana.getByText('Mantenha os joelhos alinhados com os pés.', { exact: false }).waitFor();
+  log(`Ana mandou o vídeo do ${squatName} para o personal, que revisou na fila e comentou na conversa`);
+
   // Sharing
   await ana.goto(`${WEB}/app/compartilhamento`);
   const brunoTraining = ana.locator('section', { hasText: 'Profissional de Educação Física' });
@@ -573,7 +597,8 @@ try {
   assert(exported.nutrition.NutritionPlan.length === 2, 'as duas versões da dieta na exportação');
   assert(exported.physio.PainRecord.length === 2, 'registros de dor na exportação');
   assert(exported.care.reads_of_your_shared_data.length > 0, 'acessos aos dados compartilhados na exportação');
-  assert(exported.care.messages.length === 3, 'as mensagens na exportação');
+  assert(exported.care.messages.length === 5, 'as mensagens na exportação');
+  assert(exported.care.messages.some(m => m.exercise && m.reviewed_at), 'o vídeo de execução revisado na exportação');
   assert(exported.nutrition.NutritionalAssessment.length === 1, 'a avaliação nutricional na exportação');
   log('Ana baixou os seus dados (dietas, dor, mensagens e quem acessou o que ela compartilhou)');
 

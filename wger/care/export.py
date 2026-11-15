@@ -113,7 +113,9 @@ def export_user_data(user: User) -> dict:
                     'sender': (m.sender.get_full_name() or m.sender.username) if m.sender else None,
                     'text': m.text,
                     'attachment_name': m.attachment_name,
+                    'exercise': m.exercise_id,
                     'created': m.created,
+                    'reviewed_at': m.reviewed_at,
                 }
                 for m in Message.objects.filter(relationship__patient=user).select_related('sender')
             ],

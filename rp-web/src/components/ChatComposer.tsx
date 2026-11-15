@@ -21,11 +21,21 @@ function describe(data: unknown): string {
   return String(data);
 }
 
-export function ChatComposer({ relationship, otherSide }: { relationship: string; otherSide: string }) {
+export function ChatComposer({
+  relationship,
+  otherSide,
+  exercises = [],
+}: {
+  relationship: string;
+  otherSide: string;
+  /** Offered for a video, so the professional knows which exercise it shows */
+  exercises?: { id: number; name: string }[];
+}) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [exercise, setExercise] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(0);
@@ -50,7 +60,12 @@ export function ChatComposer({ relationship, otherSide }: { relationship: string
       }
     }
     setFile(chosen);
+    if (!chosen) {
+      setExercise('');
+    }
   }
+
+  const isVideo = file !== null && file.type.startsWith('video/');
 
   async function send() {
     if (sending || (!text.trim() && !file)) {
@@ -61,6 +76,9 @@ export function ChatComposer({ relationship, otherSide }: { relationship: string
     body.set('text', text);
     if (file) {
       body.set('attachment', file);
+    }
+    if (isVideo && exercise) {
+      body.set('exercise', exercise);
     }
     setSending(true);
     setError('');
@@ -103,6 +121,19 @@ export function ChatComposer({ relationship, otherSide }: { relationship: string
             remover
           </button>
         </p>
+      )}
+      {isVideo && exercises.length > 0 && (
+        <label className="flex flex-col gap-1 text-sm text-navy-800">
+          Exercício do vídeo (opcional)
+          <select value={exercise} onChange={event => setExercise(event.target.value)} className={inputClass}>
+            <option value="">Nenhum</option>
+            {exercises.map(e => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
       <div className="flex items-end gap-2">
         <label className="cursor-pointer rounded-xl border border-navy-100 px-3 py-2 text-sm text-navy-700 hover:bg-navy-100" title="Anexar foto ou vídeo">

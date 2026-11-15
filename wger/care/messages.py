@@ -27,6 +27,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.db.models import (
     Count,
+    F,
     Q,
 )
 from django.db.models.fields.files import FieldFile
@@ -43,6 +44,7 @@ from PIL import Image
 
 # wger
 from wger.care.models import (
+    OPEN_STATUSES,
     AttachmentKind,
     CareRelationship,
     Message,
@@ -125,6 +127,22 @@ def unread_counts(user: User, role: str | None = None) -> dict[str, int]:
         .annotate(count=Count('id'))
     )
     return {str(row['relationship']): row['count'] for row in rows}
+
+
+def patient_videos(user: User, reviewed: bool):
+    """
+    The videos the patients of the user sent: those to review in open
+    follow-ups, oldest first, or the reviewed ones, newest first
+    """
+    videos = Message.objects.filter(
+        relationship__professional=user,
+        sender=F('relationship__patient'),
+        attachment_kind=AttachmentKind.VIDEO,
+        reviewed_at__isnull=not reviewed,
+    ).select_related('relationship__patient', 'sender', 'exercise')
+    if reviewed:
+        return videos.order_by('-reviewed_at')
+    return videos.filter(relationship__status__in=OPEN_STATUSES).order_by('created')
 
 
 def _chunks(handle, length: int):

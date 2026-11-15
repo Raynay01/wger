@@ -49,11 +49,13 @@ export async function Chat({
   otherSide,
   zone,
   back,
+  exercises,
 }: {
   relationship: Relationship;
   otherSide: string;
   zone: string;
   back: string;
+  exercises?: { id: number; name: string }[];
 }) {
   const page = await api<Paginated<Message>>('care-message/', {
     query: { relationship: relationship.id, ordering: '-created', limit: SHOWN },
@@ -69,9 +71,12 @@ export async function Chat({
   const rows: React.ReactNode[] = [];
   page.results.forEach((message, index) => {
     const day = dayOf(message.created, zone);
+    const fromPatient = relationship.my_role === 'patient' ? message.mine : !message.mine;
+    const patientVideo = message.attachment_kind === 'video' && fromPatient;
     rows.push(
       <li key={message.id} className={`flex ${message.mine ? 'justify-end' : 'justify-start'}`}>
         <div className={`flex max-w-[85%] flex-col gap-1 rounded-2xl px-3 py-2 text-sm shadow-sm ${message.mine ? 'bg-navy-900 text-white' : 'border border-navy-100 bg-white text-navy-900'}`}>
+          {message.exercise_name && <p className="text-xs font-semibold">Execução: {message.exercise_name}</p>}
           <Attachment message={message} />
           {message.text && <p className="whitespace-pre-wrap break-words">{message.text}</p>}
           <div className={`flex items-center justify-end gap-2 text-[11px] ${message.mine ? 'text-navy-100' : 'text-gray-500'}`}>
@@ -84,6 +89,7 @@ export async function Chat({
                 </button>
               </form>
             )}
+            {patientVideo && <span>{message.reviewed_at ? 'vídeo revisado' : 'aguardando revisão'}</span>}
             <span>{formatTime(message.created, zone)}</span>
             {message.mine && <span>{message.read_at ? '✓✓ lida' : '✓ enviada'}</span>}
           </div>
@@ -113,7 +119,7 @@ export async function Chat({
         </ol>
       )}
       {open ? (
-        <ChatComposer relationship={relationship.id} otherSide={otherSide} />
+        <ChatComposer relationship={relationship.id} otherSide={otherSide} exercises={exercises} />
       ) : (
         <Notice>Este acompanhamento foi encerrado. O histórico continua disponível, mas não é possível enviar mensagens.</Notice>
       )}

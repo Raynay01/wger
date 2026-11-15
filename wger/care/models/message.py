@@ -84,6 +84,18 @@ class Message(models.Model):
     read_at = models.DateTimeField(null=True, blank=True)
     """When the recipient opened the conversation"""
 
+    exercise = models.ForeignKey(
+        'exercises.Exercise',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+    )
+    """The exercise a patient's video shows, for the professional's review"""
+
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    """When the professional reviewed the patient's video"""
+
     def __str__(self):
         return f'{self.sender_id} {self.created}'
 

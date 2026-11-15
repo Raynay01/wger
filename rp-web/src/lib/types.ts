@@ -210,9 +210,14 @@ export type Message = {
   text: string;
   attachment_kind: '' | 'image' | 'video';
   attachment_name: string;
+  exercise: number | null;
+  exercise_name: string | null;
   created: string;
   read_at: string | null;
+  reviewed_at: string | null;
 };
+
+export type Video = Message & { patient_name: string };
 
 export type TrainingBlock = {
   id: string;

@@ -4,7 +4,7 @@ import { ZONE_COOKIE } from '@/lib/zone';
 import { TimezoneSync } from './TimezoneSync';
 import { Logo } from './ui';
 
-type NavItem = { href: string; label: string; badge?: number };
+type NavItem = { href: string; label: string; badge?: number; badgeLabel?: string };
 
 export async function AppShell({
   area,
@@ -32,7 +32,7 @@ export async function AppShell({
               <Link key={item.href} href={item.href} className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-navy-100 hover:bg-navy-700 hover:text-white">
                 {item.label}
                 {item.badge ? (
-                  <span className="ml-1.5 rounded-full bg-neon-500 px-1.5 text-xs font-bold text-navy-900" aria-label={`${item.badge} não lidas`}>
+                  <span className="ml-1.5 rounded-full bg-neon-500 px-1.5 text-xs font-bold text-navy-900" aria-label={`${item.badge} ${item.badgeLabel ?? 'não lidas'}`}>
                     {item.badge}
                   </span>
                 ) : null}
