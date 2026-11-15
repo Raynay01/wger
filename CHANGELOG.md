@@ -156,6 +156,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   records and functional assessments (`/api/v2/functional-assessment/`).
 
 ### Others
+* Encrypted backups (`extras/backup/`): `backup.sh` streams the database
+  dump and the media folders (the private chat attachments included) into
+  age, so no plain copy touches the disk and the server only holds the
+  public key; `restore.sh` only restores into a new database; and
+  `test-restore.sh` backs up, restores and compares every table and file.
 * The ALMOVA web app sends a Content Security Policy with a fresh nonce per
   request (scripts and Next's inline styles need it; Google's sign-in is the
   only outside source) and, in production, HSTS for two years. Every page now
