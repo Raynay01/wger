@@ -19,6 +19,9 @@ import hashlib
 import secrets
 import warnings
 
+# Django
+from django.utils.csp import CSP
+
 # Third Party
 import environ
 
@@ -461,3 +464,42 @@ if USE_S3_MEDIA_FILES or USE_S3_STATIC_FILES:
         }
         if env.bool('USE_S3_URL_FOR_STATIC', True):
             STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+
+#
+# Security headers of the pages Django serves (API, admin, API docs, wger pages)
+#
+# HSTS: browsers only honor it over HTTPS. Set SECURE_HSTS_SECONDS (e.g.
+# 63072000, two years) once the site runs on HTTPS only; lowering it later does
+# not reach browsers that already saw the higher value
+SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', False)
+SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', False)
+
+# Enforced: no framing, no plugins, no <base> elsewhere. Reported only: the full
+# policy, until the inline scripts of the wger templates carry the nonce
+_asset_hosts = sorted(
+    {url.split('/')[2] for url in (MEDIA_URL, STATIC_URL) if url.startswith('https://')}
+)
+SECURE_CSP = {
+    'frame-ancestors': [CSP.NONE],
+    'object-src': [CSP.NONE],
+    'base-uri': [CSP.SELF],
+}
+SECURE_CSP_REPORT_ONLY = {
+    'default-src': [CSP.SELF],
+    'script-src': [CSP.SELF, CSP.NONCE, *_asset_hosts],
+    'style-src': [CSP.SELF, CSP.UNSAFE_INLINE, *_asset_hosts],
+    'img-src': [CSP.SELF, 'data:', 'blob:', *_asset_hosts],
+    'font-src': [CSP.SELF, *_asset_hosts],
+    'media-src': [CSP.SELF, *_asset_hosts],
+    'object-src': [CSP.NONE],
+    'base-uri': [CSP.SELF],
+    'form-action': [CSP.SELF],
+    'frame-ancestors': [CSP.NONE],
+}
+MIDDLEWARE = [
+    MIDDLEWARE[0],
+    'django.middleware.security.SecurityMiddleware',
+    'django.middleware.csp.ContentSecurityPolicyMiddleware',
+    *MIDDLEWARE[1:],
+]

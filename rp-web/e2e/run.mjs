@@ -60,10 +60,20 @@ function assert(condition, message) {
 const browser = await playwright.chromium.launch();
 const errors = [];
 
+// Script errors and Content Security Policy violations fail the run
+function watch(page, name) {
+  page.on('pageerror', e => errors.push(`${name}: ${e.message}`));
+  page.on('console', message => {
+    if (message.type() === 'error' && /Content Security Policy|Refused to/.test(message.text())) {
+      errors.push(`${name}: ${message.text()}`);
+    }
+  });
+}
+
 async function session(name, viewport = { width: 1280, height: 900 }) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 2, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
   const page = await context.newPage();
-  page.on('pageerror', e => errors.push(`${name}: ${e.message}`));
+  watch(page, name);
   await page.goto(`${WEB}/entrar`);
   if (!(await page.locator('input[name=username]').isVisible())) {
     await page.getByText('Acesso de desenvolvimento').click();
@@ -617,11 +627,28 @@ try {
   log('Dani pediu a exclusão: o acompanhamento terminou na hora e o pedido ficou em análise');
 
   const anonymous = await (await browser.newContext()).newPage();
+  watch(anonymous, 'visitante');
   const protectedPage = await anonymous.goto(`${WEB}/pro`);
   assert(protectedPage.ok(), `área protegida sem login: ${protectedPage.status()}`);
   await anonymous.waitForURL(/\/entrar$/);
   await anonymous.getByText('ALMOVA').first().waitFor();
   log('Sem login, a área profissional leva à tela de entrada do ALMOVA');
+
+  const policy = protectedPage.headers()['content-security-policy'] ?? '';
+  assert(/script-src 'self' 'nonce-[^']+' 'strict-dynamic'/.test(policy), `política de segurança (CSP): ${policy}`);
+  assert(policy.includes("frame-ancestors 'none'") && policy.includes("object-src 'none'"), 'CSP sem frames nem plugins');
+  const nonce = policy.match(/'nonce-([^']+)'/)[1];
+  const again = (await anonymous.goto(`${WEB}/entrar`)).headers()['content-security-policy'];
+  assert(!again.includes(nonce), 'nonce novo a cada página');
+  if (process.env.KINUTRI_EXPECT_PRODUCTION === '1') {
+    const hsts = protectedPage.headers()['strict-transport-security'] ?? '';
+    assert(hsts.startsWith('max-age=63072000'), `HSTS: ${hsts}`);
+    assert(!policy.includes('unsafe-eval'), 'sem unsafe-eval em produção');
+    // In development, `next dev` inserts scripts at runtime, which 'strict-dynamic' allows without a nonce
+    const scripts = await anonymous.evaluate(() => [...document.scripts].map(script => script.nonce));
+    assert(scripts.length > 0 && scripts.every(Boolean), `todos os scripts com o nonce (${scripts.length})`);
+  }
+  log('Cada página tem a política de segurança (CSP) com nonce próprio, sem violações no navegador');
 
   assert(errors.length === 0, `erros no navegador: ${errors.join(' | ')}`);
   console.log('\nTudo certo. Capturas em e2e/screenshots/');

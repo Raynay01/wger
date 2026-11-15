@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { connection } from 'next/server';
 import { APP_NAME, APP_TAGLINE } from '@/lib/brand';
 import './globals.css';
 
@@ -13,7 +14,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Every page renders per request, so its scripts get the nonce of the Content Security Policy
+  await connection();
   return (
     <html lang="pt-BR">
       <body className="font-sans antialiased">{children}</body>

@@ -148,6 +148,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   records and functional assessments (`/api/v2/functional-assessment/`).
 
 ### Others
+* The ALMOVA web app sends a Content Security Policy with a fresh nonce per
+  request (scripts and Next's inline styles need it; Google's sign-in is the
+  only outside source) and, in production, HSTS for two years. Every page now
+  renders per request, so it gets the nonce.
 * Brazilian Portuguese (`pt-BR`) catalog with the trophy names and
   descriptions; every other string falls back to Portuguese (`pt`).
 * `/api/v2/measurement/` accepts a `metric_type` instead of a `category` id when
@@ -221,6 +225,13 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   every site. The ALMOVA web app (server-side calls) and the mobile apps
   (native) don't need it; a frontend served from another domain, such as a
   Flutter web build, needs its origin listed here.
+* `SECURE_HSTS_SECONDS` (default `0`, off), `SECURE_HSTS_INCLUDE_SUBDOMAINS`
+  and `SECURE_HSTS_PRELOAD` (default `False`): HSTS for the pages Django
+  serves. Production now runs Django's `SecurityMiddleware` (nosniff,
+  referrer and opener policies) and its Content Security Policy middleware:
+  framing, plugins and foreign `<base>` are blocked, the full policy (scripts
+  only with the nonce) is sent as report-only until the inline scripts of the
+  wger templates carry the nonce. Media and static hosts on S3 are added to it.
 * `DJANGO_ALLOWED_HOSTS` (default `*`): host names the installation answers
   to, comma separated. Set it in production, otherwise links in e-mails can be
   made to point to another host; the server warns at start while it is `*`.

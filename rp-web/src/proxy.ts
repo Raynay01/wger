@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { contentSecurityPolicy, newNonce } from './lib/csp';
 import {
   ACCESS_COOKIE,
   cookieOptions,
@@ -12,6 +13,20 @@ import {
 const PROTECTED = ['/app', '/pro', '/inicio'];
 
 /**
+ * Passes the request on with a fresh nonce in its Content Security Policy,
+ * which Next applies to its scripts and styles, and sends the same policy
+ * to the browser
+ */
+function next(request: NextRequest): NextResponse {
+  const policy = contentSecurityPolicy(newNonce(), process.env.NODE_ENV === 'production');
+  const headers = new Headers(request.headers);
+  headers.set('Content-Security-Policy', policy);
+  const response = NextResponse.next({ request: { headers } });
+  response.headers.set('Content-Security-Policy', policy);
+  return response;
+}
+
+/**
  * Keeps the access token fresh: shortly before it expires it is renewed with
  * the refresh token, for the response (browser) and the current request
  * (server components). Protected areas without a session go to the login.
@@ -22,7 +37,7 @@ export default async function proxy(request: NextRequest) {
   const isProtected = PROTECTED.some(p => request.nextUrl.pathname === p || request.nextUrl.pathname.startsWith(`${p}/`));
 
   if (secondsLeft(access) > 30) {
-    return NextResponse.next();
+    return next(request);
   }
 
   if (refresh) {
@@ -30,7 +45,7 @@ export default async function proxy(request: NextRequest) {
     if (tokens) {
       request.cookies.set(ACCESS_COOKIE, tokens.access);
       request.cookies.set(REFRESH_COOKIE, tokens.refresh);
-      const response = NextResponse.next({ request: { headers: request.headers } });
+      const response = next(request);
       response.cookies.set(ACCESS_COOKIE, tokens.access, cookieOptions(60 * 60));
       response.cookies.set(REFRESH_COOKIE, tokens.refresh, cookieOptions(REFRESH_MAX_AGE));
       return response;
@@ -47,7 +62,7 @@ export default async function proxy(request: NextRequest) {
     response.cookies.delete(REFRESH_COOKIE);
     return response;
   }
-  return NextResponse.next();
+  return next(request);
 }
 
 export const config = {
