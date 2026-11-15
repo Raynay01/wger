@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { loginWithPassword } from '@/lib/auth';
 import { safeNext, seeOther } from '@/lib/redirect';
-import { ACCESS_COOKIE, cookieOptions, REFRESH_COOKIE, REFRESH_MAX_AGE } from '@/lib/session';
+import { ACCESS_COOKIE, cookieOptions, MFA_COOKIE, MFA_MAX_AGE, REFRESH_COOKIE, REFRESH_MAX_AGE } from '@/lib/session';
 
 /** Username and password login, only for development and automated tests */
 export async function POST(request: Request) {
@@ -13,6 +13,11 @@ export async function POST(request: Request) {
   const result = await loginWithPassword(String(form.get('username') ?? ''), String(form.get('password') ?? ''));
 
   const next = safeNext(form.get('next'));
+  if (!result.ok && 'mfaSession' in result) {
+    const response = seeOther(`/entrar/codigo?${new URLSearchParams({ next })}`);
+    response.cookies.set(MFA_COOKIE, result.mfaSession, cookieOptions(MFA_MAX_AGE));
+    return response;
+  }
   if (!result.ok) {
     return seeOther(`/entrar?${new URLSearchParams({ erro: result.message, next })}`);
   }

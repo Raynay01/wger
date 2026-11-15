@@ -74,6 +74,10 @@ export async function api<T = any>(path: string, options: Options = {}): Promise
     return undefined as T;
   }
   const data = await response.json().catch(() => null);
+  // A professional account without two-step verification: set it up first
+  if (response.status === 403 && data?.code === 'mfa_required') {
+    redirect('/conta/seguranca');
+  }
   if (!response.ok) {
     throw new ApiError(response.status, data);
   }

@@ -142,6 +142,10 @@ WEB_APP_URL = 'http://127.0.0.1:3000'
 # The web app (rp-web) calls the API from another port in development
 CSRF_TRUSTED_ORIGINS += ['http://localhost:3000', 'http://127.0.0.1:3000']
 
+# Professionals turn on two-step verification, as in production
+CARE_PROFESSIONAL_MFA = True
+MFA_TOTP_ISSUER = WEB_APP_NAME
+
 # Import other local settings that are not in version control
 try:
     from .local_dev_extra import *

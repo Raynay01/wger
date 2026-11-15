@@ -10,7 +10,7 @@ import {
   secondsLeft,
 } from './lib/session';
 
-const PROTECTED = ['/app', '/pro', '/inicio'];
+const PROTECTED = ['/app', '/pro', '/inicio', '/conta'];
 
 /**
  * Passes the request on with a fresh nonce in its Content Security Policy,

@@ -3,6 +3,9 @@
 
 export const ACCESS_COOKIE = 'kn_access';
 export const REFRESH_COOKIE = 'kn_refresh';
+/** allauth session of a login waiting for the code of the authenticator app */
+export const MFA_COOKIE = 'kn_mfa';
+export const MFA_MAX_AGE = 5 * 60;
 
 export const REFRESH_MAX_AGE = 60 * 60 * 24 * 120;
 

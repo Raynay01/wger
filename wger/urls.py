@@ -417,6 +417,8 @@ urlpatterns += [
     path('api/v2/care/my-data/', care_api_views.MyDataView.as_view(), name='care-my-data'),
     path('api/v2/care/calendar/', care_api_views.CalendarView.as_view(), name='care-calendar'),
     path('api/v2/care/activity/', care_api_views.ActivityView.as_view(), name='care-activity'),
+    path('api/v2/care/mfa/', care_api_views.MfaView.as_view(), name='care-mfa'),
+    path('api/v2/care/mfa/qr/', care_api_views.MfaQrView.as_view(), name='care-mfa-qr'),
     path(
         'api/v2/care/consistency/',
         care_api_views.ConsistencyView.as_view(),
