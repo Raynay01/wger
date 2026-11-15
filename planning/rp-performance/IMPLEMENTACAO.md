@@ -87,7 +87,7 @@ O mesmo vale para treino (`/api/v2/routine/`, vínculo `training`) e fisioterapi
 - Volume `private-media` no docker para os anexos do chat.
 - RP Intelligence (Fase 5), assinaturas e pagamentos (Fase 6), Row Level Security.
 - Política de guarda de prontuário: decidir com um advogado o que fazer com avaliações e observações clínicas quando o paciente pede a exclusão (hoje a exclusão fica bloqueada até essa decisão).
-- Traduções em português: as novas mensagens estão nos arquivos `.po`, traduzidas via Weblate. Em um fork próprio, as traduções `pt_BR` podem ser feitas direto no arquivo.
+- Traduções em português: as novas mensagens estão no arquivo `pt`. O arquivo `pt_BR` (`wger/locale/pt_BR`) só traz o que muda no Brasil (hoje, os nomes e descrições das conquistas); o resto vem do `pt`. O app web pede `pt-BR`.
 
 ### Infraestrutura e legal
 - Hospedagem, domínio, chaves (Anthropic, Meta, gateway de pagamento) e as decisões da seção 13 do plano.

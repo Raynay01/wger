@@ -133,6 +133,8 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   records and functional assessments (`/api/v2/functional-assessment/`).
 
 ### Others
+* Brazilian Portuguese (`pt-BR`) catalog with the trophy names and
+  descriptions; every other string falls back to Portuguese (`pt`).
 * `/api/v2/measurement/` accepts a `metric_type` instead of a `category` id when
   writing, and can be filtered by `metric_type` and `external_id`. Integrations
   such as scale apps no longer have to look up their category first or keep

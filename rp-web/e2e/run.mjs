@@ -547,8 +547,9 @@ try {
   await ana.getByRole('img', { name: `Refeições registradas, ${todayBr}: refeições registradas` }).waitFor();
   await ana.getByRole('img', { name: `Fisioterapia, ${todayBr}: exercícios feitos` }).waitFor();
   await ana.getByRole('heading', { name: 'Conquistas' }).waitFor();
+  await ana.getByText('Conclua 10 treinos').waitFor();
   await shot(ana, '14-constancia');
-  log('Ana vê a constância: treino, refeições e fisioterapia de hoje, sequência de 1 dia');
+  log('Ana vê a constância e as conquistas em português do Brasil');
 
   // The trainer turns achievements and the streak off for Ana, then on again
   await bruno.goto(`${WEB}/pro`);
