@@ -172,6 +172,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   the docs.
 
 ### Bug fixes
+* The PowerSync sync rules for ALMOVA (`extras/powersync/sync_rules.yaml`)
+  keep the drafts of prescribed routines and nutrition plans (with their
+  meals, items and the foods only they use) off the patient's device. The
+  rules of the wger docker repository sync every routine and plan of the
+  user, drafts included; the REST API already hid them.
 
 * All 1RM estimates (calculated "1RM" and "1RM total" measurements, personal
   record trophies, routine statistics) now share one calculation. The reps in
