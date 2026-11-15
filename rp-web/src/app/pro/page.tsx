@@ -11,16 +11,49 @@ import type { Paginated, Relationship } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Pacientes' };
 
+const QUIET_DAYS = 3;
+
+type Activity = { relationship: string; discipline: string; last_day: string | null; days_since: number | null };
+
+const RECORD_LABELS: Record<string, string> = {
+  training: 'Último treino registrado',
+  nutrition: 'Último registro de alimentação ou água',
+  physio: 'Último registro de fisioterapia',
+};
+
+function lastRecordText(activity: Activity | undefined): string {
+  if (!activity || activity.days_since === null) {
+    return 'Nenhum registro ainda';
+  }
+  const label = RECORD_LABELS[activity.discipline] ?? 'Último registro';
+  if (activity.days_since === 0) {
+    return `${label}: hoje`;
+  }
+  if (activity.days_since === 1) {
+    return `${label}: ontem`;
+  }
+  return `${label}: há ${activity.days_since} dias (${date(activity.last_day)})`;
+}
+
 export default async function ProfessionalHome({ searchParams }: { searchParams: Promise<{ erro?: string; enviado?: string }> }) {
   const { erro, enviado } = await searchParams;
   const { organizations, registrations } = await professionalContext();
   const ready = organizations.length > 0 && registrations.length > 0;
-  const [relationships, alerts] = await Promise.all([
+  const [relationships, alerts, activity] = await Promise.all([
     api<Paginated<Relationship>>('care-relationship/', { query: { role: 'professional', limit: 200 } }),
     registrations.some(r => r.discipline === 'physio') ? api<unknown[]>('pain-record/alerts/') : Promise.resolve([]),
+    api<Activity[]>('care/activity/'),
   ]);
+  const lastRecord = new Map(activity.map(a => [a.relationship, a]));
   const open = relationships.results.filter(r => r.status === 'active' || r.status === 'paused');
   const invited = relationships.results.filter(r => r.status === 'invited');
+  const quiet = open.filter(r => {
+    if (r.status !== 'active') {
+      return false;
+    }
+    const days = lastRecord.get(r.id)?.days_since;
+    return days === null || days === undefined || days >= QUIET_DAYS;
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,8 +83,9 @@ export default async function ProfessionalHome({ searchParams }: { searchParams:
         </Notice>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Pacientes ativos" value={open.length} />
+        <Stat label={`Sem registro há ${QUIET_DAYS} dias ou mais`} value={quiet.length} />
         <Stat label="Convites pendentes" value={invited.length} />
         <Stat label="Alertas de dor" value={alerts.length} />
       </div>
@@ -69,8 +103,12 @@ export default async function ProfessionalHome({ searchParams }: { searchParams:
                     <p className="text-sm text-gray-600">
                       {DISCIPLINE_LABELS[r.discipline]} · desde {date(r.started)} · {r.organization_name}
                     </p>
+                    <p className="text-sm text-gray-600">{lastRecordText(lastRecord.get(r.id))}</p>
                   </div>
-                  <Badge tone={r.status === 'active' ? 'neon' : 'amber'}>{STATUS_LABELS[r.status]}</Badge>
+                  <span className="flex items-center gap-2">
+                    {quiet.includes(r) && <Badge tone="amber">Sem registro recente</Badge>}
+                    <Badge tone={r.status === 'active' ? 'neon' : 'amber'}>{STATUS_LABELS[r.status]}</Badge>
+                  </span>
                 </Link>
               </li>
             ))}

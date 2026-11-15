@@ -44,6 +44,7 @@ from rest_framework.views import APIView
 
 # wger
 from wger.care import (
+    activity,
     agenda,
     consistency,
     deletion,
@@ -57,6 +58,7 @@ from wger.care import (
 from wger.care.api.serializers import (
     AcceptInvitationSerializer,
     AccessGrantSerializer,
+    ActivitySerializer,
     AppointmentSerializer,
     CareRelationshipSerializer,
     ConsentRecordSerializer,
@@ -779,6 +781,21 @@ class ConsistencyView(APIView):
             )
         data = consistency.consistency(request.user, end, weeks)
         return Response(ConsistencySerializer(data).data)
+
+
+class ActivityView(APIView):
+    """
+    For each open follow-up of the professional, the last day the patient
+    recorded something in that area (training sessions and sets, food diary,
+    meal adherence and water, physio exercises and pain), in the patient's
+    time zone, and the number of days since
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=ActivitySerializer(many=True))
+    def get(self, request):
+        return Response(ActivitySerializer(activity.activity(request.user), many=True).data)
 
 
 class GamificationView(APIView):

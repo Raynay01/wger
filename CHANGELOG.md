@@ -74,6 +74,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   gives the patient's days (training or rest, food plan, physio protocols,
   appointments) in the patient's timezone. Prescriptions created without a
   start date start on the patient's calendar day instead of the server's.
+* `/api/v2/care/activity/` gives each open follow-up of the professional the
+  last day the patient recorded something in that area (training sessions and
+  sets; food diary, meal adherence and water; physio exercises and pain), in
+  the patient's time zone, and the days since.
 * Chat between the patient and each professional (`/api/v2/care-message/`),
   with photos and videos (e.g. of an exercise). Messages can be sent while the
   follow-up is active or paused, both sides keep the history. Attachments are

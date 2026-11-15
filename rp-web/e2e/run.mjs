@@ -377,6 +377,7 @@ try {
 
   await carla.goto(`${WEB}/pro`);
   await carla.getByRole('link', { name: /Mensagens\s*2/ }).waitFor();
+  await carla.getByText('Último registro de fisioterapia: hoje').waitFor();
   await carla.goto(`${WEB}/pro/mensagens`);
   await carla.getByText('2 novas').waitFor();
   await carla.getByRole('link', { name: /Ana/ }).click();
@@ -417,6 +418,9 @@ try {
   await ana.getByText(`Execução: ${squatName}`).waitFor();
   await ana.getByText('aguardando revisão').waitFor();
   await bruno.goto(`${WEB}/pro`);
+  const anaTraining = bruno.locator('li', { hasText: 'Ana' }).filter({ hasText: 'Treino ·' });
+  await anaTraining.getByText('Nenhum registro ainda').waitFor();
+  await anaTraining.getByText('Sem registro recente').waitFor();
   await bruno.getByRole('link', { name: /Vídeos\s*1/ }).click();
   await bruno.getByRole('heading', { name: 'A revisar (1)' }).waitFor();
   await bruno.getByText(`${squatName} · enviado em`, { exact: false }).waitFor();

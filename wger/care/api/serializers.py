@@ -486,6 +486,13 @@ class MyDaySerializer(ModulesSerializer):
     physio = serializers.DictField(allow_null=True)
 
 
+class ActivitySerializer(serializers.Serializer):
+    relationship = serializers.UUIDField()
+    discipline = serializers.CharField()
+    last_day = serializers.DateField(allow_null=True)
+    days_since = serializers.IntegerField(allow_null=True)
+
+
 class ConsistencyDaySerializer(serializers.Serializer):
     date = serializers.DateField()
     training = serializers.ChoiceField(
