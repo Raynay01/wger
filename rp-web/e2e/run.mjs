@@ -5,6 +5,7 @@
 // Users are created fresh for every run through manage.py.
 
 import { execFileSync, execSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -70,6 +71,45 @@ function watch(page, name) {
   });
 }
 
+// Two-step verification (RFC 6238, as the authenticator apps): secret of each professional
+const totpSecrets = {};
+
+function totp(secret, at = Date.now()) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (const char of secret.replace(/=+$/, '')) {
+    bits += alphabet.indexOf(char).toString(2).padStart(5, '0');
+  }
+  const key = Buffer.from(bits.match(/.{8}/g).map(byte => parseInt(byte, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(at / 30000)));
+  const hmac = crypto.createHmac('sha1', key).update(counter).digest();
+  const offset = hmac[hmac.length - 1] & 15;
+  return String((hmac.readUInt32BE(offset) & 0x7fffffff) % 1000000).padStart(6, '0');
+}
+
+// A code is accepted once: wait for the next one when the current was just used
+const usedCodes = new Set();
+async function freshCode(name) {
+  for (;;) {
+    const code = totp(totpSecrets[name]);
+    if (!usedCodes.has(`${name}:${code}`)) {
+      usedCodes.add(`${name}:${code}`);
+      return code;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
+
+async function enableMfa(page, name) {
+  await page.goto(`${WEB}/conta/seguranca`);
+  totpSecrets[name] = (await page.getByLabel('Chave do autenticador').textContent()).trim();
+  await page.getByLabel('Código do aplicativo').fill(await freshCode(name));
+  await page.getByLabel(/Senha da conta/).fill(PASSWORD);
+  await page.getByRole('button', { name: 'Ativar' }).click();
+  await page.getByText('Pronto: a verificação em duas etapas está ativada.').waitFor();
+}
+
 async function session(name, viewport = { width: 1280, height: 900 }) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 2, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo' });
   const page = await context.newPage();
@@ -81,7 +121,12 @@ async function session(name, viewport = { width: 1280, height: 900 }) {
   await page.fill('input[name=username]', users[name]);
   await page.fill('input[name=password]', PASSWORD);
   await page.click('form[action="/api/auth/password"] button[type=submit]');
-  await page.waitForURL(/\/(app|inicio|pro)/);
+  await page.waitForURL(/\/(app|inicio|pro|entrar\/codigo)/);
+  if (page.url().includes('/entrar/codigo')) {
+    await page.getByLabel('Código').fill(await freshCode(name));
+    await page.getByRole('button', { name: 'Confirmar' }).click();
+    await page.waitForURL(/\/(app|inicio|pro)/);
+  }
   // The app stores the browser's timezone in the profile on the first page
   if (!page.url().includes('/inicio')) {
     for (let i = 0; i < 50 && !(await context.cookies()).some(c => c.name === 'kn_tz'); i++) {
@@ -123,6 +168,18 @@ try {
   await shot(bruno, '01-configuracoes');
   log('Bruno criou a organização e registrou CRN e CREF');
 
+  // A professional account sees no patient data before two-step verification
+  await bruno.goto(`${WEB}/pro`);
+  await bruno.waitForURL(/\/conta\/seguranca/);
+  await bruno.getByText('Contas de profissionais precisam da verificação em duas etapas').waitFor();
+  await shot(bruno, '01b-seguranca');
+  await enableMfa(bruno, 'bruno');
+  const recovery = await bruno.getByRole('list', { name: 'Códigos de recuperação' }).locator('li').count();
+  assert(recovery >= 10, `códigos de recuperação (${recovery})`);
+  await bruno.goto(`${WEB}/pro`);
+  await bruno.getByRole('heading', { name: 'Pacientes', exact: true }).waitFor();
+  log('Bruno ativou a verificação em duas etapas (QR code e códigos de recuperação) e entrou na área profissional');
+
   const carla = await session('carla');
   await carla.goto(`${WEB}/pro/configurar`);
   await carla.getByLabel('Nome (seu nome profissional ou da clínica)').fill('Clínica Carla Fisio');
@@ -132,7 +189,8 @@ try {
   await carla.getByLabel('Número do registro').fill('55555-F');
   await carla.getByRole('button', { name: 'Adicionar' }).click();
   await carla.getByText('CREFITO 55555-F/SP').waitFor();
-  log('Carla criou a clínica e registrou o CREFITO');
+  await enableMfa(carla, 'carla');
+  log('Carla criou a clínica registrou o CREFITO e ativou a verificação em duas etapas');
 
   // Foods added by the nutritionist, shared with everyone
   await bruno.goto(`${WEB}/pro/alimentos`);
@@ -632,6 +690,27 @@ try {
   assert(protectedPage.ok(), `área protegida sem login: ${protectedPage.status()}`);
   await anonymous.waitForURL(/\/entrar$/);
   await anonymous.getByText('ALMOVA').first().waitFor();
+  // A new login of a professional asks for the code; a wrong one is refused
+  const login = await (await browser.newContext()).newPage();
+  watch(login, 'bruno (novo login)');
+  await login.goto(`${WEB}/entrar`);
+  if (!(await login.locator('input[name=username]').isVisible())) {
+    await login.getByText('Acesso de desenvolvimento').click();
+  }
+  await login.fill('input[name=username]', users.bruno);
+  await login.fill('input[name=password]', PASSWORD);
+  await login.click('form[action="/api/auth/password"] button[type=submit]');
+  await login.waitForURL(/\/entrar\/codigo/);
+  const wrong = totp(totpSecrets.bruno) === '000000' ? '111111' : '000000';
+  await login.getByLabel('Código').fill(wrong);
+  await login.getByRole('button', { name: 'Confirmar' }).click();
+  await login.waitForURL(/\/entrar\/codigo\?.*erro=/);
+  assert(!(await login.context().cookies()).some(c => c.name === 'kn_access'), 'sem sessão com código errado');
+  await login.getByLabel('Código').fill(await freshCode('bruno'));
+  await login.getByRole('button', { name: 'Confirmar' }).click();
+  await login.waitForURL(/\/(inicio|pro|app)/);
+  log('Novo login do Bruno pediu o código do autenticador e recusou um código errado');
+
   log('Sem login, a área profissional leva à tela de entrada do ALMOVA');
 
   const policy = protectedPage.headers()['content-security-policy'] ?? '';

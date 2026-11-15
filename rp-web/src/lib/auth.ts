@@ -5,7 +5,11 @@ import { apiUrl } from './session';
 
 // Login against the allauth headless API of Django ("app" client, JWT tokens)
 
-type AuthResult = { ok: true; tokens: Tokens } | { ok: false; message: string };
+type AuthResult =
+  | { ok: true; tokens: Tokens }
+  | { ok: false; message: string }
+  // Two-step verification: the code of the authenticator app is still missing
+  | { ok: false; mfaSession: string };
 
 const HEADERS = { 'Content-Type': 'application/json', 'Accept-Language': 'pt-BR' };
 
@@ -21,6 +25,31 @@ function firstError(json: any, fallback: string): string {
   return json?.errors?.[0]?.message || fallback;
 }
 
+/** The session token of a login allauth holds back until the second step */
+function pendingMfa(response: Response, json: any): string | null {
+  const pending = json?.data?.flows?.some((f: any) => f.id === 'mfa_authenticate' && f.is_pending);
+  return response.status === 401 && pending ? json?.meta?.session_token ?? null : null;
+}
+
+/** Second step of the login: the code of the authenticator app or a recovery code */
+export async function completeMfa(sessionToken: string, code: string): Promise<AuthResult> {
+  const response = await fetch(`${apiUrl()}/allauth/app/v1/auth/2fa/authenticate`, {
+    method: 'POST',
+    headers: { ...HEADERS, 'X-Session-Token': sessionToken },
+    body: JSON.stringify({ code: code.replace(/\s/g, '') }),
+    cache: 'no-store',
+  });
+  const json = await response.json().catch(() => null);
+  const tokens = tokensFrom(json);
+  if (response.ok && tokens) {
+    return { ok: true, tokens };
+  }
+  if (response.status === 409 || response.status === 410) {
+    return { ok: false, message: 'O tempo para digitar o código acabou. Entre de novo.' };
+  }
+  return { ok: false, message: firstError(json, 'Código incorreto.') };
+}
+
 export async function loginWithPassword(username: string, password: string): Promise<AuthResult> {
   const response = await fetch(`${apiUrl()}/allauth/app/v1/auth/login`, {
     method: 'POST',
@@ -32,6 +61,10 @@ export async function loginWithPassword(username: string, password: string): Pro
   const tokens = tokensFrom(json);
   if (response.ok && tokens) {
     return { ok: true, tokens };
+  }
+  const mfaSession = pendingMfa(response, json);
+  if (mfaSession) {
+    return { ok: false, mfaSession };
   }
   return { ok: false, message: firstError(json, 'Usuário ou senha incorretos.') };
 }
@@ -65,6 +98,10 @@ export async function loginWithGoogle(idToken: string): Promise<AuthResult> {
   const tokens = tokensFrom(json);
   if (response.ok && tokens) {
     return { ok: true, tokens };
+  }
+  const mfaSession = pendingMfa(response, json);
+  if (mfaSession) {
+    return { ok: false, mfaSession };
   }
 
   // New account that still needs a username: allauth keeps the pending signup

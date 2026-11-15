@@ -162,6 +162,9 @@ MIDDLEWARE = [
     # Auth proxy middleware
     'wger.core.middleware.AuthProxyHeaderMiddleware',
 
+    # Professional accounts need two-step verification (CARE_PROFESSIONAL_MFA)
+    'wger.care.middleware.ProfessionalMFAMiddleware',
+
     # Javascript Header. Sends helper headers for AJAX
     'wger.utils.middleware.JavascriptAJAXRedirectionMiddleware',
 
@@ -302,6 +305,11 @@ ACCOUNT_RATE_LIMITS = {'login': None, 'login_failed': '5/300s/key'}
 # Two-factor authentication (allauth.mfa)
 #
 MFA_SUPPORTED_TYPES = ['totp', 'recovery_codes', 'webauthn']
+
+# Professional accounts (with an active membership in an organization) must turn
+# on two-step verification before the API answers them. Off here so tests and
+# installations without professionals keep their behavior; on in production.
+CARE_PROFESSIONAL_MFA = False
 MFA_TOTP_ISSUER = 'wger'
 # Passkeys may also be used for passwordless login (a "Sign in with a passkey"
 # button), but not for passwordless signup.

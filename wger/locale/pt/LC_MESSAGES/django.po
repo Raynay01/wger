@@ -38,6 +38,10 @@ msgstr "Use true ou false."
 msgid "Only videos of the patient are reviewed."
 msgstr "Só os vídeos do paciente são revisados."
 
+#: care/middleware.py
+msgid "Turn on two-step verification to use the professional area."
+msgstr "Ative a verificação em duas etapas para usar a área profissional."
+
 #: care/api/prescription.py:79
 msgid "A prescription cannot be moved to another patient."
 msgstr "Uma prescrição não pode ser transferida para outro paciente."

@@ -486,6 +486,17 @@ class MyDaySerializer(ModulesSerializer):
     physio = serializers.DictField(allow_null=True)
 
 
+class MfaStatusSerializer(serializers.Serializer):
+    professional = serializers.BooleanField()
+    enabled = serializers.BooleanField()
+    required = serializers.BooleanField()
+
+
+class MfaQrSerializer(serializers.Serializer):
+    url = serializers.RegexField(r'^otpauth://totp/', max_length=500, write_only=True)
+    svg = serializers.CharField(read_only=True)
+
+
 class ActivitySerializer(serializers.Serializer):
     relationship = serializers.UUIDField()
     discipline = serializers.CharField()

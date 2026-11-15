@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { loginWithGoogle } from '@/lib/auth';
 import { safeNext } from '@/lib/redirect';
-import { ACCESS_COOKIE, cookieOptions, REFRESH_COOKIE, REFRESH_MAX_AGE } from '@/lib/session';
+import { ACCESS_COOKIE, cookieOptions, MFA_COOKIE, MFA_MAX_AGE, REFRESH_COOKIE, REFRESH_MAX_AGE } from '@/lib/session';
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -10,6 +10,11 @@ export async function POST(request: Request) {
   }
 
   const result = await loginWithGoogle(body.credential);
+  if (!result.ok && 'mfaSession' in result) {
+    const response = NextResponse.json({ ok: true, next: `/entrar/codigo?${new URLSearchParams({ next: safeNext(body.next) })}` });
+    response.cookies.set(MFA_COOKIE, result.mfaSession, cookieOptions(MFA_MAX_AGE));
+    return response;
+  }
   if (!result.ok) {
     return NextResponse.json({ message: result.message }, { status: 401 });
   }

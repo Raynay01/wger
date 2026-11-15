@@ -287,6 +287,10 @@ MFA_SUPPORTED_TYPES = env.list(
     'MFA_SUPPORTED_TYPES',
     default=['totp', 'recovery_codes', 'webauthn'],
 )
+# Name the authenticator app shows next to the code
+MFA_TOTP_ISSUER = env.str('MFA_TOTP_ISSUER', WEB_APP_NAME)
+# Professional accounts must turn on two-step verification before using the API
+CARE_PROFESSIONAL_MFA = env.bool('CARE_PROFESSIONAL_MFA', True)
 
 #
 # Django Axes

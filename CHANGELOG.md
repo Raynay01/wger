@@ -78,6 +78,14 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   last day the patient recorded something in that area (training sessions and
   sets; food diary, meal adherence and water; physio exercises and pain), in
   the patient's time zone, and the days since.
+* Two-step verification for professionals: with `CARE_PROFESSIONAL_MFA`, an
+  account with an active membership in an organization gets `403` with
+  `"code": "mfa_required"` from the API until it has an authenticator app or
+  a security key, whatever the authentication (session, JWT, API key, OIDC).
+  The organization, council registration and `/api/v2/care/mfa/` (status)
+  stay open; `/api/v2/care/mfa/qr/` draws the QR code of allauth's setup link.
+  The web app has a security page (QR code, recovery codes) and asks for the
+  code at login, also after Google's sign-in.
 * Chat between the patient and each professional (`/api/v2/care-message/`),
   with photos and videos (e.g. of an exercise). Messages can be sent while the
   follow-up is active or paused, both sides keep the history. Attachments are
@@ -232,6 +240,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   framing, plugins and foreign `<base>` are blocked, the full policy (scripts
   only with the nonce) is sent as report-only until the inline scripts of the
   wger templates carry the nonce. Media and static hosts on S3 are added to it.
+* `CARE_PROFESSIONAL_MFA` (default `True` in production): professional
+  accounts must turn on two-step verification before using the API.
+  `MFA_TOTP_ISSUER` (default `WEB_APP_NAME`) names the account in the
+  authenticator app.
 * `DJANGO_ALLOWED_HOSTS` (default `*`): host names the installation answers
   to, comma separated. Set it in production, otherwise links in e-mails can be
   made to point to another host; the server warns at start while it is `*`.

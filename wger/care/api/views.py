@@ -52,6 +52,7 @@ from wger.care import (
     gamification,
     invitations,
     messages,
+    mfa,
     policy,
     sharing,
 )
@@ -70,6 +71,8 @@ from wger.care.api.serializers import (
     MessageReadSerializer,
     MessageReviewSerializer,
     MessageSerializer,
+    MfaQrSerializer,
+    MfaStatusSerializer,
     ModulesSerializer,
     MultidisciplinaryNoteSerializer,
     MyDaySerializer,
@@ -781,6 +784,40 @@ class ConsistencyView(APIView):
             )
         data = consistency.consistency(request.user, end, weeks)
         return Response(ConsistencySerializer(data).data)
+
+
+class MfaView(APIView):
+    """
+    Whether the account is a professional one, has two-step verification, and
+    has to turn it on before using the API (CARE_PROFESSIONAL_MFA)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=MfaStatusSerializer)
+    def get(self, request):
+        user = request.user
+        return Response(
+            MfaStatusSerializer(
+                {
+                    'professional': mfa.is_professional(user),
+                    'enabled': mfa.mfa_enabled(user),
+                    'required': mfa.mfa_required(user),
+                }
+            ).data
+        )
+
+
+class MfaQrView(APIView):
+    """The QR code (SVG) of the authenticator app setup link of allauth"""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=MfaQrSerializer, responses=MfaQrSerializer)
+    def post(self, request):
+        serializer = MfaQrSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response({'svg': mfa.qr_svg(serializer.validated_data['url'])})
 
 
 class ActivityView(APIView):
