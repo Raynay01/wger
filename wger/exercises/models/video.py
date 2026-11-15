@@ -29,6 +29,7 @@ from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
 
 # wger
+from wger.utils.antivirus import scan_upload
 from wger.utils.cache import reset_exercise_api_cache
 
 
@@ -73,6 +74,8 @@ def validate_video(value):
 
     if not has_video_signature(value):
         raise ValidationError(_('File is not a valid video'))
+
+    scan_upload(value)
 
     # ffmpeg is not installed or the upload is only held in memory, skip
     if not ffmpeg or not hasattr(value, 'temporary_file_path'):

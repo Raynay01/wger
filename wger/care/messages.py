@@ -53,6 +53,7 @@ from wger.exercises.models.video import (
     VIDEO_EXTENSIONS,
     has_video_signature,
 )
+from wger.utils.antivirus import scan_upload
 from wger.utils.images import validate_image_static_no_animation
 
 
@@ -100,6 +101,7 @@ def classify_attachment(upload) -> str:
         raise ValidationError(_('Maximum file size is %(size)sMB.') % {'size': MAX_VIDEO_MB})
     if not has_video_signature(upload):
         raise ValidationError(_('File is not a valid video'))
+    scan_upload(upload)
     return AttachmentKind.VIDEO
 
 

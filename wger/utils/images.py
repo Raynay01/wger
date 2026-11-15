@@ -18,6 +18,9 @@ from django.core.exceptions import ValidationError
 # Third Party
 from PIL import Image
 
+# wger
+from wger.utils.antivirus import scan_upload
+
 
 MAX_FILE_SIZE_MB = 20
 
@@ -28,6 +31,8 @@ def validate_image_static_no_animation(value):
     # File size check
     if value.size > 1024 * 1024 * MAX_FILE_SIZE_MB:
         raise ValidationError(f'The maximum image file size is {MAX_FILE_SIZE_MB}MB.')
+
+    scan_upload(value)
 
     # Try opening the file with PIL
     try:

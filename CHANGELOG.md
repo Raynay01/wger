@@ -244,6 +244,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   accounts must turn on two-step verification before using the API.
   `MFA_TOTP_ISSUER` (default `WEB_APP_NAME`) names the account in the
   authenticator app.
+* `CLAMAV_HOST`, `CLAMAV_PORT` (default `3310`) and `CLAMAV_TIMEOUT` (default
+  `30` s): virus scan of uploads (gallery and exercise images, exercise videos,
+  chat photos and videos) with a ClamAV daemon. Off while `CLAMAV_HOST` is
+  empty, with a warning at start in production; once set, an upload is only
+  stored after clamd answers OK, and refused while clamd can't be reached.
 * `DJANGO_ALLOWED_HOSTS` (default `*`): host names the installation answers
   to, comma separated. Set it in production, otherwise links in e-mails can be
   made to point to another host; the server warns at start while it is `*`.
