@@ -95,3 +95,47 @@ class AllowedOriginsTestCase(SimpleTestCase):
             ],
             ['api.almova.com.br', 'localhost'],
         )
+
+
+class SecurityHeadersTestCase(SimpleTestCase):
+    """
+    In production, Django sends the security headers: HSTS when configured, the
+    enforced framing and plugin policy, and the full policy as report-only
+    """
+
+    names = [
+        'MIDDLEWARE',
+        'SECURE_HSTS_SECONDS',
+        'SECURE_HSTS_INCLUDE_SUBDOMAINS',
+        'SECURE_CSP',
+        'SECURE_CSP_REPORT_ONLY',
+    ]
+
+    def test_middleware_and_policies(self):
+        values = production_settings(self.names)
+        middleware = values['MIDDLEWARE']
+        self.assertIn('django.middleware.security.SecurityMiddleware', middleware)
+        self.assertIn('django.middleware.csp.ContentSecurityPolicyMiddleware', middleware)
+        self.assertLess(
+            middleware.index('django.middleware.security.SecurityMiddleware'),
+            middleware.index('django.middleware.common.CommonMiddleware'),
+        )
+        self.assertEqual(values['SECURE_CSP']['frame-ancestors'], ["'none'"])
+        self.assertEqual(values['SECURE_CSP']['object-src'], ["'none'"])
+        self.assertIn('<CSP_NONCE_SENTINEL>', values['SECURE_CSP_REPORT_ONLY']['script-src'])
+        self.assertEqual(values['SECURE_HSTS_SECONDS'], 0)
+
+    def test_hsts_from_the_environment(self):
+        values = production_settings(
+            self.names,
+            SECURE_HSTS_SECONDS='63072000',
+            SECURE_HSTS_INCLUDE_SUBDOMAINS='True',
+        )
+        self.assertEqual(values['SECURE_HSTS_SECONDS'], 63072000)
+        self.assertTrue(values['SECURE_HSTS_INCLUDE_SUBDOMAINS'])
+
+    def test_media_host_in_the_report_only_policy(self):
+        values = production_settings(
+            ['SECURE_CSP_REPORT_ONLY'], MEDIA_URL='https://cdn.almova.com.br/m/'
+        )
+        self.assertIn('cdn.almova.com.br', values['SECURE_CSP_REPORT_ONLY']['img-src'])
