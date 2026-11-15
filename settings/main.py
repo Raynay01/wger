@@ -157,10 +157,22 @@ STATIC_URL = env.str('STATIC_URL', '/static/')
 
 LOGIN_REDIRECT_URL = env.str('LOGIN_REDIRECT_URL', '/')
 
-# Allow all hosts to access the application. Change if used in production.
-ALLOWED_HOSTS = [
-    '*',
-]
+# Host names this installation answers to, comma separated, e.g.
+# 'api.almova.com.br'. Unset, any host is accepted: set it in production, so
+# links in e-mails (password reset, invitations) can't point to another host
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['*'])
+if not DEBUG and '*' in ALLOWED_HOSTS:
+    warnings.warn(
+        'DJANGO_ALLOWED_HOSTS is not set, so any host name is accepted. '
+        'Set it to the host names of this installation for production use.',
+        stacklevel=1,
+    )
+
+# Origins whose pages may call the API from the browser, comma separated, e.g.
+# 'https://app.almova.com.br'. None by default: the ALMOVA web app calls the API
+# from its server and the mobile apps are native, so neither needs CORS
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', False)
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
