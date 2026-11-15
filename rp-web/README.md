@@ -43,6 +43,7 @@ mkdir -p db
 DJANGO_SETTINGS_MODULE=settings.local_dev uv run ./manage.py migrate
 DJANGO_SETTINGS_MODULE=settings.local_dev uv run ./manage.py loaddata languages licenses setting_repetition_units setting_weight_units groups gym_config categories equipment muscles exercise-base-data translations test-ingredients
 DJANGO_SETTINGS_MODULE=settings.local_dev uv run ./manage.py import-taco-products   # alimentos da TACO
+DJANGO_SETTINGS_MODULE=settings.local_dev uv run ./manage.py import-exercise-names-pt   # nomes dos exercícios em português
 DJANGO_SETTINGS_MODULE=settings.local_dev uv run ./manage.py runserver 127.0.0.1:8100
 ```
 

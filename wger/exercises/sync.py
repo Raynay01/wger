@@ -55,6 +55,7 @@ from wger.exercises.models import (
     Translation,
 )
 from wger.exercises.models.video import validate_video
+from wger.exercises.portuguese_names import remove_local_translation
 from wger.manager.models import (
     SlotEntry,
     WorkoutLog,
@@ -108,6 +109,9 @@ def sync_exercises(
             description = translation_data['description']
             description_source = translation_data['description_source']
             language_id = translation_data['language']
+
+            if remove_local_translation(exercise, language_id):
+                print_fn(f'- replaced the local name in language {language_id} by {trans_uuid}')
 
             translation, translation_created = Translation.objects.update_or_create(
                 uuid=trans_uuid,

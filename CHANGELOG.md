@@ -53,6 +53,12 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   admin, which refuses while professionals hold clinical records about the
   person. Requests stay as evidence after the deletion.
 * The set descriptions ("3 Sets", "RiR", "rest") are translatable again.
+* `import-exercise-names-pt` adds Brazilian Portuguese names to the 804
+  exercises of the public library without a Portuguese translation, from a
+  file in the repository keyed by exercise UUID. They are Portuguese
+  translations marked by their author, without a description; running it
+  again updates them, and a Portuguese translation from the wger.de sync
+  replaces them instead of failing on the one-translation-per-language rule.
 * `import-taco-products` imports the TACO (Tabela Brasileira de Composição de
   Alimentos, NEPA/UNICAMP): 590 Brazilian foods in Portuguese, with category,
   fiber and sodium, rounded as printed. The pinned CSV is verified by checksum,

@@ -244,7 +244,7 @@ try {
   await bruno.getByRole('button', { name: 'Adicionar dia' }).click();
   await bruno.getByText('Dia 1 · Pernas').waitFor();
   await bruno.getByText('+ Adicionar exercício').click();
-  await pick(bruno, 'Exercício', 'squat');
+  await pick(bruno, 'Exercício', 'agachamento completo');
   await bruno.getByLabel('Carga (kg)').fill('60');
   await bruno.getByLabel('RPE').fill('8');
   await bruno.getByLabel('Cadência').fill('3-1-1-0');
@@ -411,6 +411,7 @@ try {
   await ana.locator('input[type=file]').setInputFiles({ name: 'serie.mp4', mimeType: 'video/mp4', buffer: MP4 });
   const exerciseSelect = ana.getByLabel('Exercício do vídeo (opcional)');
   const squatName = (await exerciseSelect.locator('option').nth(1).textContent()).trim();
+  assert(squatName === 'Agachamento completo com barra', `nome do exercício em português: ${squatName}`);
   await exerciseSelect.selectOption({ index: 1 });
   await ana.getByRole('button', { name: 'Enviar' }).click();
   await ana.getByText(`Execução: ${squatName}`).waitFor();
