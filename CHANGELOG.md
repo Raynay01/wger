@@ -215,6 +215,15 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   nginx serves; it is local storage also when media files go to S3.
 * `AWS_DEFAULT_ACL` (default empty): ACL for files uploaded to S3, e.g.
   `public-read` for buckets whose files aren't public by default.
+* `CORS_ALLOWED_ORIGINS` (default empty) and `CORS_ALLOW_ALL_ORIGINS`
+  (default `False`): origins whose pages may call the API from a browser.
+  **Changed default:** production no longer answers cross-origin requests from
+  every site. The ALMOVA web app (server-side calls) and the mobile apps
+  (native) don't need it; a frontend served from another domain, such as a
+  Flutter web build, needs its origin listed here.
+* `DJANGO_ALLOWED_HOSTS` (default `*`): host names the installation answers
+  to, comma separated. Set it in production, otherwise links in e-mails can be
+  made to point to another host; the server warns at start while it is `*`.
 
 ## Breaking API changes
 *(only relevant if you have your own scripts or interact with the REST API)*
