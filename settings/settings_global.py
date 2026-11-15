@@ -310,6 +310,12 @@ MFA_SUPPORTED_TYPES = ['totp', 'recovery_codes', 'webauthn']
 # on two-step verification before the API answers them. Off here so tests and
 # installations without professionals keep their behavior; on in production.
 CARE_PROFESSIONAL_MFA = False
+
+# Virus scan of uploads with ClamAV (clamd). Off while the host is empty; once
+# set, an upload is only accepted after clamd answers OK
+CLAMAV_HOST = ''
+CLAMAV_PORT = 3310
+CLAMAV_TIMEOUT = 30
 MFA_TOTP_ISSUER = 'wger'
 # Passkeys may also be used for passwordless login (a "Sign in with a passkey"
 # button), but not for passwordless signup.

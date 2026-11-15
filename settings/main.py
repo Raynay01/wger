@@ -292,6 +292,17 @@ MFA_TOTP_ISSUER = env.str('MFA_TOTP_ISSUER', WEB_APP_NAME)
 # Professional accounts must turn on two-step verification before using the API
 CARE_PROFESSIONAL_MFA = env.bool('CARE_PROFESSIONAL_MFA', True)
 
+# Virus scan of uploads with ClamAV (clamd). Once CLAMAV_HOST is set, uploads
+# are refused while the scanner can't be reached
+CLAMAV_HOST = env.str('CLAMAV_HOST', '')
+CLAMAV_PORT = env.int('CLAMAV_PORT', 3310)
+CLAMAV_TIMEOUT = env.int('CLAMAV_TIMEOUT', 30)
+if not DEBUG and not CLAMAV_HOST:
+    warnings.warn(
+        'CLAMAV_HOST is not set, so uploaded files are not scanned for viruses.',
+        stacklevel=1,
+    )
+
 #
 # Django Axes
 #

@@ -42,6 +42,14 @@ msgstr "Só os vídeos do paciente são revisados."
 msgid "Turn on two-step verification to use the professional area."
 msgstr "Ative a verificação em duas etapas para usar a área profissional."
 
+#: utils/antivirus.py
+msgid "The virus scan is not available right now. Try again later."
+msgstr "A verificação de vírus não está disponível agora. Tente de novo mais tarde."
+
+#: utils/antivirus.py
+msgid "The virus scan refused this file."
+msgstr "A verificação de vírus recusou este arquivo."
+
 #: care/api/prescription.py:79
 msgid "A prescription cannot be moved to another patient."
 msgstr "Uma prescrição não pode ser transferida para outro paciente."

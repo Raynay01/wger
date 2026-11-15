@@ -37,6 +37,7 @@ from wger.care.models import (
 from wger.care.tests.helpers import CareScenarioMixin
 from wger.core.tests.base_testcase import BaseTestCase
 from wger.exercises.models import Exercise
+from wger.utils.tests.test_antivirus import FakeClamd
 
 
 VIDEO = b'\x00\x00\x00\x18ftypmp42' + bytes(range(256)) * 4
@@ -387,3 +388,39 @@ class ExecutionVideoTestCase(MessageScenarioMixin, BaseTestCase, APITestCase):
         (exported,) = export_user_data(self.patient)['care']['messages']
         self.assertEqual(exported['exercise'], self.exercise.pk)
         self.assertIsNotNone(exported['reviewed_at'])
+
+
+class AttachmentVirusScanTestCase(MessageScenarioMixin, BaseTestCase, APITestCase):
+    """An attachment the virus scan refuses is neither stored nor sent"""
+
+    def test_infected_video(self):
+        clamd = FakeClamd(b'stream: Eicar-Test-Signature FOUND')
+        self.addCleanup(clamd.close)
+        with override_settings(CLAMAV_HOST='127.0.0.1', CLAMAV_PORT=clamd.port):
+            response = self.send(
+                self.patient,
+                attachment=SimpleUploadedFile('treino.mp4', VIDEO, content_type='video/mp4'),
+            )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('attachment', response.data)
+        self.assertEqual(clamd.received, [VIDEO])
+        self.assertFalse(Message.objects.exists())
+        self.assertEqual(list(pathlib.Path(self.private_root.name).rglob('*.mp4')), [])
+
+    def test_infected_photo(self):
+        clamd = FakeClamd(b'stream: Eicar-Test-Signature FOUND')
+        self.addCleanup(clamd.close)
+        with override_settings(CLAMAV_HOST='127.0.0.1', CLAMAV_PORT=clamd.port):
+            response = self.send(self.patient, attachment=png_upload())
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Message.objects.exists())
+
+    def test_clean_video(self):
+        clamd = FakeClamd(b'stream: OK')
+        self.addCleanup(clamd.close)
+        with override_settings(CLAMAV_HOST='127.0.0.1', CLAMAV_PORT=clamd.port):
+            response = self.send(
+                self.patient,
+                attachment=SimpleUploadedFile('treino.mp4', VIDEO, content_type='video/mp4'),
+            )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
