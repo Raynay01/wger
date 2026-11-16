@@ -38,6 +38,9 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
 5. **Agenda:** tocar no próximo atendimento abre as próximas consultas (data,
    tipo, profissional, duração, local e observações). Dá para cancelar, com
    confirmação; o profissional é avisado.
+7. **Login pelo navegador volta por `almova://`:** com `wger://`, o app do
+   wger no mesmo celular poderia receber o token. O servidor manda o esquema
+   de `APP_AUTH_SCHEME` (`almova` em produção).
 6. **Sem relato público de erro:** o app do wger oferecia abrir um relato no
    GitHub público com os registros do app, que podem citar dados de saúde.
    No ALMOVA isso está desligado; copiar os registros continua, para mandar
