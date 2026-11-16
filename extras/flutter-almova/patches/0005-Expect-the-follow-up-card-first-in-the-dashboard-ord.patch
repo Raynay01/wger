@@ -1,7 +1,7 @@
 From 303bb925b1b38037ce5371803575c4abaa4c3c22 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 15:29:06 +0000
-Subject: [PATCH 5/5] Expect the follow-up card first in the dashboard order
+Subject: [PATCH 5/7] Expect the follow-up card first in the dashboard order
  tests
 
 The follow-up card is the first dashboard widget now, so the default

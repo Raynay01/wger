@@ -1,0 +1,238 @@
+From 5a2e339c3f2b907de8d8fdb809cbeb348697a831 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 15:38:54 +0000
+Subject: [PATCH 6/7] Do not offer public GitHub issues with the app logs
+
+The error dialog, the sync status dialog and the log screen offered to
+open a pre-filled issue on wger's public GitHub tracker with the app logs
+and the sync snapshot. In ALMOVA the logs can name health data, so the
+three actions are gone unless the build sets
+ALMOVA_PUBLIC_ISSUE_REPORTS=true. Copying the logs stays, for a private
+report to support.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/core/consts.dart                          |  5 ++
+ lib/core/error_dialogs.dart                   | 54 ++++++++++---------
+ lib/core/widgets/log_overview.dart            | 30 ++++++-----
+ lib/core/widgets/sync_status_dialog.dart      |  3 +-
+ test/core/widgets/log_overview_test.dart      |  8 +++
+ .../core/widgets/sync_status_dialog_test.dart |  6 +--
+ 6 files changed, 62 insertions(+), 44 deletions(-)
+
+diff --git a/lib/core/consts.dart b/lib/core/consts.dart
+index d01d7a0..8191ccb 100644
+--- a/lib/core/consts.dart
++++ b/lib/core/consts.dart
+@@ -202,6 +202,11 @@ const GITHUB_ISSUES_URL = '$GITHUB_REPO_URL/issues/new/choose';
+ const GITHUB_ISSUES_BUG_URL = '$GITHUB_REPO_URL/issues/new?template=1_bug.yml';
+ const GITHUB_SPONSORS_URL = 'https://github.com/sponsors/wger-project';
+ 
++/// Whether the app offers to open a pre-filled public GitHub issue with its
++/// logs. Off for ALMOVA: the logs can name health data and the tracker is
++/// public. The logs can still be copied for a private report.
++const PUBLIC_ISSUE_REPORTS = bool.fromEnvironment('ALMOVA_PUBLIC_ISSUE_REPORTS');
++
+ /// Maximum length for a pre-filled GitHub issue URL. GitHub starts answering
+ /// issues/new with an error page at roughly 7050 characters (measured 2026-07),
+ /// so stay well below that.
+diff --git a/lib/core/error_dialogs.dart b/lib/core/error_dialogs.dart
+index f010255..6ecf2d7 100644
+--- a/lib/core/error_dialogs.dart
++++ b/lib/core/error_dialogs.dart
+@@ -24,6 +24,7 @@ import 'package:logging/logging.dart';
+ import 'package:material_ui/material_ui.dart';
+ import 'package:url_launcher/url_launcher.dart';
+ import 'package:wger/core/build_safety.dart';
++import 'package:wger/core/consts.dart';
+ import 'package:wger/core/errors.dart';
+ import 'package:wger/core/exceptions/http_exception.dart';
+ import 'package:wger/core/keys.dart';
+@@ -250,33 +251,34 @@ void showGeneralErrorDialog(dynamic error, StackTrace? stackTrace, {BuildContext
+             ),
+           ),
+           actions: [
+-            TextButton(
+-              child: const Text('Report issue'),
+-              onPressed: () async {
+-                final githubIssueUrl = buildGithubIssueUrl(
+-                  issueTitle: issueTitle,
+-                  issueErrorMessage: issueErrorMessage,
+-                  stackTrace: fullStackTrace,
+-                  applicationLogs: applicationLogs,
+-                  syncDiagnostics: await collectSyncDiagnostics(),
+-                  appVersion: await collectAppVersion(),
+-                );
+-                final Uri reportUri = Uri.parse(githubIssueUrl);
+-
+-                try {
+-                  await launchUrl(reportUri, mode: LaunchMode.externalApplication);
+-                } catch (e) {
+-                  if (kDebugMode) {
+-                    logger.warning('Error launching URL: $e');
++            if (PUBLIC_ISSUE_REPORTS)
++              TextButton(
++                child: const Text('Report issue'),
++                onPressed: () async {
++                  final githubIssueUrl = buildGithubIssueUrl(
++                    issueTitle: issueTitle,
++                    issueErrorMessage: issueErrorMessage,
++                    stackTrace: fullStackTrace,
++                    applicationLogs: applicationLogs,
++                    syncDiagnostics: await collectSyncDiagnostics(),
++                    appVersion: await collectAppVersion(),
++                  );
++                  final Uri reportUri = Uri.parse(githubIssueUrl);
++
++                  try {
++                    await launchUrl(reportUri, mode: LaunchMode.externalApplication);
++                  } catch (e) {
++                    if (kDebugMode) {
++                      logger.warning('Error launching URL: $e');
++                    }
++                    if (context.mounted) {
++                      ScaffoldMessenger.of(
++                        context,
++                      ).showSnackBar(SnackBar(content: Text('Error opening issue tracker: $e')));
++                    }
+                   }
+-                  if (context.mounted) {
+-                    ScaffoldMessenger.of(
+-                      context,
+-                    ).showSnackBar(SnackBar(content: Text('Error opening issue tracker: $e')));
+-                  }
+-                }
+-              },
+-            ),
++                },
++              ),
+             FilledButton(
+               child: Text(MaterialLocalizations.of(context).okButtonLabel),
+               onPressed: () {
+diff --git a/lib/core/widgets/log_overview.dart b/lib/core/widgets/log_overview.dart
+index 91f2e04..f884faf 100644
+--- a/lib/core/widgets/log_overview.dart
++++ b/lib/core/widgets/log_overview.dart
+@@ -18,6 +18,7 @@
+ 
+ import 'package:logging/logging.dart';
+ import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/consts.dart';
+ import 'package:wger/core/error_dialogs.dart' show CopyToClipboardButton;
+ import 'package:wger/core/errors.dart' show buildGithubIssueUrl, collectAppVersion;
+ import 'package:wger/core/log_file_store.dart';
+@@ -66,20 +67,21 @@ class _LogOverviewPageState extends State<LogOverviewPage> {
+           CopyToClipboardButton(text: copyText, iconOnly: true),
+           // Opens a pre-filled GitHub issue with these logs and the current
+           // sync snapshot
+-          IconButton(
+-            icon: const Icon(Icons.bug_report),
+-            tooltip: 'Report issue',
+-            onPressed: () async {
+-              final url = buildGithubIssueUrl(
+-                applicationLogs: InMemoryLogStore().getFormattedLogs(),
+-                syncDiagnostics: await collectSyncDiagnostics(),
+-                appVersion: await collectAppVersion(),
+-              );
+-              if (context.mounted) {
+-                launchURL(url, context);
+-              }
+-            },
+-          ),
++          if (PUBLIC_ISSUE_REPORTS)
++            IconButton(
++              icon: const Icon(Icons.bug_report),
++              tooltip: 'Report issue',
++              onPressed: () async {
++                final url = buildGithubIssueUrl(
++                  applicationLogs: InMemoryLogStore().getFormattedLogs(),
++                  syncDiagnostics: await collectSyncDiagnostics(),
++                  appVersion: await collectAppVersion(),
++                );
++                if (context.mounted) {
++                  launchURL(url, context);
++                }
++              },
++            ),
+         ],
+       ),
+       body: Column(
+diff --git a/lib/core/widgets/sync_status_dialog.dart b/lib/core/widgets/sync_status_dialog.dart
+index 61d1a90..7a24cdd 100644
+--- a/lib/core/widgets/sync_status_dialog.dart
++++ b/lib/core/widgets/sync_status_dialog.dart
+@@ -21,6 +21,7 @@ import 'package:logging/logging.dart';
+ import 'package:material_ui/material_ui.dart';
+ import 'package:powersync/powersync.dart' show SyncStatus;
+ import 'package:url_launcher/url_launcher.dart';
++import 'package:wger/core/consts.dart';
+ import 'package:wger/core/error_dialogs.dart' show CopyToClipboardButton;
+ import 'package:wger/core/errors.dart' show buildGithubIssueUrl, collectAppVersion;
+ import 'package:wger/core/formatting/formatting.dart';
+@@ -258,7 +259,7 @@ class SyncStatusDialog extends ConsumerWidget {
+           // Pre-filled bug report including the sync snapshot. Sync problems
+           // usually never raise the fatal error dialog, so this is their
+           // report path.
+-          if (stalled || syncState.anyError != null)
++          if (PUBLIC_ISSUE_REPORTS && (stalled || syncState.anyError != null))
+             TextButton(
+               onPressed: () async {
+                 // Same snapshot the copy button shows, and no second query.
+diff --git a/test/core/widgets/log_overview_test.dart b/test/core/widgets/log_overview_test.dart
+index fa4e90b..eb5ffbf 100644
+--- a/test/core/widgets/log_overview_test.dart
++++ b/test/core/widgets/log_overview_test.dart
+@@ -20,6 +20,7 @@ import 'package:flutter/services.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:logging/logging.dart';
+ import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/error_dialogs.dart';
+ import 'package:wger/core/logs.dart';
+ import 'package:wger/core/widgets/log_overview.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+@@ -50,6 +51,13 @@ void main() {
+     expect(find.textContaining('connection refused'), findsOneWidget);
+   });
+ 
++  testWidgets('offers copying the logs, not a public issue with them', (tester) async {
++    await tester.pumpWidget(wrap());
++
++    expect(find.byIcon(Icons.bug_report), findsNothing);
++    expect(find.byType(CopyToClipboardButton), findsOneWidget);
++  });
++
+   testWidgets('the filter matches the message and the logger name', (tester) async {
+     InMemoryLogStore()
+       ..add(LogRecord(Level.INFO, 'Network status: offline', 'NetworkStatus'))
+diff --git a/test/core/widgets/sync_status_dialog_test.dart b/test/core/widgets/sync_status_dialog_test.dart
+index f5c8079..368a3d2 100644
+--- a/test/core/widgets/sync_status_dialog_test.dart
++++ b/test/core/widgets/sync_status_dialog_test.dart
+@@ -336,20 +336,20 @@ void main() {
+       expect(find.text(i18n.syncStatusReconnect), findsOneWidget);
+     });
+ 
+-    testWidgets('offers the report action on error and when stalled, not while healthy', (
++    testWidgets('never offers a public issue with the logs, not even on error or when stalled', (
+       tester,
+     ) async {
+       await _pumpDialog(tester, buildSyncStatus(connected: true));
+       expect(find.text('Report issue'), findsNothing);
+ 
+       await _pumpDialog(tester, buildSyncStatus(connected: true, downloadError: Exception('boom')));
+-      expect(find.text('Report issue'), findsOneWidget);
++      expect(find.text('Report issue'), findsNothing);
+ 
+       await tester.pumpWidget(
+         _wrap(const SyncStatusDialog(), status: buildSyncStatus(connecting: true), stalled: true),
+       );
+       await tester.pumpAndSettle();
+-      expect(find.text('Report issue'), findsOneWidget);
++      expect(find.text('Report issue'), findsNothing);
+     });
+ 
+     testWidgets('omits the reconnect action without a callback', (tester) async {
+-- 
+2.43.0
+

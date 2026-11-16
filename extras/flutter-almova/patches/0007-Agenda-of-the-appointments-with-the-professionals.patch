@@ -1,0 +1,1058 @@
+From 6fad8cde0c83df7c3af866768868ca761a6b5160 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 15:43:27 +0000
+Subject: [PATCH 7/7] Agenda of the appointments with the professionals
+
+Tapping the next appointment on the follow-up card opens the upcoming
+appointments as a patient, earliest first: date, kind, professional, area,
+duration, place and the professional's notes. An appointment can be
+cancelled after confirming; the server tells the professional. The card
+reloads afterwards. The labels shared by the card and the agenda move to
+features/care/care.dart.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/core/widgets/dashboard/widgets/care.dart  |  28 +---
+ lib/features/care/care.dart                   |  43 ++++++
+ lib/features/care/models/appointment.dart     |   4 +
+ lib/features/care/models/appointment.g.dart   |   2 +
+ .../care/providers/agenda_notifier.dart       |  42 ++++++
+ .../care/providers/agenda_notifier.g.dart     |  59 ++++++++
+ .../care/providers/care_repository.dart       |  11 ++
+ lib/features/care/screens/agenda_screen.dart  | 115 ++++++++++++++++
+ lib/l10n/app_en.arb                           |  12 +-
+ lib/l10n/app_pt.arb                           |   7 +-
+ lib/l10n/app_pt_BR.arb                        |   7 +-
+ .../care/providers/agenda_notifier_test.dart  |  94 +++++++++++++
+ .../providers/agenda_notifier_test.mocks.dart | 127 ++++++++++++++++++
+ .../providers/care_overview_test.mocks.dart   |   9 ++
+ .../care/providers/care_repository_test.dart  |  18 +++
+ .../conversation_notifier_test.mocks.dart     |   9 ++
+ .../care/screens/agenda_screen_test.dart      | 109 +++++++++++++++
+ .../screens/agenda_screen_test.mocks.dart     | 127 ++++++++++++++++++
+ .../conversation_screen_test.mocks.dart       |   9 ++
+ 19 files changed, 806 insertions(+), 26 deletions(-)
+ create mode 100644 lib/features/care/care.dart
+ create mode 100644 lib/features/care/providers/agenda_notifier.dart
+ create mode 100644 lib/features/care/providers/agenda_notifier.g.dart
+ create mode 100644 lib/features/care/screens/agenda_screen.dart
+ create mode 100644 test/features/care/providers/agenda_notifier_test.dart
+ create mode 100644 test/features/care/providers/agenda_notifier_test.mocks.dart
+ create mode 100644 test/features/care/screens/agenda_screen_test.dart
+ create mode 100644 test/features/care/screens/agenda_screen_test.mocks.dart
+
+diff --git a/lib/core/widgets/dashboard/widgets/care.dart b/lib/core/widgets/dashboard/widgets/care.dart
+index 344a675..c86b29a 100644
+--- a/lib/core/widgets/dashboard/widgets/care.dart
++++ b/lib/core/widgets/dashboard/widgets/care.dart
+@@ -19,34 +19,13 @@
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:intl/intl.dart';
+ import 'package:material_ui/material_ui.dart';
++import 'package:wger/features/care/care.dart';
+ import 'package:wger/features/care/models/appointment.dart';
+-import 'package:wger/features/care/models/care_relationship.dart';
+ import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/features/care/screens/agenda_screen.dart';
+ import 'package:wger/features/care/screens/conversation_screen.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+-String disciplineLabel(AppLocalizations i18n, Discipline? discipline) => switch (discipline) {
+-  Discipline.training => i18n.careDisciplineTraining,
+-  Discipline.physio => i18n.careDisciplinePhysio,
+-  Discipline.nutrition => i18n.careDisciplineNutrition,
+-  null => '',
+-};
+-
+-IconData disciplineIcon(Discipline? discipline) => switch (discipline) {
+-  Discipline.training => Icons.fitness_center,
+-  Discipline.physio => Icons.healing,
+-  Discipline.nutrition => Icons.restaurant,
+-  null => Icons.person,
+-};
+-
+-String appointmentKindLabel(AppLocalizations i18n, String kind) => switch (kind) {
+-  'consultation' => i18n.careAppointmentConsultation,
+-  'session' => i18n.careAppointmentSession,
+-  'assessment' => i18n.careAppointmentAssessment,
+-  'follow_up' => i18n.careAppointmentFollowUp,
+-  _ => kind,
+-};
+-
+ /// The professionals who follow the user and the next appointment. Hidden
+ /// when nobody follows the user, offline, or on a server without follow-ups.
+ class DashboardCareWidget extends ConsumerWidget {
+@@ -99,6 +78,9 @@ class _NextAppointment extends StatelessWidget {
+     return ListTile(
+       leading: const Icon(Icons.event),
+       title: Text(i18n.careNextAppointment),
++      trailing: const Icon(Icons.chevron_right),
++      onTap: () =>
++          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AgendaScreen())),
+       subtitle: Text(
+         '${i18n.careAppointmentWith(appointmentKindLabel(i18n, appointment.kind), appointment.professional)}'
+         '\n$when',
+diff --git a/lib/features/care/care.dart b/lib/features/care/care.dart
+new file mode 100644
+index 0000000..80e448d
+--- /dev/null
++++ b/lib/features/care/care.dart
+@@ -0,0 +1,43 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++String disciplineLabel(AppLocalizations i18n, Discipline? discipline) => switch (discipline) {
++  Discipline.training => i18n.careDisciplineTraining,
++  Discipline.physio => i18n.careDisciplinePhysio,
++  Discipline.nutrition => i18n.careDisciplineNutrition,
++  null => '',
++};
++
++IconData disciplineIcon(Discipline? discipline) => switch (discipline) {
++  Discipline.training => Icons.fitness_center,
++  Discipline.physio => Icons.healing,
++  Discipline.nutrition => Icons.restaurant,
++  null => Icons.person,
++};
++
++String appointmentKindLabel(AppLocalizations i18n, String kind) => switch (kind) {
++  'consultation' => i18n.careAppointmentConsultation,
++  'session' => i18n.careAppointmentSession,
++  'assessment' => i18n.careAppointmentAssessment,
++  'follow_up' => i18n.careAppointmentFollowUp,
++  _ => kind,
++};
+diff --git a/lib/features/care/models/appointment.dart b/lib/features/care/models/appointment.dart
+index ab19d60..f8e6b4c 100644
+--- a/lib/features/care/models/appointment.dart
++++ b/lib/features/care/models/appointment.dart
+@@ -45,6 +45,9 @@ class Appointment {
+   @JsonKey(defaultValue: '')
+   final String location;
+ 
++  @JsonKey(defaultValue: '')
++  final String notes;
++
+   @JsonKey(required: true)
+   final String status;
+ 
+@@ -62,6 +65,7 @@ class Appointment {
+     required this.start,
+     required this.durationMinutes,
+     required this.location,
++    this.notes = '',
+     required this.status,
+     required this.discipline,
+     required this.professional,
+diff --git a/lib/features/care/models/appointment.g.dart b/lib/features/care/models/appointment.g.dart
+index baae1fe..976ca78 100644
+--- a/lib/features/care/models/appointment.g.dart
++++ b/lib/features/care/models/appointment.g.dart
+@@ -26,6 +26,7 @@ Appointment _$AppointmentFromJson(Map<String, dynamic> json) {
+     start: utcIso8601ToLocalDate(json['start'] as String),
+     durationMinutes: (json['duration_minutes'] as num).toInt(),
+     location: json['location'] as String? ?? '',
++    notes: json['notes'] as String? ?? '',
+     status: json['status'] as String,
+     discipline: $enumDecodeNullable(
+       _$DisciplineEnumMap,
+@@ -43,6 +44,7 @@ Map<String, dynamic> _$AppointmentToJson(Appointment instance) => <String, dynam
+   'start': instance.start.toIso8601String(),
+   'duration_minutes': instance.durationMinutes,
+   'location': instance.location,
++  'notes': instance.notes,
+   'status': instance.status,
+   'discipline': _$DisciplineEnumMap[instance.discipline],
+   'professional': instance.professional,
+diff --git a/lib/features/care/providers/agenda_notifier.dart b/lib/features/care/providers/agenda_notifier.dart
+new file mode 100644
+index 0000000..c086176
+--- /dev/null
++++ b/lib/features/care/providers/agenda_notifier.dart
+@@ -0,0 +1,42 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++part 'agenda_notifier.g.dart';
++
++/// The user's scheduled appointments as a patient, earliest first
++@riverpod
++class AgendaNotifier extends _$AgendaNotifier {
++  @override
++  Future<List<Appointment>> build() async {
++    final repository = ref.read(careRepositoryProvider);
++    final mine = (await repository.fetchMyProfessionals()).map((r) => r.id).toSet();
++    final upcoming = await repository.fetchUpcomingAppointments(DateTime.now());
++    return upcoming.where((a) => mine.contains(a.relationship)).toList();
++  }
++
++  Future<void> cancel(String id) async {
++    await ref.read(careRepositoryProvider).cancelAppointment(id);
++    state = AsyncData([...?state.value?.where((a) => a.id != id)]);
++    ref.invalidate(careOverviewProvider);
++  }
++}
+diff --git a/lib/features/care/providers/agenda_notifier.g.dart b/lib/features/care/providers/agenda_notifier.g.dart
+new file mode 100644
+index 0000000..1c89f78
+--- /dev/null
++++ b/lib/features/care/providers/agenda_notifier.g.dart
+@@ -0,0 +1,59 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'agenda_notifier.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++/// The user's scheduled appointments as a patient, earliest first
++
++@ProviderFor(AgendaNotifier)
++final agendaProvider = AgendaNotifierProvider._();
++
++/// The user's scheduled appointments as a patient, earliest first
++final class AgendaNotifierProvider
++    extends $AsyncNotifierProvider<AgendaNotifier, List<Appointment>> {
++  /// The user's scheduled appointments as a patient, earliest first
++  AgendaNotifierProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'agendaProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$agendaNotifierHash();
++
++  @$internal
++  @override
++  AgendaNotifier create() => AgendaNotifier();
++}
++
++String _$agendaNotifierHash() => r'22e41c8a308a04ecfa36395fcd6123765268f366';
++
++/// The user's scheduled appointments as a patient, earliest first
++
++abstract class _$AgendaNotifier extends $AsyncNotifier<List<Appointment>> {
++  FutureOr<List<Appointment>> build();
++  @$mustCallSuper
++  @override
++  WhenComplete runBuild() {
++    final ref = this.ref as $Ref<AsyncValue<List<Appointment>>, List<Appointment>>;
++    final element =
++        ref.element
++            as $ClassProviderElement<
++              AnyNotifier<AsyncValue<List<Appointment>>, List<Appointment>>,
++              AsyncValue<List<Appointment>>,
++              Object?,
++              Object?
++            >;
++    return element.handleCreate(ref, build);
++  }
++}
+diff --git a/lib/features/care/providers/care_repository.dart b/lib/features/care/providers/care_repository.dart
+index 82e27f2..fbd3ade 100644
+--- a/lib/features/care/providers/care_repository.dart
++++ b/lib/features/care/providers/care_repository.dart
+@@ -119,4 +119,15 @@ class CareRepository {
+     }
+     return response.bodyBytes;
+   }
++
++  /// Cancels a scheduled appointment; the professional gets a notice
++  Future<void> cancelAppointment(String id) async {
++    final response = await base.client.post(
++      base.makeUrl('$appointmentPath/$id/cancel'),
++      headers: base.getDefaultHeaders(),
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++  }
+ }
+diff --git a/lib/features/care/screens/agenda_screen.dart b/lib/features/care/screens/agenda_screen.dart
+new file mode 100644
+index 0000000..a5f2067
+--- /dev/null
++++ b/lib/features/care/screens/agenda_screen.dart
+@@ -0,0 +1,115 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:intl/intl.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/widgets/progress_indicator.dart';
++import 'package:wger/features/care/care.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/providers/agenda_notifier.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++/// The user's upcoming appointments with their professionals
++class AgendaScreen extends ConsumerWidget {
++  const AgendaScreen({super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final agenda = ref.watch(agendaProvider);
++
++    return Scaffold(
++      appBar: AppBar(title: Text(i18n.careUpcomingAppointments)),
++      body: switch (agenda) {
++        AsyncValue(:final value?) when value.isEmpty => Center(
++          child: Text(i18n.careNoAppointments),
++        ),
++        AsyncValue(:final value?) => ListView.separated(
++          itemCount: value.length,
++          separatorBuilder: (_, _) => const Divider(height: 1),
++          itemBuilder: (context, index) => AppointmentTile(value[index]),
++        ),
++        AsyncValue(:final error?) => Center(child: Text(error.toString())),
++        _ => const CenteredProgressIndicator(),
++      },
++    );
++  }
++}
++
++class AppointmentTile extends ConsumerWidget {
++  final Appointment appointment;
++
++  const AppointmentTile(this.appointment, {super.key});
++
++  Future<void> _cancel(BuildContext context, WidgetRef ref) async {
++    final i18n = AppLocalizations.of(context);
++    final confirmed = await showDialog<bool>(
++      context: context,
++      builder: (context) => AlertDialog(
++        content: Text(i18n.careCancelAppointmentQuestion),
++        actions: [
++          TextButton(
++            onPressed: () => Navigator.of(context).pop(false),
++            child: Text(MaterialLocalizations.of(context).closeButtonLabel),
++          ),
++          FilledButton(
++            onPressed: () => Navigator.of(context).pop(true),
++            child: Text(i18n.careCancelAppointment),
++          ),
++        ],
++      ),
++    );
++    if (confirmed != true) {
++      return;
++    }
++    try {
++      await ref.read(agendaProvider.notifier).cancel(appointment.id);
++    } catch (_) {
++      if (context.mounted) {
++        ScaffoldMessenger.of(
++          context,
++        ).showSnackBar(SnackBar(content: Text(i18n.careCancelFailed)));
++      }
++    }
++  }
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final locale = Localizations.localeOf(context).toString();
++    final when = DateFormat.MMMEd(locale).add_Hm().format(appointment.start);
++    final details = [
++      appointment.professional,
++      disciplineLabel(i18n, appointment.discipline),
++      '${appointment.durationMinutes} min',
++      if (appointment.location.isNotEmpty) appointment.location,
++    ].where((part) => part.isNotEmpty).join(' · ');
++
++    return ListTile(
++      leading: Icon(disciplineIcon(appointment.discipline)),
++      title: Text('$when · ${appointmentKindLabel(i18n, appointment.kind)}'),
++      subtitle: Text(appointment.notes.isEmpty ? details : '$details\n${appointment.notes}'),
++      isThreeLine: appointment.notes.isNotEmpty,
++      trailing: TextButton(
++        onPressed: () => _cancel(context, ref),
++        child: Text(i18n.careCancelAppointment),
++      ),
++    );
++  }
++}
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index 17a2b0d..cef32e6 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2108,5 +2108,15 @@
+   "careSendFailed": "Could not send. Try again.",
+   "@careSendFailed": {},
+   "careVideo": "Video",
+-  "@careVideo": {"description": "A video attached to a message"}
++  "@careVideo": {"description": "A video attached to a message"},
++  "careUpcomingAppointments": "Upcoming appointments",
++  "@careUpcomingAppointments": {},
++  "careNoAppointments": "No appointments scheduled",
++  "@careNoAppointments": {},
++  "careCancelAppointment": "Cancel appointment",
++  "@careCancelAppointment": {"description": "Button that cancels an appointment with a professional"},
++  "careCancelAppointmentQuestion": "Cancel this appointment? Your professional will be told.",
++  "@careCancelAppointmentQuestion": {},
++  "careCancelFailed": "Could not cancel. Try again.",
++  "@careCancelFailed": {}
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index aaa9efb..ec846ae 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1085,5 +1085,10 @@
+     "careWriteMessage": "Escreva uma mensagem",
+     "careSend": "Enviar",
+     "careSendFailed": "Não foi possível enviar. Tente de novo.",
+-    "careVideo": "Vídeo"
++    "careVideo": "Vídeo",
++    "careUpcomingAppointments": "Próximas consultas",
++    "careNoAppointments": "Nenhuma consulta marcada",
++    "careCancelAppointment": "Cancelar atendimento",
++    "careCancelAppointmentQuestion": "Cancelar este atendimento? O profissional será avisado.",
++    "careCancelFailed": "Não foi possível cancelar. Tente de novo."
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index 5d2a6d0..a8e4177 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1266,5 +1266,10 @@
+     "careWriteMessage": "Escreva uma mensagem",
+     "careSend": "Enviar",
+     "careSendFailed": "Não foi possível enviar. Tente de novo.",
+-    "careVideo": "Vídeo"
++    "careVideo": "Vídeo",
++    "careUpcomingAppointments": "Próximas consultas",
++    "careNoAppointments": "Nenhuma consulta marcada",
++    "careCancelAppointment": "Cancelar atendimento",
++    "careCancelAppointmentQuestion": "Cancelar este atendimento? O profissional será avisado.",
++    "careCancelFailed": "Não foi possível cancelar. Tente de novo."
+ }
+diff --git a/test/features/care/providers/agenda_notifier_test.dart b/test/features/care/providers/agenda_notifier_test.dart
+new file mode 100644
+index 0000000..811e57e
+--- /dev/null
++++ b/test/features/care/providers/agenda_notifier_test.dart
+@@ -0,0 +1,94 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/core/network/network_provider.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/agenda_notifier.dart';
++import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++import 'agenda_notifier_test.mocks.dart';
++
++const physio = CareRelationship(
++  id: 'r1',
++  discipline: Discipline.physio,
++  status: 'active',
++  professionalName: 'Paula',
++);
++
++Appointment appointment(String id, String relationship) => Appointment(
++  id: id,
++  relationship: relationship,
++  kind: 'session',
++  start: DateTime.utc(2026, 11, 18, 17),
++  durationMinutes: 50,
++  location: '',
++  status: 'scheduled',
++  discipline: Discipline.physio,
++  professional: 'Paula',
++);
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++  late ProviderContainer container;
++
++  setUp(() {
++    repository = MockCareRepository();
++    container = ProviderContainer(
++      overrides: [
++        careRepositoryProvider.overrideWithValue(repository),
++        networkStatusProvider.overrideWithValue(true),
++      ],
++    );
++    addTearDown(container.dispose);
++    when(repository.fetchMyProfessionals()).thenAnswer((_) async => [physio]);
++    when(repository.fetchUpcomingAppointments(any)).thenAnswer(
++      (_) async => [
++        appointment('a0', 'my-own-patient'),
++        appointment('a1', 'r1'),
++        appointment('a2', 'r1'),
++      ],
++    );
++  });
++
++  test('only the appointments of the user as patient', () async {
++    final agenda = await container.read(agendaProvider.future);
++
++    expect(agenda.map((a) => a.id), ['a1', 'a2']);
++  });
++
++  test('a cancelled appointment leaves the agenda and the dashboard card reloads', () async {
++    when(repository.cancelAppointment('a1')).thenAnswer((_) async {});
++    await container.read(agendaProvider.future);
++    await container.read(careOverviewProvider.future);
++    clearInteractions(repository);
++
++    await container.read(agendaProvider.notifier).cancel('a1');
++
++    expect(container.read(agendaProvider).value!.map((a) => a.id), ['a2']);
++    verify(repository.cancelAppointment('a1')).called(1);
++    await container.read(careOverviewProvider.future);
++    verify(repository.fetchMyProfessionals()).called(1);
++  });
++}
+diff --git a/test/features/care/providers/agenda_notifier_test.mocks.dart b/test/features/care/providers/agenda_notifier_test.mocks.dart
+new file mode 100644
+index 0000000..c8f9a33
+--- /dev/null
++++ b/test/features/care/providers/agenda_notifier_test.mocks.dart
+@@ -0,0 +1,127 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/providers/agenda_notifier_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i5;
++import 'dart:typed_data' as _i8;
++
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/appointment.dart' as _i7;
++import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i5.Future<List<_i7.Appointment>>.value(
++              <_i7.Appointment>[],
++            ),
++          )
++          as _i5.Future<List<_i7.Appointment>>);
++
++  @override
++  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i5.Future<List<_i3.Message>>);
++
++  @override
++  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++          )
++          as _i5.Future<_i8.Uint8List>);
++
++  @override
++  _i5.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++}
+diff --git a/test/features/care/providers/care_overview_test.mocks.dart b/test/features/care/providers/care_overview_test.mocks.dart
+index 65a904b..768f6d9 100644
+--- a/test/features/care/providers/care_overview_test.mocks.dart
++++ b/test/features/care/providers/care_overview_test.mocks.dart
+@@ -115,4 +115,13 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
+           )
+           as _i5.Future<_i8.Uint8List>);
++
++  @override
++  _i5.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+diff --git a/test/features/care/providers/care_repository_test.dart b/test/features/care/providers/care_repository_test.dart
+index a632a5e..53b1114 100644
+--- a/test/features/care/providers/care_repository_test.dart
++++ b/test/features/care/providers/care_repository_test.dart
+@@ -180,4 +180,22 @@ void main() {
+       expect(repository.sendText('r1', 'oi'), throwsA(isA<WgerHttpException>()));
+     });
+   });
++
++  test('cancelling an appointment', () async {
++    final sent = <http.Request>[];
++    final repository = CareRepository(
++      WgerBaseProvider(
++        serverUrl: 'https://almova.test',
++        client: MockClient((request) async {
++          sent.add(request);
++          return http.Response('{}', 200);
++        }),
++      ),
++    );
++
++    await repository.cancelAppointment('a1');
++
++    expect(sent.single.method, 'POST');
++    expect(sent.single.url.path, '/api/v2/appointment/a1/cancel/');
++  });
+ }
+diff --git a/test/features/care/providers/conversation_notifier_test.mocks.dart b/test/features/care/providers/conversation_notifier_test.mocks.dart
+index 34e09bd..035b0bb 100644
+--- a/test/features/care/providers/conversation_notifier_test.mocks.dart
++++ b/test/features/care/providers/conversation_notifier_test.mocks.dart
+@@ -115,4 +115,13 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
+           )
+           as _i5.Future<_i8.Uint8List>);
++
++  @override
++  _i5.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+diff --git a/test/features/care/screens/agenda_screen_test.dart b/test/features/care/screens/agenda_screen_test.dart
+new file mode 100644
+index 0000000..4855953
+--- /dev/null
++++ b/test/features/care/screens/agenda_screen_test.dart
+@@ -0,0 +1,109 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/core/network/network_provider.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/features/care/screens/agenda_screen.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++import 'agenda_screen_test.mocks.dart';
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++
++  setUp(() {
++    repository = MockCareRepository();
++    when(repository.fetchMyProfessionals()).thenAnswer(
++      (_) async => [
++        const CareRelationship(
++          id: 'r1',
++          discipline: Discipline.physio,
++          status: 'active',
++          professionalName: 'Paula',
++        ),
++      ],
++    );
++  });
++
++  Widget render() => ProviderScope(
++    overrides: [
++      careRepositoryProvider.overrideWithValue(repository),
++      networkStatusProvider.overrideWithValue(true),
++    ],
++    child: const MaterialApp(
++      locale: Locale('pt', 'BR'),
++      localizationsDelegates: appLocalizationsDelegates,
++      supportedLocales: AppLocalizations.supportedLocales,
++      home: AgendaScreen(),
++    ),
++  );
++
++  testWidgets('lists the appointment and cancels it after confirming', (tester) async {
++    when(repository.fetchUpcomingAppointments(any)).thenAnswer(
++      (_) async => [
++        Appointment(
++          id: 'a1',
++          relationship: 'r1',
++          kind: 'assessment',
++          start: DateTime(2026, 11, 18, 14, 30),
++          durationMinutes: 50,
++          location: 'Clínica Movimento',
++          notes: 'Traga o exame',
++          status: 'scheduled',
++          discipline: Discipline.physio,
++          professional: 'Paula',
++        ),
++      ],
++    );
++    when(repository.cancelAppointment('a1')).thenAnswer((_) async {});
++
++    await tester.pumpWidget(render());
++    await tester.pumpAndSettle();
++
++    expect(find.textContaining('14:30 · Avaliação'), findsOneWidget);
++    expect(
++      find.textContaining('Paula · Fisioterapia · 50 min · Clínica Movimento'),
++      findsOneWidget,
++    );
++    expect(find.textContaining('Traga o exame'), findsOneWidget);
++
++    // Closing the question keeps it
++    await tester.tap(find.text('Cancelar atendimento'));
++    await tester.pumpAndSettle();
++    await tester.tap(find.text('Fechar'));
++    await tester.pumpAndSettle();
++    verifyNever(repository.cancelAppointment(any));
++
++    await tester.tap(find.text('Cancelar atendimento'));
++    await tester.pumpAndSettle();
++    await tester.tap(find.widgetWithText(FilledButton, 'Cancelar atendimento'));
++    await tester.pumpAndSettle();
++
++    verify(repository.cancelAppointment('a1')).called(1);
++    expect(find.text('Nenhuma consulta marcada'), findsOneWidget);
++  });
++}
+diff --git a/test/features/care/screens/agenda_screen_test.mocks.dart b/test/features/care/screens/agenda_screen_test.mocks.dart
+new file mode 100644
+index 0000000..b5a1094
+--- /dev/null
++++ b/test/features/care/screens/agenda_screen_test.mocks.dart
+@@ -0,0 +1,127 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/screens/agenda_screen_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i5;
++import 'dart:typed_data' as _i8;
++
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/appointment.dart' as _i7;
++import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i5.Future<List<_i7.Appointment>>.value(
++              <_i7.Appointment>[],
++            ),
++          )
++          as _i5.Future<List<_i7.Appointment>>);
++
++  @override
++  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i5.Future<List<_i3.Message>>);
++
++  @override
++  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++          )
++          as _i5.Future<_i8.Uint8List>);
++
++  @override
++  _i5.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++}
+diff --git a/test/features/care/screens/conversation_screen_test.mocks.dart b/test/features/care/screens/conversation_screen_test.mocks.dart
+index ab6559e..29aaaa1 100644
+--- a/test/features/care/screens/conversation_screen_test.mocks.dart
++++ b/test/features/care/screens/conversation_screen_test.mocks.dart
+@@ -115,4 +115,13 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
+           )
+           as _i5.Future<_i8.Uint8List>);
++
++  @override
++  _i5.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+-- 
+2.43.0
+

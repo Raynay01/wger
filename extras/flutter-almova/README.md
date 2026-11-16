@@ -34,6 +34,13 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
    avisa dos vídeos; envia texto enquanto o acompanhamento está aberto e marca
    como lidas as mensagens do profissional. Enviar foto ou vídeo pelo app e
    tocar vídeos ficam para a próxima etapa.
+5. **Agenda:** tocar no próximo atendimento abre as próximas consultas (data,
+   tipo, profissional, duração, local e observações). Dá para cancelar, com
+   confirmação; o profissional é avisado.
+6. **Sem relato público de erro:** o app do wger oferecia abrir um relato no
+   GitHub público com os registros do app, que podem citar dados de saúde.
+   No ALMOVA isso está desligado; copiar os registros continua, para mandar
+   ao suporte em particular.
 
 ## Construir o APK
 
