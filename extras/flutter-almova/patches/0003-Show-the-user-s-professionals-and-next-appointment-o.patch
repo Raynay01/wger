@@ -1,7 +1,7 @@
 From 3be57a461329c083859a3fc83499aa7577d28b95 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 15:19:09 +0000
-Subject: [PATCH 3/3] Show the user's professionals and next appointment on the
+Subject: [PATCH 3/4] Show the user's professionals and next appointment on the
  dashboard
 
 A new dashboard card, first in the list, shows who follows the user on
