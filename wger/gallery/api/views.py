@@ -19,12 +19,19 @@
 import logging
 
 # Third Party
-from rest_framework import viewsets
+from drf_spectacular.utils import extend_schema
+from rest_framework import (
+    exceptions,
+    viewsets,
+)
+from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 
 # wger
+from wger.care.messages import attachment_response
 from wger.gallery.api.serializers import ImageSerializer
+from wger.gallery.files import image_storage
 from wger.gallery.models import Image
 
 
@@ -62,3 +69,14 @@ class GalleryImageViewSet(viewsets.ModelViewSet):
         Set the owner
         """
         serializer.save(user=self.request.user)
+
+    @extend_schema(responses={(200, 'application/octet-stream'): bytes})
+    @action(detail=True, methods=['get'])
+    def file(self, request, pk):
+        """The image file, only for its owner (the files are not public)"""
+        image = self.get_object()
+        storage = image_storage(image.image.name)
+        if storage is None:
+            raise exceptions.NotFound()
+        image.image.storage = storage
+        return attachment_response(request, image.image)

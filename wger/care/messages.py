@@ -68,6 +68,7 @@ IMAGE_EXTENSIONS = ('jpg', 'jpeg', 'png', 'webp', 'avif')
 
 CONTENT_TYPES = {
     'jpeg': 'image/jpeg',
+    'jpg': 'image/jpeg',
     'png': 'image/png',
     'webp': 'image/webp',
     'avif': 'image/avif',

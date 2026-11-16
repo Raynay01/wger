@@ -24,6 +24,7 @@ from django.db import models
 from django.dispatch import receiver
 
 # wger
+from wger.care.storage import private_storage
 from wger.utils.images import validate_image_static_no_animation
 
 
@@ -54,6 +55,8 @@ class Image(models.Model):
         verbose_name='Image',
         help_text='Only PNG and JPEG formats are supported',
         upload_to=gallery_upload_dir,
+        # Served only to the owner, see GalleryImageViewSet.file
+        storage=private_storage,
         height_field='height',
         width_field='width',
         validators=[validate_image_static_no_animation],

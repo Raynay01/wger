@@ -21,8 +21,8 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <a href="{{ image.image.url }}">
-                            <img src="{{ image.image.url }}" class="img-fluid" alt="">
+                        <a href="{% url 'gallery-file' image.pk %}">
+                            <img src="{% url 'gallery-file' image.pk %}" class="img-fluid" alt="">
                         </a>
                         {% if image.description %}
                             <p> {{ image.description }}</p>
@@ -55,7 +55,7 @@
         {% for image in images %}
             <div class="col-sm-6 col-lg-4 mb-4">
                 <a href="#" data-bs-toggle="modal" data-bs-target="#modalImage{{ image.id }}">
-                    <img class="w-100 rounded" src="{{ image.image.url }}" alt="{{ image.description }}">
+                    <img class="w-100 rounded" src="{% url 'gallery-file' image.pk %}" alt="{{ image.description }}">
                 </a>
             </div>
         {% endfor %}

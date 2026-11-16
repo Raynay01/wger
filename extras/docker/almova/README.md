@@ -56,6 +56,14 @@ docker compose exec web python3 manage.py import-taco-products
 docker compose exec web python3 manage.py import-exercise-names-pt
 ```
 
+Fotos de progresso (galeria) enviadas antes desta versão: copie para o
+armazenamento privado. Os originais na pasta pública só saem com
+`--delete-public`, depois de conferir o backup:
+
+```bash
+docker compose exec web python3 manage.py copy-gallery-to-private
+```
+
 O site fica em `http://localhost:8080` (`ALMOVA_HTTP_PORT`). O HTTPS fica na
 frente (balanceador ou proxy do servidor), que manda `X-Forwarded-Proto`.
 

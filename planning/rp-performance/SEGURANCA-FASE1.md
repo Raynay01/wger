@@ -1,6 +1,6 @@
 # ALMOVA: primeira fase de segurança (15 e 16/11/2026)
 
-Cada conjunto de mudanças tem a sua branch (`almova/seguranca-01` a `11`),
+Cada conjunto de mudanças tem a sua branch (`almova/seguranca-01` a `12`),
 juntada depois em `claude/happy-goldberg-8nupoc`. Nenhuma migração de banco,
 nenhum dado de paciente alterado.
 
@@ -19,6 +19,7 @@ nenhum dado de paciente alterado.
 | 9 | Política de conteúdo do Django aplicada por completo: scripts embutidos dos modelos de página com nonce, sem `onclick`, Swagger e Redoc ajustados, reCAPTCHA sem script embutido (`almova/seguranca-09-csp-django`) | Teste que varre todos os modelos de página (falha com um script sem nonce ou um `onclick`); navegador percorreu 37 páginas, a API navegável, o Swagger e o Redoc com as configurações de produção, sem nenhum bloqueio além do logotipo externo do Redoc |
 | 10 | Login dos profissionais dura no máximo 30 dias a partir da entrada, mesmo com renovação do token (`CARE_PROFESSIONAL_LOGIN_DAYS`); pacientes continuam com 120 dias (`almova/seguranca-10-login-profissional`) | Testes: renovação no dia 29 funciona, no dia 31 é recusada e o token antigo também; paciente segue entrando; sessão do navegador sai; desligado com 0 |
 | 11 | Leituras do profissional na própria área também ficam registradas (diário alimentar, treinos feitos, planejado x realizado, registros de dor e de exercícios), uma vez por paciente, tipo de dado e dia, e entram na exportação do paciente (`almova/seguranca-11-registro-acessos`) | 6 testes; retirar cada registro, a exclusão do próprio paciente ou o limite de um por dia faz um teste falhar |
+| 12 | Fotos de progresso (galeria) no armazenamento privado, entregues só ao dono por `/api/v2/gallery/{id}/file/`; comando `copy-gallery-to-private` copia as antigas sem apagar (`almova/seguranca-12-galeria-privada`). Falta o app de celular buscar as fotos por esse endereço (fork do Flutter) | 6 testes (envio, dono, outra pessoa, sem login, cópia, apagar, validação); migração sem alteração no PostgreSQL |
 
 Problemas encontrados e corrigidos no caminho:
 
@@ -29,20 +30,15 @@ Problemas encontrados e corrigidos no caminho:
 
 ## Depende de decisão sua
 
-1. **Fotos de progresso (galeria do wger)** ficam na pasta pública de mídia,
-   protegidas só pelo nome aleatório do arquivo. O certo é passá-las para o
-   armazenamento privado, como os anexos do chat, mas isso muda onde os arquivos
-   existentes ficam (precisa da sua aprovação). O site do ALMOVA ainda não usa a
-   galeria; o app do celular do wger usa.
-2. **Admin do Django desligado**: o `admin.py` registra os modelos, mas o admin
+1. **Admin do Django desligado**: o `admin.py` registra os modelos, mas o admin
    não está instalado, então a verificação do registro no conselho e a exclusão de
    conta pedida pelo paciente não têm tela. Opções: ligar o admin só na rede
    interna e com verificação em duas etapas, ou fazer essas telas na área
    profissional/administrativa do site.
-3. **Consentimento para dados de saúde (LGPD, art. 11)**: o aceite do convite
+2. **Consentimento para dados de saúde (LGPD, art. 11)**: o aceite do convite
    registra o consentimento do acompanhamento, mas não há registro separado e
    destacado para o tratamento de dados de saúde nem do aceite dos termos. O texto
    depende dos documentos de LGPD (advogado). Quando houver o texto, a tela e o
    registro são simples de fazer.
-4. **Vídeos do chat** podem ter a localização gravada pelo celular. Remover
+3. **Vídeos do chat** podem ter a localização gravada pelo celular. Remover
    exige o ffmpeg no servidor (troca de dependência).
