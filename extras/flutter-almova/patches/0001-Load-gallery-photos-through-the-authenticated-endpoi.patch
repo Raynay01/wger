@@ -1,7 +1,7 @@
 From 46dc189ccbb5bc98f30dc0863b2aabb9cb1c1db5 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 15:05:40 +0000
-Subject: [PATCH 1/4] Load gallery photos through the authenticated endpoint
+Subject: [PATCH 1/5] Load gallery photos through the authenticated endpoint
 
 The ALMOVA server keeps progress photos in private storage and serves them
 only to their owner at /api/v2/gallery/{id}/file/, so a public /media/ URL
