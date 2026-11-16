@@ -1,0 +1,113 @@
+From f8ea4f2d155668161dd7d26d2395efbf4136a7bf Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 15:11:40 +0000
+Subject: [PATCH 2/2] Brand the app as ALMOVA
+
+The app is called ALMOVA on the launcher, in the task switcher and on the
+login screen, and its Android application id is br.com.almova.app, so it
+installs next to the wger app instead of replacing it. The Kotlin namespace
+and the method channel names stay, only the id changes. The default server
+of the login comes from --dart-define=ALMOVA_SERVER at build time.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ android/app/build.gradle                         | 6 +++---
+ lib/core/consts.dart                             | 8 ++++++--
+ lib/features/auth/screens/auth_screen.dart       | 2 +-
+ lib/main.dart                                    | 2 +-
+ test/features/auth/screens/auth_screen_test.dart | 2 +-
+ 5 files changed, 12 insertions(+), 8 deletions(-)
+
+diff --git a/android/app/build.gradle b/android/app/build.gradle
+index be6c05e..2b082b9 100644
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -40,7 +40,7 @@ android {
+ 
+     defaultConfig {
+         // Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+-        applicationId "de.wger.flutter"
++        applicationId "br.com.almova.app"
+         minSdkVersion 26
+         targetSdk = flutter.targetSdkVersion
+         versionCode = flutter.versionCode
+@@ -48,7 +48,7 @@ android {
+ 
+         // Overridden by the debug build type. Set here rather than per build
+         // type so the profile variant has it as well
+-        resValue "string", "app_name", "wger"
++        resValue "string", "app_name", "ALMOVA"
+     }
+ 
+     signingConfigs {
+@@ -68,7 +68,7 @@ android {
+             // installed release one on the same device. The launcher icon keeps
+             // the wger logo on a different background, see src/debug/res
+             applicationIdSuffix ".debug"
+-            resValue "string", "app_name", "wger - debug"
++            resValue "string", "app_name", "ALMOVA - debug"
+         }
+     }
+ }
+diff --git a/lib/core/consts.dart b/lib/core/consts.dart
+index 7114cdd..d01d7a0 100644
+--- a/lib/core/consts.dart
++++ b/lib/core/consts.dart
+@@ -44,8 +44,12 @@ const MIN_SERVER_VERSION = '2.7';
+ /// and we don't want to fill the whole screen
+ const double ICON_SIZE_SMALL = 20;
+ 
+-/// Default wger server during login
+-const DEFAULT_SERVER_PROD = 'https://wger.de';
++/// Default server during login, set per build with
++/// `--dart-define=ALMOVA_SERVER=https://...`
++const DEFAULT_SERVER_PROD = String.fromEnvironment(
++  'ALMOVA_SERVER',
++  defaultValue: 'https://wger.de',
++);
+ 
+ // Default wger test server during development
+ const DEFAULT_SERVER_TEST = 'https://dev.wger.de';
+diff --git a/lib/features/auth/screens/auth_screen.dart b/lib/features/auth/screens/auth_screen.dart
+index c9afe58..7137177 100644
+--- a/lib/features/auth/screens/auth_screen.dart
++++ b/lib/features/auth/screens/auth_screen.dart
+@@ -68,7 +68,7 @@ class AuthScreen extends StatelessWidget {
+                       horizontal: 94.0,
+                     ),
+                     child: Text(
+-                      'wger',
++                      'ALMOVA',
+                       style: TextStyle(
+                         color: onBannerColor.withValues(alpha: 0.7),
+                         fontSize: 30,
+diff --git a/lib/main.dart b/lib/main.dart
+index bcd8f39..c9f09ee 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -260,7 +260,7 @@ class MainApp extends ConsumerWidget {
+           ),
+           data: (authState) {
+             return MaterialApp(
+-              title: 'wger',
++              title: 'ALMOVA',
+               navigatorKey: navigatorKey,
+               scaffoldMessengerKey: scaffoldMessengerKey,
+               scrollBehavior: const WgerScrollBehavior(),
+diff --git a/test/features/auth/screens/auth_screen_test.dart b/test/features/auth/screens/auth_screen_test.dart
+index f1b170e..eb8682a 100644
+--- a/test/features/auth/screens/auth_screen_test.dart
++++ b/test/features/auth/screens/auth_screen_test.dart
+@@ -167,7 +167,7 @@ void main() {
+       await tester.pumpAndSettle();
+ 
+       // Assert
+-      expect(find.text('wger'), findsOneWidget);
++      expect(find.text('ALMOVA'), findsOneWidget);
+ 
+       expect(find.textContaining('New to wger?'), findsOneWidget);
+       expect(find.textContaining('Already have an account?'), findsNothing);
+-- 
+2.43.0
+
