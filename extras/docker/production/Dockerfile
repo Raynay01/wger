@@ -11,11 +11,22 @@
 ##########
 # Builder
 ##########
-FROM wger/base:latest AS builder
+# Pinned by date and digest, so a rebuild gets the same system packages
+ARG BASE_IMAGE=wger/base:2026-11-01@sha256:c3c1be750620478f93f16deb7c2d0f3dce9d08e5c3d820ecc7adff6468ae41e3
+
+# Node for the CSS and JS build, from the official image instead of a remote
+# setup script: Node 24 LTS, glibc build, pinned by version and digest
+ARG NODE_IMAGE=node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54
+
+FROM ${NODE_IMAGE} AS node
+
+FROM ${BASE_IMAGE} AS builder
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Need a newer node than what's in ubuntu
-RUN wget -O- https://deb.nodesource.com/setup_22.x | bash - \
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
     && apt update \
     && apt install --no-install-recommends -y \
       build-essential \
@@ -29,7 +40,6 @@ RUN wget -O- https://deb.nodesource.com/setup_22.x | bash - \
       rustc \
       cargo \
       unzip \
-      nodejs \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /root/src/wger/core/static
 
@@ -40,18 +50,29 @@ RUN wget -O- https://deb.nodesource.com/setup_22.x | bash - \
 WORKDIR /root/src
 
 # Build the application
-COPY pyproject.toml README.md /root/src/
+COPY pyproject.toml uv.lock README.md /root/src/
 COPY wger/version.py wger/__init__.py /root/src/wger/
 
 # NB: this was a workound for https://github.com/rust-lang/cargo/issues/8719
 # which was needed when building rust dependencies for arm/v7. If we re-enable
 # the arch, we will probably need to add it again (same for demo, etc).
 # --mount=type=tmpfs,target=/root/.cargo
-RUN pip3 wheel \
+# Exactly the versions of uv.lock, checked against their hashes. A proxy that
+# re-signs HTTPS needs its CA as the optional build secret build_ca
+RUN --mount=type=secret,id=build_ca,required=false \
+    if [ -s /run/secrets/build_ca ]; then \
+      export PIP_CERT=/run/secrets/build_ca SSL_CERT_FILE=/run/secrets/build_ca NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; \
+    fi \
+    && pip3 install --break-system-packages --no-cache-dir uv==0.11.32 \
+    && uv export --frozen --format requirements-txt --group docker --no-emit-project --no-dev \
+      > /root/requirements.txt \
+    && pip3 wheel \
       --no-cache-dir \
+      --require-hashes \
       --wheel-dir /wheels \
-      --group docker . \
-    && npm install -g sass
+      -r /root/requirements.txt \
+    && pip3 wheel --no-cache-dir --no-deps --wheel-dir /wheels . \
+    && npm install -g sass@1.108.2
 
 # Fetch the JS and CSS files.
 # For the react-components npm package, we fetch it manually, extract it and move
@@ -59,7 +80,11 @@ RUN pip3 wheel \
 # is hacky and there's probably a better way.
 COPY package.json package-lock.json ./
 COPY wger/core/static /root/src/wger/core/static
-RUN npm ci --production \
+RUN --mount=type=secret,id=build_ca,required=false \
+    if [ -s /run/secrets/build_ca ]; then \
+      export PIP_CERT=/run/secrets/build_ca SSL_CERT_FILE=/run/secrets/build_ca NODE_EXTRA_CA_CERTS=/run/secrets/build_ca; \
+    fi \
+    && npm ci --production \
     && npm run build:css:sass \
     && PACKAGE_NAME="@wger-project/react-components" \
     && PACKAGE_VERSION=$(node -p "require('./package.json').devDependencies['$PACKAGE_NAME']") \
@@ -70,7 +95,7 @@ RUN npm ci --production \
 ########
 # Final
 ########
-FROM wger/base:latest AS final
+FROM ${BASE_IMAGE} AS final
 LABEL org.opencontainers.image.authors="wger team <hello@wger.de>"
 ARG DOCKER_DIR=./extras/docker/production
 ARG BUILD_COMMIT
@@ -107,7 +132,7 @@ USER wger
 RUN --mount=type=bind,from=builder,source=/wheels,target=/wheels \
     pip3 install --break-system-packages --no-cache-dir --user /wheels/* \
     && pip3 install --break-system-packages --user . \
-    && mkdir -p ~/media ~/static ~/beat ~/db \
+    && mkdir -p ~/media ~/private-media ~/static ~/beat ~/db \
     && cd wger \
     && env -u DJANGO_SETTINGS_MODULE django-admin compilemessages
 

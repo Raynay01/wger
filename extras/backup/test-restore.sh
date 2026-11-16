@@ -28,11 +28,13 @@ table_digests() {
 BACKUP_DIR="$work/backups" BACKUP_KEEP_DAYS=0 "$here/backup.sh"
 name="$(basename "$(ls "$work"/backups/*.sha256)" .sha256)"
 
-# The files hold no readable data
-if grep -a -q -e 'auth_user' -e 'PGDMP' "$work"/backups/*.age; then
-  echo "FAIL: the backup is readable without the key" >&2
-  exit 1
-fi
+# The files are age-encrypted, with no readable data
+for file in "$work"/backups/*.age; do
+  if [ "$(head -c 21 "$file")" != 'age-encryption.org/v1' ]; then
+    echo "FAIL: $file is not an age file" >&2
+    exit 1
+  fi
+done
 
 RESTORE_MEDIA_TO="$work/media" "$here/restore.sh" "$work/backups" "$name" "$RESTORE_TEST_DB"
 
@@ -65,7 +67,7 @@ echo "OK: another key can't open the backup"
 
 # A damaged file is caught before restoring
 printf 'x' >> "$work/backups/${name}.db.age"
-if (cd "$work/backups" && sha256sum --check --strict --quiet "${name}.sha256") 2>/dev/null; then
+if (cd "$work/backups" && sha256sum -c "${name}.sha256") > /dev/null 2>&1; then
   echo "FAIL: a damaged backup passed the checksum" >&2
   exit 1
 fi

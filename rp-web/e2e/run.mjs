@@ -34,16 +34,22 @@ const users = {
 };
 const PASSWORD = 'senha-forte-123';
 
-execFileSync(
-  'uv',
-  [
-    'run',
-    './manage.py',
-    'shell',
-    '-c',
-    `from django.contrib.auth.models import User\nfor u in ${JSON.stringify(Object.values(users))}:\n    User.objects.create_user(u, f'{u}@example.com', '${PASSWORD}', first_name=u.split('_')[0].title())`,
-  ],
-  { cwd: repo, env: { ...process.env, DJANGO_SETTINGS_MODULE: 'settings.local_dev' }, stdio: 'ignore' },
+// Django shell code, on the local dev server or, with KINUTRI_MANAGE (e.g.
+// "docker compose exec -T web python3 manage.py"), on the staging stack
+function manageShell(code) {
+  if (process.env.KINUTRI_MANAGE) {
+    execFileSync('sh', ['-c', `${process.env.KINUTRI_MANAGE} shell`], { input: code, stdio: ['pipe', 'ignore', 'inherit'] });
+    return;
+  }
+  execFileSync('uv', ['run', './manage.py', 'shell', '-c', code], {
+    cwd: repo,
+    env: { ...process.env, DJANGO_SETTINGS_MODULE: 'settings.local_dev' },
+    stdio: 'ignore',
+  });
+}
+
+manageShell(
+  `from django.contrib.auth.models import User\nfor u in ${JSON.stringify(Object.values(users))}:\n    User.objects.create_user(u, f'{u}@example.com', '${PASSWORD}', first_name=u.split('_')[0].title())`,
 );
 
 let step = 0;
@@ -594,14 +600,8 @@ try {
   log('Ana compartilhou peso e medidas com o personal: ele vê a antropometria, não as metas');
 
   // Planned versus done: three sets logged today (as the mobile app does)
-  execFileSync(
-    'uv',
+  manageShell(
     [
-      'run',
-      './manage.py',
-      'shell',
-      '-c',
-      [
         'from django.contrib.auth.models import User',
         'from django.utils import timezone',
         'from wger.manager.models import Routine, SlotEntry, WorkoutLog',
@@ -611,8 +611,6 @@ try {
         'for _ in range(3):',
         '    WorkoutLog.objects.create(user=user, routine=routine, exercise=entry.exercise, date=timezone.now(), repetitions=10, weight=60, rir=2)',
       ].join('\n'),
-    ],
-    { cwd: repo, env: { ...process.env, DJANGO_SETTINGS_MODULE: 'settings.local_dev' }, stdio: 'ignore' },
   );
   await bruno.goto(periodizationUrl);
   await bruno.getByText('Planejado x realizado').waitFor();

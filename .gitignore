@@ -94,3 +94,10 @@ venv-wger
 
 # macOS
 .DS_Store
+
+# ALMOVA: filled-in environment files with secrets
+extras/docker/almova/*.env
+!extras/docker/almova/*.env.example
+
+# Backups written by the backup service of the staging stack
+extras/docker/almova/backups/

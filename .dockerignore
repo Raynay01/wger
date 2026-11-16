@@ -33,3 +33,9 @@ venv
 /extras/authors/commits_cache/
 /extras/authors/*.md
 /extras/scripts/*.json
+
+# ALMOVA: the web app has its own image; local data stays out of the image
+/rp-web/
+/private-media/
+/database.sqlite
+*.sqlite
