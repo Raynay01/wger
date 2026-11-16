@@ -728,6 +728,10 @@ WGER_SOCIAL_PROVIDERS = []
 # to it; without an address they only ask to log in with the invited email.
 WEB_APP_URL = ''
 WEB_APP_NAME = 'ALMOVA'
+# Push notices (Firebase Cloud Messaging): project id and path of the JSON key
+# of a service account with the Firebase Cloud Messaging role. Off while empty
+FCM_PROJECT_ID = ''
+FCM_SERVICE_ACCOUNT_FILE = ''
 # Language of the notices sent outside the app (emails), the language of the web app
 WEB_APP_LANGUAGE = 'pt-br'
 

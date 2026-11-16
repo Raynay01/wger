@@ -23,7 +23,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
             Segurança
           </Link>
           <Link href="/conta/avisos" className="rounded-lg border border-navy-100 px-3 py-1.5 font-medium text-navy-700 hover:bg-navy-100">
-            Avisos por e-mail
+            Avisos
           </Link>
         </nav>
         {children}

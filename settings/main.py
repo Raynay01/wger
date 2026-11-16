@@ -292,6 +292,11 @@ MFA_TOTP_ISSUER = env.str('MFA_TOTP_ISSUER', WEB_APP_NAME)
 # Professional accounts must turn on two-step verification before using the API
 CARE_PROFESSIONAL_MFA = env.bool('CARE_PROFESSIONAL_MFA', True)
 
+# Push notices through Firebase Cloud Messaging; mount the service account key
+# as a secret file, never in an environment variable
+FCM_PROJECT_ID = env.str('FCM_PROJECT_ID', '')
+FCM_SERVICE_ACCOUNT_FILE = env.str('FCM_SERVICE_ACCOUNT_FILE', '')
+
 # Virus scan of uploads with ClamAV (clamd). Once CLAMAV_HOST is set, uploads
 # are refused while the scanner can't be reached
 CLAMAV_HOST = env.str('CLAMAV_HOST', '')

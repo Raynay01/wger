@@ -30,15 +30,14 @@ export async function activateTotp(formData: FormData) {
   back({ ativada: '1' });
 }
 
-/** Email notices the user wants: new messages, published plans, appointments */
+/** Notices the user wants, by email and on the phone: new messages, published plans, appointments */
 export async function saveNotices(formData: FormData) {
-  await api('care/notices/', {
-    method: 'PATCH',
-    body: {
-      email_messages: formData.get('email_messages') === 'on',
-      email_prescriptions: formData.get('email_prescriptions') === 'on',
-      email_appointments: formData.get('email_appointments') === 'on',
-    },
-  });
+  const body: Record<string, boolean> = {};
+  for (const channel of ['email', 'push']) {
+    for (const kind of ['messages', 'prescriptions', 'appointments']) {
+      body[`${channel}_${kind}`] = formData.get(`${channel}_${kind}`) === 'on';
+    }
+  }
+  await api('care/notices/', { method: 'PATCH', body });
   redirect('/conta/avisos?salvo=1');
 }

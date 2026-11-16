@@ -44,6 +44,7 @@ from wger.care.models import (
     NotificationPreference,
     Organization,
     ProfessionalRegistration,
+    PushPlatform,
 )
 from wger.utils.language import load_language
 
@@ -493,7 +494,19 @@ class MyDaySerializer(ModulesSerializer):
 class NotificationPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationPreference
-        fields = ['email_messages', 'email_prescriptions', 'email_appointments']
+        fields = [
+            'email_messages',
+            'email_prescriptions',
+            'email_appointments',
+            'push_messages',
+            'push_prescriptions',
+            'push_appointments',
+        ]
+
+
+class PushDeviceSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=512, write_only=True)
+    platform = serializers.ChoiceField(choices=PushPlatform.choices, required=False)
 
 
 class MfaStatusSerializer(serializers.Serializer):

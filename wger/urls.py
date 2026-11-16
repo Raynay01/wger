@@ -419,6 +419,16 @@ urlpatterns += [
     path('api/v2/care/activity/', care_api_views.ActivityView.as_view(), name='care-activity'),
     path('api/v2/care/mfa/', care_api_views.MfaView.as_view(), name='care-mfa'),
     path(
+        'api/v2/care/push-devices/',
+        care_api_views.PushDeviceView.as_view(),
+        name='care-push-devices',
+    ),
+    path(
+        'api/v2/care/push-devices/remove/',
+        care_api_views.PushDeviceRemoveView.as_view(),
+        name='care-push-devices-remove',
+    ),
+    path(
         'api/v2/care/notices/',
         care_api_views.NotificationPreferenceView.as_view(),
         name='care-notices',

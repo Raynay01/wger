@@ -94,6 +94,12 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   in the recipient's time zone). `/api/v2/care/notices/` reads and changes the
   user's choices (all on by default); every notice sent is recorded (kind and
   time) and part of the data export.
+  The same notices go to the user's phones through Firebase Cloud Messaging
+  once it is configured: the app registers its token on
+  `/api/v2/care/push-devices/` (a known token moves to the user now logged in)
+  and removes it on `push-devices/remove/`; `push_*` fields in
+  `/api/v2/care/notices/` turn them off, tokens of uninstalled apps are
+  dropped, and each channel is recorded on its own.
 * Chat between the patient and each professional (`/api/v2/care-message/`),
   with photos and videos (e.g. of an exercise). Messages can be sent while the
   follow-up is active or paused, both sides keep the history. Attachments are
@@ -271,6 +277,9 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   accounts must turn on two-step verification before using the API.
   `MFA_TOTP_ISSUER` (default `WEB_APP_NAME`) names the account in the
   authenticator app.
+* `FCM_PROJECT_ID` and `FCM_SERVICE_ACCOUNT_FILE` (default empty, off): push
+  notices through Firebase Cloud Messaging (HTTP v1), with the key file of a
+  service account mounted as a file.
 * `CLAMAV_HOST`, `CLAMAV_PORT` (default `3310`) and `CLAMAV_TIMEOUT` (default
   `30` s): virus scan of uploads (gallery and exercise images, exercise videos,
   chat photos and videos) with a ClamAV daemon. Off while `CLAMAV_HOST` is

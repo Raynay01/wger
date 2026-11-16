@@ -629,6 +629,9 @@ class Migration(migrations.Migration):
                 ('email_messages', models.BooleanField(default=True)),
                 ('email_prescriptions', models.BooleanField(default=True)),
                 ('email_appointments', models.BooleanField(default=True)),
+                ('push_messages', models.BooleanField(default=True)),
+                ('push_prescriptions', models.BooleanField(default=True)),
+                ('push_appointments', models.BooleanField(default=True)),
                 (
                     'user',
                     models.OneToOneField(
@@ -677,6 +680,38 @@ class Migration(migrations.Migration):
                         name='care_notifi_user_id_107a02_idx',
                     )
                 ],
+            },
+        ),
+        migrations.CreateModel(
+            name='PushDevice',
+            fields=[
+                (
+                    'id',
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    ),
+                ),
+                ('token', models.CharField(max_length=512, unique=True)),
+                (
+                    'platform',
+                    models.CharField(
+                        choices=[('android', 'Android'), ('ios', 'iOS'), ('web', 'Web')],
+                        max_length=10,
+                    ),
+                ),
+                ('created', models.DateTimeField(default=django.utils.timezone.now)),
+                ('last_seen', models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'user',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='care_push_devices',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+            ],
+            options={
+                'ordering': ['-last_seen'],
             },
         ),
     ]

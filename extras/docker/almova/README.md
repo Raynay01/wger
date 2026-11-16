@@ -63,6 +63,24 @@ O que fica público: o site, `/api/v2/` e `/allauth/` (app do celular), `/ps/`
 (sincronização) e os arquivos estáticos. As páginas próprias do wger e o admin
 do Django ficam só na rede interna (acesse por SSH ou VPN).
 
+## Avisos fora do app
+
+- **E-mail:** configure o servidor de e-mail (`ENABLE_EMAIL=True`, `EMAIL_HOST`,
+  `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `FROM_EMAIL`). O aviso de
+  mensagens sem ler roda sozinho a cada 5 minutos (`celery_beat`).
+- **Celular (push):** crie um projeto no Firebase, gere a chave de uma conta de
+  serviço com o papel "Firebase Cloud Messaging API Admin" e monte o arquivo no
+  servidor, por exemplo acrescentando ao serviço `web` e `celery_worker`:
+
+  ```yaml
+      volumes:
+        - /caminho/seguro/firebase.json:/run/secrets/firebase.json:ro
+  ```
+
+  e no `.env`: `FCM_PROJECT_ID=<id do projeto>` e
+  `FCM_SERVICE_ACCOUNT_FILE=/run/secrets/firebase.json`. Os avisos passam pelos
+  servidores do Google, por isso só levam o texto genérico, sem dados de saúde.
+
 ## 3. Backup
 
 ```bash

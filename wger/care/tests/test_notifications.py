@@ -225,7 +225,14 @@ class NoticePreferenceTestCase(CareScenarioMixin, BaseTestCase, APITestCase):
         self.client.force_authenticate(self.patient)
         self.assertEqual(
             self.client.get(self.url).data,
-            {'email_messages': True, 'email_prescriptions': True, 'email_appointments': True},
+            {
+                'email_messages': True,
+                'email_prescriptions': True,
+                'email_appointments': True,
+                'push_messages': True,
+                'push_prescriptions': True,
+                'push_appointments': True,
+            },
         )
         response = self.client.patch(self.url, {'email_messages': False}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)

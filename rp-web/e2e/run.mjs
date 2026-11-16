@@ -662,15 +662,17 @@ try {
 
   // Email notices: on by default, each one can be turned off
   await ana.goto(`${WEB}/conta/avisos`);
-  const messagesNotice = ana.getByLabel(/Mensagens novas/);
+  const messagesNotice = ana.getByLabel('Mensagens novas por e-mail');
   assert(await messagesNotice.isChecked(), 'aviso de mensagens ligado por padrão');
   await messagesNotice.uncheck();
   await ana.getByRole('button', { name: 'Salvar' }).click();
   await ana.getByText('Preferências salvas.').waitFor();
   await ana.reload();
-  assert(!(await ana.getByLabel(/Mensagens novas/).isChecked()), 'aviso de mensagens desligado');
-  assert(await ana.getByLabel(/Atendimentos/).isChecked(), 'aviso de atendimentos continua ligado');
-  log('Ana desligou o e-mail de mensagens novas e manteve os outros avisos');
+  assert(!(await ana.getByLabel('Mensagens novas por e-mail').isChecked()), 'aviso de mensagens desligado');
+  assert(await ana.getByLabel('Mensagens novas por celular').isChecked(), 'aviso no celular continua ligado');
+  assert(await ana.getByLabel('Atendimentos por e-mail').isChecked(), 'aviso de atendimentos continua ligado');
+  await ana.getByText('Nenhum celular recebe avisos ainda.', { exact: false }).waitFor();
+  log('Ana desligou o e-mail de mensagens novas e manteve os outros avisos (e-mail e celular)');
 
   // LGPD: export and deletion request
   await ana.goto(`${WEB}/app/privacidade`);
