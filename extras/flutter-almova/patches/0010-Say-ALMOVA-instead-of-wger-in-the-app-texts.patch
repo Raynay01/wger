@@ -1,7 +1,7 @@
 From b26c98ea33839c00021c6872e97effe129dfef5e Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 16:27:25 +0000
-Subject: [PATCH 10/12] Say ALMOVA instead of wger in the app texts
+Subject: [PATCH 10/13] Say ALMOVA instead of wger in the app texts
 
 The English, Portuguese and Brazilian Portuguese texts name ALMOVA where
 they meant the app or its server: the login ("New to ALMOVA?"), the server

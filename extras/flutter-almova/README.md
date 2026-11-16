@@ -54,6 +54,10 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     exercícios do protocolo do dia (séries, repetições, carga, onde fazer,
     instruções e vídeo) com "Marcar como feito", e o registro de dor de 0 a 10
     no momento que o fisioterapeuta pediu. A dor alimenta os alertas dele.
+11. **Ícone, logos e tela de abertura provisórios:** a marca do site (A
+    azul-marinho sobre quadrado verde-neon) no ícone do Android, no ícone de
+    notificação, no login, no "Sobre" e na abertura. Trocar pelo logotipo
+    oficial quando existir (o ícone do iOS ainda é o do wger).
 
 ## Construir o APK
 
