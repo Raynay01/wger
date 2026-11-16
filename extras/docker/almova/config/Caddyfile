@@ -1,0 +1,28 @@
+# ALMOVA: HTTPS in front of the stack (profile "https"). Caddy gets and renews
+# the certificate of ALMOVA_DOMAIN from Let's Encrypt by itself; the domain
+# has to point at this server and ports 80 and 443 have to be open.
+{
+	email {$ACME_EMAIL}
+	# Local test without a public domain: ACME_CA_OPTION=local_certs uses
+	# Caddy's own CA instead of Let's Encrypt
+	{$ACME_CA_OPTION}
+}
+
+{$ALMOVA_DOMAIN} {
+	encode zstd gzip
+	# Chat videos go up to 50 MB (nginx checks the size again)
+	request_body {
+		max_size 60MB
+	}
+	reverse_proxy nginx:80 {
+		# nginx and Django read the original scheme from here
+		header_up X-Forwarded-Proto {scheme}
+	}
+	log {
+		output stdout
+		# No query strings in the logs: they can carry tokens
+		format filter {
+			request>uri regexp \?.* ?(removed)
+		}
+	}
+}
