@@ -101,6 +101,11 @@ PY
 }
 
 if [ ! -f homolog.env ]; then
+    # New passwords would not open an existing database
+    if docker compose ps -a -q db 2>/dev/null | grep -q . \
+        || docker volume ls -q | grep -qx "$(docker compose config --format json | python3 -c 'import json,sys;print(json.load(sys.stdin)["name"])')_postgres-data"; then
+        fail "já existe um banco do ALMOVA neste servidor, mas não o homolog.env com a senha dele. Restaure o homolog.env do backup."
+    fi
     cp homolog.env.example homolog.env
     set_env SECRET_KEY "$(openssl rand -base64 48 | tr -d '\n/+=' | cut -c1-60)"
     set_env POSTGRES_PASSWORD "$(openssl rand -hex 16)"
