@@ -1,0 +1,4 @@
+{% load static %}
+{# django_recaptcha's version with the logic in a file, the CSP blocks inline scripts here #}
+<script src="https://{{ recaptcha_domain }}/recaptcha/api.js?render={{ public_key }}{% if api_params %}&{{ api_params }}{% endif %}"></script>
+<script src="{% static 'js/recaptcha-v3.js' %}" data-widget-uuid="{{ widget_uuid }}" data-public-key="{{ public_key }}" data-action="{{ action }}"></script>

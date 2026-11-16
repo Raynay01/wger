@@ -32,6 +32,7 @@ import requests
 # wger
 from wger.core.captcha import (
     TURNSTILE_VERIFY_URL,
+    RecaptchaProvider,
     TurnstileField,
     captcha_field,
 )
@@ -121,6 +122,18 @@ class TurnstileFieldTestCase(SimpleTestCase):
             widget.value_from_datadict({'cf-turnstile-response': 'abc'}, {}, 'captcha'),
             'abc',
         )
+
+
+@override_settings(RECAPTCHA_PUBLIC_KEY='public-key', RECAPTCHA_PRIVATE_KEY='private-key')
+class RecaptchaWidgetTestCase(SimpleTestCase):
+    """The reCAPTCHA widget runs no inline script, the CSP would block it"""
+
+    def test_widget(self):
+        html = RecaptchaProvider().field('register').widget.render('captcha', None)
+        self.assertIn('js/recaptcha-v3.js', html)
+        self.assertIn('data-public-key="public-key"', html)
+        self.assertIn('data-action="register"', html)
+        self.assertNotIn('<script>', html)
 
 
 class CaptchaFieldTestCase(SimpleTestCase):

@@ -270,9 +270,12 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   and `SECURE_HSTS_PRELOAD` (default `False`): HSTS for the pages Django
   serves. Production now runs Django's `SecurityMiddleware` (nosniff,
   referrer and opener policies) and its Content Security Policy middleware:
-  framing, plugins and foreign `<base>` are blocked, the full policy (scripts
-  only with the nonce) is sent as report-only until the inline scripts of the
-  wger templates carry the nonce. Media and static hosts on S3 are added to it.
+  the full policy is enforced: scripts only from the site itself or with the
+  request's nonce, no inline event handlers, no framing, plugins or foreign
+  `<base>`. Media and static hosts on S3 and the hosts of the configured
+  captcha (reCAPTCHA or Turnstile) are added to it. The Swagger UI now loads
+  its setup script from a separate request, and Redoc no longer loads Google
+  Fonts.
 * `CARE_PROFESSIONAL_MFA` (default `True` in production): professional
   accounts must turn on two-step verification before using the API.
   `MFA_TOTP_ISSUER` (default `WEB_APP_NAME`) names the account in the

@@ -3,7 +3,7 @@
 <link rel="stylesheet" type="text/css" href="{% static 'node/datatables.net-bs5/css/dataTables.bootstrap5.min.css' %}">
 <script src="{% static 'node/datatables.net/js/dataTables.min.js' %}" ></script>
 <script src="{% static 'node/datatables.net-bs5/js/dataTables.bootstrap5.min.js' %}" ></script>
-<script>
+<script nonce="{{ csp_nonce }}">
     document.addEventListener('DOMContentLoaded', function () {
         const title = document.createElement('h4');
         title.textContent = '{% translate "Members" %}';

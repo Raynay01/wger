@@ -4,7 +4,7 @@
 {% load crispy_forms_tags %}
 
 {% block header %}
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     wgerInitCaloriesCalculator();
 });

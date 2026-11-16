@@ -495,23 +495,31 @@ SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', 0)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', False)
 SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', False)
 
-# Enforced: no framing, no plugins, no <base> elsewhere. Reported only: the full
-# policy, until the inline scripts of the wger templates carry the nonce
+# Inline scripts need the nonce of the request ({{ csp_nonce }}); inline styles
+# stay allowed, the wger templates and libraries use them a lot
 _asset_hosts = sorted(
     {url.split('/')[2] for url in (MEDIA_URL, STATIC_URL) if url.startswith('https://')}
 )
+_captcha = WGER_SETTINGS['CAPTCHA_PROVIDER']
+if _captcha == 'none' and WGER_SETTINGS['USE_RECAPTCHA']:
+    _captcha = 'recaptcha'
+_captcha_hosts = {
+    'recaptcha': [
+        'https://www.google.com',
+        'https://www.gstatic.com',
+        'https://recaptcha.google.com',
+    ],
+    'turnstile': ['https://challenges.cloudflare.com'],
+}.get(_captcha, [])
 SECURE_CSP = {
-    'frame-ancestors': [CSP.NONE],
-    'object-src': [CSP.NONE],
-    'base-uri': [CSP.SELF],
-}
-SECURE_CSP_REPORT_ONLY = {
     'default-src': [CSP.SELF],
-    'script-src': [CSP.SELF, CSP.NONCE, *_asset_hosts],
+    'script-src': [CSP.SELF, CSP.NONCE, *_asset_hosts, *_captcha_hosts],
     'style-src': [CSP.SELF, CSP.UNSAFE_INLINE, *_asset_hosts],
     'img-src': [CSP.SELF, 'data:', 'blob:', *_asset_hosts],
     'font-src': [CSP.SELF, *_asset_hosts],
     'media-src': [CSP.SELF, *_asset_hosts],
+    'frame-src': [CSP.SELF, *_captcha_hosts],
+    'worker-src': [CSP.SELF, 'blob:'],
     'object-src': [CSP.NONE],
     'base-uri': [CSP.SELF],
     'form-action': [CSP.SELF],
