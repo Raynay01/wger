@@ -1,0 +1,1206 @@
+From 3be57a461329c083859a3fc83499aa7577d28b95 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 15:19:09 +0000
+Subject: [PATCH 3/3] Show the user's professionals and next appointment on the
+ dashboard
+
+A new dashboard card, first in the list, shows who follows the user on
+ALMOVA (training, physiotherapy, nutrition) and the next scheduled
+appointment with one of them. The data comes over REST from the server's
+care endpoints: open follow-ups as patient and scheduled appointments from
+now on, limited to those follow-ups since the user may be a professional
+as well. The card stays hidden offline, when nobody follows the user and
+on servers without these endpoints. It can be hidden in the dashboard
+settings like the other cards; stored arrangements get it appended.
+
+Texts in English and Portuguese (pt, pt_BR), with the wording of the web
+app.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/core/app_settings_notifier.dart           |   1 +
+ lib/core/dashboard.dart                       |   3 +
+ lib/core/widgets/dashboard/widgets/care.dart  | 104 ++++++++++++++++++
+ .../settings/dashboard_visibility.dart        |   2 +
+ lib/features/care/models/appointment.dart     |  73 ++++++++++++
+ lib/features/care/models/appointment.g.dart   |  55 +++++++++
+ .../care/models/care_relationship.dart        |  59 ++++++++++
+ .../care/models/care_relationship.g.dart      |  39 +++++++
+ .../care/providers/care_overview.dart         |  54 +++++++++
+ .../care/providers/care_overview.g.dart       |  48 ++++++++
+ .../care/providers/care_repository.dart       |  68 ++++++++++++
+ .../care/providers/care_repository.g.dart     |  51 +++++++++
+ lib/l10n/app_en.arb                           |  46 ++++++++
+ lib/l10n/app_pt.arb                           |  12 +-
+ lib/l10n/app_pt_BR.arb                        |  12 +-
+ .../widgets/dashboard/widgets/care_test.dart  |  99 +++++++++++++++++
+ .../care/providers/care_overview_test.dart    | 100 +++++++++++++++++
+ .../providers/care_overview_test.mocks.dart   |  74 +++++++++++++
+ .../care/providers/care_repository_test.dart  | 102 +++++++++++++++++
+ 19 files changed, 1000 insertions(+), 2 deletions(-)
+ create mode 100644 lib/core/widgets/dashboard/widgets/care.dart
+ create mode 100644 lib/features/care/models/appointment.dart
+ create mode 100644 lib/features/care/models/appointment.g.dart
+ create mode 100644 lib/features/care/models/care_relationship.dart
+ create mode 100644 lib/features/care/models/care_relationship.g.dart
+ create mode 100644 lib/features/care/providers/care_overview.dart
+ create mode 100644 lib/features/care/providers/care_overview.g.dart
+ create mode 100644 lib/features/care/providers/care_repository.dart
+ create mode 100644 lib/features/care/providers/care_repository.g.dart
+ create mode 100644 test/core/widgets/dashboard/widgets/care_test.dart
+ create mode 100644 test/features/care/providers/care_overview_test.dart
+ create mode 100644 test/features/care/providers/care_overview_test.mocks.dart
+ create mode 100644 test/features/care/providers/care_repository_test.dart
+
+diff --git a/lib/core/app_settings_notifier.dart b/lib/core/app_settings_notifier.dart
+index eefaf2a..4b91000 100644
+--- a/lib/core/app_settings_notifier.dart
++++ b/lib/core/app_settings_notifier.dart
+@@ -37,6 +37,7 @@ part 'app_settings_notifier.g.dart';
+ const PREFS_DASHBOARD_CONFIG = 'dashboardConfig';
+ 
+ enum DashboardWidget {
++  care('care'),
+   trophies('trophies'),
+   routines('routines'),
+   nutrition('nutrition'),
+diff --git a/lib/core/dashboard.dart b/lib/core/dashboard.dart
+index b042eeb..6c9e720 100644
+--- a/lib/core/dashboard.dart
++++ b/lib/core/dashboard.dart
+@@ -22,6 +22,7 @@ import 'package:wger/core/app_settings_notifier.dart';
+ import 'package:wger/core/material.dart';
+ import 'package:wger/core/widgets/app_bar.dart';
+ import 'package:wger/core/widgets/dashboard/calendar.dart';
++import 'package:wger/core/widgets/dashboard/widgets/care.dart';
+ import 'package:wger/core/widgets/dashboard/widgets/measurements.dart';
+ import 'package:wger/core/widgets/dashboard/widgets/nutrition.dart';
+ import 'package:wger/core/widgets/dashboard/widgets/routines.dart';
+@@ -36,6 +37,8 @@ class DashboardScreen extends ConsumerWidget {
+ 
+   Widget _getDashboardWidget(DashboardWidget widget) {
+     switch (widget) {
++      case DashboardWidget.care:
++        return const DashboardCareWidget();
+       case DashboardWidget.routines:
+         return const DashboardRoutineWidget();
+       case DashboardWidget.weight:
+diff --git a/lib/core/widgets/dashboard/widgets/care.dart b/lib/core/widgets/dashboard/widgets/care.dart
+new file mode 100644
+index 0000000..0fcce52
+--- /dev/null
++++ b/lib/core/widgets/dashboard/widgets/care.dart
+@@ -0,0 +1,104 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:intl/intl.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++String disciplineLabel(AppLocalizations i18n, Discipline? discipline) => switch (discipline) {
++  Discipline.training => i18n.careDisciplineTraining,
++  Discipline.physio => i18n.careDisciplinePhysio,
++  Discipline.nutrition => i18n.careDisciplineNutrition,
++  null => '',
++};
++
++IconData disciplineIcon(Discipline? discipline) => switch (discipline) {
++  Discipline.training => Icons.fitness_center,
++  Discipline.physio => Icons.healing,
++  Discipline.nutrition => Icons.restaurant,
++  null => Icons.person,
++};
++
++String appointmentKindLabel(AppLocalizations i18n, String kind) => switch (kind) {
++  'consultation' => i18n.careAppointmentConsultation,
++  'session' => i18n.careAppointmentSession,
++  'assessment' => i18n.careAppointmentAssessment,
++  'follow_up' => i18n.careAppointmentFollowUp,
++  _ => kind,
++};
++
++/// The professionals who follow the user and the next appointment. Hidden
++/// when nobody follows the user, offline, or on a server without follow-ups.
++class DashboardCareWidget extends ConsumerWidget {
++  const DashboardCareWidget({super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final overview = ref.watch(careOverviewProvider).value;
++    if (overview == null || overview.professionals.isEmpty) {
++      return const SizedBox.shrink();
++    }
++    final i18n = AppLocalizations.of(context);
++    final next = overview.nextAppointment;
++
++    return Card(
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          ListTile(
++            title: Text(i18n.careFollowUp, style: Theme.of(context).textTheme.headlineSmall),
++          ),
++          for (final relationship in overview.professionals)
++            ListTile(
++              leading: Icon(disciplineIcon(relationship.discipline)),
++              title: Text(relationship.professionalName),
++              subtitle: Text(disciplineLabel(i18n, relationship.discipline)),
++            ),
++          if (next != null) _NextAppointment(next),
++        ],
++      ),
++    );
++  }
++}
++
++class _NextAppointment extends StatelessWidget {
++  final Appointment appointment;
++
++  const _NextAppointment(this.appointment);
++
++  @override
++  Widget build(BuildContext context) {
++    final i18n = AppLocalizations.of(context);
++    final locale = Localizations.localeOf(context).toString();
++    final when = DateFormat.MMMEd(locale).add_Hm().format(appointment.start);
++
++    return ListTile(
++      leading: const Icon(Icons.event),
++      title: Text(i18n.careNextAppointment),
++      subtitle: Text(
++        '${i18n.careAppointmentWith(appointmentKindLabel(i18n, appointment.kind), appointment.professional)}'
++        '\n$when',
++      ),
++      isThreeLine: true,
++    );
++  }
++}
+diff --git a/lib/features/account/widgets/settings/dashboard_visibility.dart b/lib/features/account/widgets/settings/dashboard_visibility.dart
+index 86fa98e..9b2c065 100644
+--- a/lib/features/account/widgets/settings/dashboard_visibility.dart
++++ b/lib/features/account/widgets/settings/dashboard_visibility.dart
+@@ -30,6 +30,8 @@ class SettingsDashboardVisibility extends ConsumerWidget {
+ 
+     String getTitle(DashboardWidget w) {
+       switch (w) {
++        case DashboardWidget.care:
++          return i18n.careFollowUp;
+         case DashboardWidget.routines:
+           return i18n.routines;
+         case DashboardWidget.weight:
+diff --git a/lib/features/care/models/appointment.dart b/lib/features/care/models/appointment.dart
+new file mode 100644
+index 0000000..ab19d60
+--- /dev/null
++++ b/lib/features/care/models/appointment.dart
+@@ -0,0 +1,73 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:json_annotation/json_annotation.dart';
++import 'package:wger/core/json.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++
++part 'appointment.g.dart';
++
++/// An appointment with a professional (Django `care.Appointment`)
++@JsonSerializable()
++class Appointment {
++  @JsonKey(required: true)
++  final String id;
++
++  /// Id of the [CareRelationship]
++  @JsonKey(required: true)
++  final String relationship;
++
++  /// consultation, session, assessment or follow_up
++  @JsonKey(required: true)
++  final String kind;
++
++  @JsonKey(required: true, fromJson: utcIso8601ToLocalDate)
++  final DateTime start;
++
++  @JsonKey(required: true, name: 'duration_minutes')
++  final int durationMinutes;
++
++  @JsonKey(defaultValue: '')
++  final String location;
++
++  @JsonKey(required: true)
++  final String status;
++
++  @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
++  final Discipline? discipline;
++
++  /// Name of the professional
++  @JsonKey(required: true)
++  final String professional;
++
++  const Appointment({
++    required this.id,
++    required this.relationship,
++    required this.kind,
++    required this.start,
++    required this.durationMinutes,
++    required this.location,
++    required this.status,
++    required this.discipline,
++    required this.professional,
++  });
++
++  factory Appointment.fromJson(Map<String, dynamic> json) => _$AppointmentFromJson(json);
++
++  Map<String, dynamic> toJson() => _$AppointmentToJson(this);
++}
+diff --git a/lib/features/care/models/appointment.g.dart b/lib/features/care/models/appointment.g.dart
+new file mode 100644
+index 0000000..baae1fe
+--- /dev/null
++++ b/lib/features/care/models/appointment.g.dart
+@@ -0,0 +1,55 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'appointment.dart';
++
++// **************************************************************************
++// JsonSerializableGenerator
++// **************************************************************************
++
++Appointment _$AppointmentFromJson(Map<String, dynamic> json) {
++  $checkKeys(
++    json,
++    requiredKeys: const [
++      'id',
++      'relationship',
++      'kind',
++      'start',
++      'duration_minutes',
++      'status',
++      'professional',
++    ],
++  );
++  return Appointment(
++    id: json['id'] as String,
++    relationship: json['relationship'] as String,
++    kind: json['kind'] as String,
++    start: utcIso8601ToLocalDate(json['start'] as String),
++    durationMinutes: (json['duration_minutes'] as num).toInt(),
++    location: json['location'] as String? ?? '',
++    status: json['status'] as String,
++    discipline: $enumDecodeNullable(
++      _$DisciplineEnumMap,
++      json['discipline'],
++      unknownValue: JsonKey.nullForUndefinedEnumValue,
++    ),
++    professional: json['professional'] as String,
++  );
++}
++
++Map<String, dynamic> _$AppointmentToJson(Appointment instance) => <String, dynamic>{
++  'id': instance.id,
++  'relationship': instance.relationship,
++  'kind': instance.kind,
++  'start': instance.start.toIso8601String(),
++  'duration_minutes': instance.durationMinutes,
++  'location': instance.location,
++  'status': instance.status,
++  'discipline': _$DisciplineEnumMap[instance.discipline],
++  'professional': instance.professional,
++};
++
++const _$DisciplineEnumMap = {
++  Discipline.training: 'training',
++  Discipline.physio: 'physio',
++  Discipline.nutrition: 'nutrition',
++};
+diff --git a/lib/features/care/models/care_relationship.dart b/lib/features/care/models/care_relationship.dart
+new file mode 100644
+index 0000000..b72b00a
+--- /dev/null
++++ b/lib/features/care/models/care_relationship.dart
+@@ -0,0 +1,59 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:json_annotation/json_annotation.dart';
++
++part 'care_relationship.g.dart';
++
++/// The area of a professional (Django `care.Discipline`)
++enum Discipline { training, physio, nutrition }
++
++/// A follow-up between a professional and the user (Django `CareRelationship`)
++@JsonSerializable()
++class CareRelationship {
++  @JsonKey(required: true)
++  final String id;
++
++  @JsonKey(required: true, unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
++  final Discipline? discipline;
++
++  /// invited, active, paused or ended
++  @JsonKey(required: true)
++  final String status;
++
++  @JsonKey(required: true, name: 'professional_name')
++  final String professionalName;
++
++  @JsonKey(name: 'organization_name')
++  final String? organizationName;
++
++  const CareRelationship({
++    required this.id,
++    required this.discipline,
++    required this.status,
++    required this.professionalName,
++    this.organizationName,
++  });
++
++  /// Active or paused: the professional still follows the user
++  bool get isOpen => status == 'active' || status == 'paused';
++
++  factory CareRelationship.fromJson(Map<String, dynamic> json) => _$CareRelationshipFromJson(json);
++
++  Map<String, dynamic> toJson() => _$CareRelationshipToJson(this);
++}
+diff --git a/lib/features/care/models/care_relationship.g.dart b/lib/features/care/models/care_relationship.g.dart
+new file mode 100644
+index 0000000..cb02491
+--- /dev/null
++++ b/lib/features/care/models/care_relationship.g.dart
+@@ -0,0 +1,39 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'care_relationship.dart';
++
++// **************************************************************************
++// JsonSerializableGenerator
++// **************************************************************************
++
++CareRelationship _$CareRelationshipFromJson(Map<String, dynamic> json) {
++  $checkKeys(
++    json,
++    requiredKeys: const ['id', 'discipline', 'status', 'professional_name'],
++  );
++  return CareRelationship(
++    id: json['id'] as String,
++    discipline: $enumDecodeNullable(
++      _$DisciplineEnumMap,
++      json['discipline'],
++      unknownValue: JsonKey.nullForUndefinedEnumValue,
++    ),
++    status: json['status'] as String,
++    professionalName: json['professional_name'] as String,
++    organizationName: json['organization_name'] as String?,
++  );
++}
++
++Map<String, dynamic> _$CareRelationshipToJson(CareRelationship instance) => <String, dynamic>{
++  'id': instance.id,
++  'discipline': _$DisciplineEnumMap[instance.discipline],
++  'status': instance.status,
++  'professional_name': instance.professionalName,
++  'organization_name': instance.organizationName,
++};
++
++const _$DisciplineEnumMap = {
++  Discipline.training: 'training',
++  Discipline.physio: 'physio',
++  Discipline.nutrition: 'nutrition',
++};
+diff --git a/lib/features/care/providers/care_overview.dart b/lib/features/care/providers/care_overview.dart
+new file mode 100644
+index 0000000..86b0258
+--- /dev/null
++++ b/lib/features/care/providers/care_overview.dart
+@@ -0,0 +1,54 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/core/network/network_provider.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++part 'care_overview.g.dart';
++
++/// The user's professionals and the next appointment with one of them
++class CareOverview {
++  final List<CareRelationship> professionals;
++  final Appointment? nextAppointment;
++
++  const CareOverview({required this.professionals, this.nextAppointment});
++}
++
++/// Null while offline: the follow-up is REST only
++@riverpod
++Future<CareOverview?> careOverview(Ref ref) async {
++  if (!ref.watch(networkStatusProvider)) {
++    return null;
++  }
++  final repository = ref.read(careRepositoryProvider);
++  final professionals = await repository.fetchMyProfessionals();
++  if (professionals.isEmpty) {
++    return const CareOverview(professionals: []);
++  }
++
++  // The user may be a professional too: only appointments as a patient
++  final mine = professionals.map((r) => r.id).toSet();
++  final upcoming = await repository.fetchUpcomingAppointments(DateTime.now());
++  return CareOverview(
++    professionals: professionals,
++    nextAppointment: upcoming.where((a) => mine.contains(a.relationship)).firstOrNull,
++  );
++}
+diff --git a/lib/features/care/providers/care_overview.g.dart b/lib/features/care/providers/care_overview.g.dart
+new file mode 100644
+index 0000000..04d46d1
+--- /dev/null
++++ b/lib/features/care/providers/care_overview.g.dart
+@@ -0,0 +1,48 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'care_overview.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++/// Null while offline: the follow-up is REST only
++
++@ProviderFor(careOverview)
++final careOverviewProvider = CareOverviewProvider._();
++
++/// Null while offline: the follow-up is REST only
++
++final class CareOverviewProvider
++    extends $FunctionalProvider<AsyncValue<CareOverview?>, CareOverview?, FutureOr<CareOverview?>>
++    with $FutureModifier<CareOverview?>, $FutureProvider<CareOverview?> {
++  /// Null while offline: the follow-up is REST only
++  CareOverviewProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'careOverviewProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$careOverviewHash();
++
++  @$internal
++  @override
++  $FutureProviderElement<CareOverview?> $createElement(
++    $ProviderPointer pointer,
++  ) => $FutureProviderElement(pointer);
++
++  @override
++  FutureOr<CareOverview?> create(Ref ref) {
++    return careOverview(ref);
++  }
++}
++
++String _$careOverviewHash() => r'714e3220b8bc0fd75aef81ccd48972b90d76b8a8';
+diff --git a/lib/features/care/providers/care_repository.dart b/lib/features/care/providers/care_repository.dart
+new file mode 100644
+index 0000000..f545d7a
+--- /dev/null
++++ b/lib/features/care/providers/care_repository.dart
+@@ -0,0 +1,68 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/core/consts.dart';
++import 'package:wger/core/json.dart';
++import 'package:wger/core/network/base_provider.dart';
++import 'package:wger/core/network/wger_base.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++
++part 'care_repository.g.dart';
++
++@riverpod
++CareRepository careRepository(Ref ref) => CareRepository(ref.read(wgerBaseProvider));
++
++/// REST access to the follow-up with professionals (Django app `care`)
++class CareRepository {
++  static const relationshipPath = 'care-relationship';
++  static const appointmentPath = 'appointment';
++
++  final WgerBaseProvider base;
++
++  CareRepository(this.base);
++
++  /// The professionals who follow the user (not the user's own patients)
++  Future<List<CareRelationship>> fetchMyProfessionals() async {
++    final url = base.makeUrl(
++      relationshipPath,
++      query: {'role': 'patient', 'limit': API_MAX_PAGE_SIZE},
++    );
++    final data = await base.fetchPaginated(url);
++    return data
++        .map((e) => CareRelationship.fromJson(e as Map<String, dynamic>))
++        .where((r) => r.isOpen)
++        .toList();
++  }
++
++  /// Scheduled appointments from [from] on, earliest first
++  Future<List<Appointment>> fetchUpcomingAppointments(DateTime from) async {
++    final url = base.makeUrl(
++      appointmentPath,
++      query: {
++        'status': 'scheduled',
++        'start__gte': dateToUtcIso8601(from),
++        'limit': API_MAX_PAGE_SIZE,
++      },
++    );
++    final data = await base.fetchPaginated(url);
++    return data.map((e) => Appointment.fromJson(e as Map<String, dynamic>)).toList()
++      ..sort((a, b) => a.start.compareTo(b.start));
++  }
++}
+diff --git a/lib/features/care/providers/care_repository.g.dart b/lib/features/care/providers/care_repository.g.dart
+new file mode 100644
+index 0000000..5367e44
+--- /dev/null
++++ b/lib/features/care/providers/care_repository.g.dart
+@@ -0,0 +1,51 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'care_repository.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++
++@ProviderFor(careRepository)
++final careRepositoryProvider = CareRepositoryProvider._();
++
++final class CareRepositoryProvider
++    extends $FunctionalProvider<CareRepository, CareRepository, CareRepository>
++    with $Provider<CareRepository> {
++  CareRepositoryProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'careRepositoryProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$careRepositoryHash();
++
++  @$internal
++  @override
++  $ProviderElement<CareRepository> $createElement($ProviderPointer pointer) =>
++      $ProviderElement(pointer);
++
++  @override
++  CareRepository create(Ref ref) {
++    return careRepository(ref);
++  }
++
++  /// {@macro riverpod.override_with_value}
++  Override overrideWithValue(CareRepository value) {
++    return $ProviderOverride(
++      origin: this,
++      providerOverride: $SyncValueProvider<CareRepository>(value),
++    );
++  }
++}
++
++String _$careRepositoryHash() => r'9925490876086e74480a89ede9a9d6975b1c7dde';
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index 8a2a7cc..56af625 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2050,5 +2050,51 @@
+       "min": { "type": "int" },
+       "max": { "type": "int" }
+     }
++  },
++  "careFollowUp": "Follow-up",
++  "@careFollowUp": {
++    "description": "Title of the dashboard card with the professionals who follow the user"
++  },
++  "careNextAppointment": "Next appointment",
++  "@careNextAppointment": {},
++  "careDisciplineTraining": "Training",
++  "@careDisciplineTraining": {
++    "description": "Area of a professional"
++  },
++  "careDisciplinePhysio": "Physiotherapy",
++  "@careDisciplinePhysio": {
++    "description": "Area of a professional"
++  },
++  "careDisciplineNutrition": "Nutrition",
++  "@careDisciplineNutrition": {
++    "description": "Area of a professional"
++  },
++  "careAppointmentConsultation": "Consultation",
++  "@careAppointmentConsultation": {
++    "description": "Kind of appointment"
++  },
++  "careAppointmentSession": "Session",
++  "@careAppointmentSession": {
++    "description": "Kind of appointment"
++  },
++  "careAppointmentAssessment": "Assessment",
++  "@careAppointmentAssessment": {
++    "description": "Kind of appointment"
++  },
++  "careAppointmentFollowUp": "Follow-up visit",
++  "@careAppointmentFollowUp": {
++    "description": "Kind of appointment"
++  },
++  "careAppointmentWith": "{kind} with {professional}",
++  "@careAppointmentWith": {
++    "description": "E.g. \"Session with Ana\"",
++    "placeholders": {
++      "kind": {
++        "type": "String"
++      },
++      "professional": {
++        "type": "String"
++      }
++    }
+   }
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index 6ab2c99..170fe8f 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1069,5 +1069,15 @@
+     "settingsVerboseLogging": "Registos detalhados",
+     "@settingsVerboseLogging": {
+         "description": "Title of the setting that makes the app write detailed diagnostic entries to the application log"
+-    }
++    },
++    "careFollowUp": "Acompanhamento",
++    "careNextAppointment": "Próximo atendimento",
++    "careDisciplineTraining": "Treino",
++    "careDisciplinePhysio": "Fisioterapia",
++    "careDisciplineNutrition": "Nutrição",
++    "careAppointmentConsultation": "Consulta",
++    "careAppointmentSession": "Sessão",
++    "careAppointmentAssessment": "Avaliação",
++    "careAppointmentFollowUp": "Retorno",
++    "careAppointmentWith": "{kind} com {professional}"
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index 699fb5b..898a40c 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1250,5 +1250,15 @@
+     },
+     "endBeforeStart": "O valor final não pode ser anterior ao inicial",
+     "minLengthRoutine": "{number, plural, one{A rotina precisa durar pelo menos {number} semana} other{A rotina precisa durar pelo menos {number} semanas}}",
+-    "maxLengthRoutine": "{number, plural, one{A rotina pode durar no máximo {number} semana} other{A rotina pode durar no máximo {number} semanas}}"
++    "maxLengthRoutine": "{number, plural, one{A rotina pode durar no máximo {number} semana} other{A rotina pode durar no máximo {number} semanas}}",
++    "careFollowUp": "Acompanhamento",
++    "careNextAppointment": "Próximo atendimento",
++    "careDisciplineTraining": "Treino",
++    "careDisciplinePhysio": "Fisioterapia",
++    "careDisciplineNutrition": "Nutrição",
++    "careAppointmentConsultation": "Consulta",
++    "careAppointmentSession": "Sessão",
++    "careAppointmentAssessment": "Avaliação",
++    "careAppointmentFollowUp": "Retorno",
++    "careAppointmentWith": "{kind} com {professional}"
+ }
+diff --git a/test/core/widgets/dashboard/widgets/care_test.dart b/test/core/widgets/dashboard/widgets/care_test.dart
+new file mode 100644
+index 0000000..93c01a3
+--- /dev/null
++++ b/test/core/widgets/dashboard/widgets/care_test.dart
+@@ -0,0 +1,99 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/widgets/dashboard/widgets/care.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++void main() {
++  Widget render(CareOverview? overview, {String locale = 'pt_BR'}) {
++    final parts = locale.split('_');
++    return ProviderScope(
++      overrides: [careOverviewProvider.overrideWith((ref) async => overview)],
++      child: MaterialApp(
++        locale: Locale(parts[0], parts.length > 1 ? parts[1] : null),
++        localizationsDelegates: appLocalizationsDelegates,
++        supportedLocales: AppLocalizations.supportedLocales,
++        home: const Scaffold(body: DashboardCareWidget()),
++      ),
++    );
++  }
++
++  testWidgets('lists the professionals and the next appointment', (tester) async {
++    await tester.pumpWidget(
++      render(
++        CareOverview(
++          professionals: const [
++            CareRelationship(
++              id: 'r1',
++              discipline: Discipline.physio,
++              status: 'active',
++              professionalName: 'Paula',
++            ),
++            CareRelationship(
++              id: 'r2',
++              discipline: Discipline.nutrition,
++              status: 'active',
++              professionalName: 'Nina',
++            ),
++          ],
++          nextAppointment: Appointment(
++            id: 'a1',
++            relationship: 'r1',
++            kind: 'follow_up',
++            start: DateTime(2026, 11, 18, 14, 30),
++            durationMinutes: 50,
++            location: '',
++            status: 'scheduled',
++            discipline: Discipline.physio,
++            professional: 'Paula',
++          ),
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++
++    expect(find.text('Acompanhamento'), findsOneWidget);
++    expect(find.text('Paula'), findsOneWidget);
++    expect(find.text('Fisioterapia'), findsOneWidget);
++    expect(find.text('Nutrição'), findsOneWidget);
++    expect(find.text('Próximo atendimento'), findsOneWidget);
++    expect(find.textContaining('Retorno com Paula'), findsOneWidget);
++    expect(find.textContaining('14:30'), findsOneWidget);
++  });
++
++  testWidgets('hidden when nobody follows the user', (tester) async {
++    await tester.pumpWidget(render(const CareOverview(professionals: [])));
++    await tester.pumpAndSettle();
++
++    expect(find.byType(Card), findsNothing);
++  });
++
++  testWidgets('hidden offline', (tester) async {
++    await tester.pumpWidget(render(null));
++    await tester.pumpAndSettle();
++
++    expect(find.byType(Card), findsNothing);
++  });
++}
+diff --git a/test/features/care/providers/care_overview_test.dart b/test/features/care/providers/care_overview_test.dart
+new file mode 100644
+index 0000000..6c7b78c
+--- /dev/null
++++ b/test/features/care/providers/care_overview_test.dart
+@@ -0,0 +1,100 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/core/network/network_provider.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++import 'care_overview_test.mocks.dart';
++
++const trainer = CareRelationship(
++  id: 'r1',
++  discipline: Discipline.training,
++  status: 'active',
++  professionalName: 'Bruno',
++);
++
++Appointment appointment(String id, String relationship, DateTime start) => Appointment(
++  id: id,
++  relationship: relationship,
++  kind: 'session',
++  start: start,
++  durationMinutes: 50,
++  location: '',
++  status: 'scheduled',
++  discipline: Discipline.training,
++  professional: 'Bruno',
++);
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++
++  ProviderContainer container({bool online = true}) {
++    final c = ProviderContainer(
++      overrides: [
++        careRepositoryProvider.overrideWithValue(repository),
++        networkStatusProvider.overrideWithValue(online),
++      ],
++    );
++    addTearDown(c.dispose);
++    return c;
++  }
++
++  setUp(() {
++    repository = MockCareRepository();
++  });
++
++  test('the next appointment is one of the user as patient', () async {
++    when(repository.fetchMyProfessionals()).thenAnswer((_) async => [trainer]);
++    when(repository.fetchUpcomingAppointments(any)).thenAnswer(
++      (_) async => [
++        // The user's own patient, booked earlier
++        appointment('a0', 'other', DateTime.utc(2026, 11, 17)),
++        appointment('a1', 'r1', DateTime.utc(2026, 11, 18)),
++      ],
++    );
++
++    final overview = await container().read(careOverviewProvider.future);
++
++    expect(overview!.professionals, [trainer]);
++    expect(overview.nextAppointment!.id, 'a1');
++  });
++
++  test('nobody follows the user: no appointments asked', () async {
++    when(repository.fetchMyProfessionals()).thenAnswer((_) async => []);
++
++    final overview = await container().read(careOverviewProvider.future);
++
++    expect(overview!.professionals, isEmpty);
++    verifyNever(repository.fetchUpcomingAppointments(any));
++  });
++
++  test('offline: nothing', () async {
++    final overview = await container(online: false).read(careOverviewProvider.future);
++
++    expect(overview, isNull);
++    verifyZeroInteractions(repository);
++  });
++}
+diff --git a/test/features/care/providers/care_overview_test.mocks.dart b/test/features/care/providers/care_overview_test.mocks.dart
+new file mode 100644
+index 0000000..9a8938f
+--- /dev/null
++++ b/test/features/care/providers/care_overview_test.mocks.dart
+@@ -0,0 +1,74 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/providers/care_overview_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i4;
++
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/appointment.dart' as _i6;
++import 'package:wger/features/care/models/care_relationship.dart' as _i5;
++import 'package:wger/features/care/providers/care_repository.dart' as _i3;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i3.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i4.Future<List<_i5.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i4.Future<List<_i5.CareRelationship>>.value(
++              <_i5.CareRelationship>[],
++            ),
++          )
++          as _i4.Future<List<_i5.CareRelationship>>);
++
++  @override
++  _i4.Future<List<_i6.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i4.Future<List<_i6.Appointment>>.value(
++              <_i6.Appointment>[],
++            ),
++          )
++          as _i4.Future<List<_i6.Appointment>>);
++}
+diff --git a/test/features/care/providers/care_repository_test.dart b/test/features/care/providers/care_repository_test.dart
+new file mode 100644
+index 0000000..3249bd2
+--- /dev/null
++++ b/test/features/care/providers/care_repository_test.dart
+@@ -0,0 +1,102 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:convert';
++
++import 'package:flutter_test/flutter_test.dart';
++import 'package:http/http.dart' as http;
++import 'package:http/testing.dart';
++import 'package:wger/core/network/base_provider.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++Map<String, dynamic> relationship(String id, String status, {String discipline = 'training'}) => {
++  'id': id,
++  'discipline': discipline,
++  'status': status,
++  'professional_name': 'Prof $id',
++  'organization_name': 'Clínica',
++};
++
++Map<String, dynamic> appointment(String id, String start) => {
++  'id': id,
++  'relationship': 'r1',
++  'kind': 'session',
++  'start': start,
++  'duration_minutes': 50,
++  'location': '',
++  'status': 'scheduled',
++  'discipline': 'physio',
++  'professional': 'Paula',
++  'patient': 'Ana',
++};
++
++void main() {
++  late List<Uri> requests;
++
++  CareRepository answering(List<Map<String, dynamic>> results) {
++    requests = [];
++    return CareRepository(
++      WgerBaseProvider(
++        serverUrl: 'https://almova.test',
++        client: MockClient((request) async {
++          requests.add(request.url);
++          return http.Response.bytes(
++            utf8.encode(json.encode({'count': results.length, 'next': null, 'results': results})),
++            200,
++          );
++        }),
++      ),
++    );
++  }
++
++  test('my professionals: as patient, only the open follow-ups', () async {
++    final repository = answering([
++      relationship('r1', 'active'),
++      relationship('r2', 'paused', discipline: 'nutrition'),
++      relationship('r3', 'ended'),
++      relationship('r4', 'invited'),
++    ]);
++
++    final professionals = await repository.fetchMyProfessionals();
++
++    expect(professionals.map((r) => r.id), ['r1', 'r2']);
++    expect(professionals[1].discipline, Discipline.nutrition);
++    expect(requests.single.path, '/api/v2/care-relationship/');
++    expect(requests.single.queryParameters['role'], 'patient');
++  });
++
++  test('upcoming appointments: scheduled, from the given instant, earliest first', () async {
++    final repository = answering([
++      appointment('a2', '2026-11-20T09:00:00-03:00'),
++      appointment('a1', '2026-11-18T14:00:00-03:00'),
++    ]);
++
++    final upcoming = await repository.fetchUpcomingAppointments(DateTime.utc(2026, 11, 16, 12));
++
++    expect(upcoming.map((a) => a.id), ['a1', 'a2']);
++    expect(upcoming.first.start.isAtSameMomentAs(DateTime.utc(2026, 11, 18, 17)), isTrue);
++    final query = requests.single.queryParameters;
++    expect(requests.single.path, '/api/v2/appointment/');
++    expect(query['status'], 'scheduled');
++    expect(
++      DateTime.parse(query['start__gte']!).isAtSameMomentAs(DateTime.utc(2026, 11, 16, 12)),
++      isTrue,
++    );
++  });
++}
+-- 
+2.43.0
+

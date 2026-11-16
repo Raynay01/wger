@@ -25,6 +25,10 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
    Android `br.com.almova.app`, então instala ao lado do app do wger sem
    substituí-lo. O servidor padrão do login vem da construção:
    `--dart-define=ALMOVA_SERVER=https://<endereço do servidor>`.
+3. **Cartão "Acompanhamento" na tela inicial:** mostra os profissionais que
+   acompanham o paciente (treino, fisioterapia, nutrição) e o próximo
+   atendimento. Some quando ninguém acompanha, sem internet ou num servidor
+   sem o ALMOVA. Dá para esconder nas configurações do painel, como os outros.
 
 ## Construir o APK
 
