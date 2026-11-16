@@ -617,4 +617,66 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
+        migrations.CreateModel(
+            name='NotificationPreference',
+            fields=[
+                (
+                    'id',
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name='ID'
+                    ),
+                ),
+                ('email_messages', models.BooleanField(default=True)),
+                ('email_prescriptions', models.BooleanField(default=True)),
+                ('email_appointments', models.BooleanField(default=True)),
+                (
+                    'user',
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='care_notification_preference',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+            ],
+        ),
+        migrations.CreateModel(
+            name='NotificationLog',
+            fields=[
+                (
+                    'id',
+                    models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False),
+                ),
+                (
+                    'kind',
+                    models.CharField(
+                        choices=[
+                            ('messages', 'New messages'),
+                            ('prescription', 'Published plans'),
+                            ('appointment', 'Appointments'),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ('channel', models.CharField(default='email', max_length=10)),
+                ('reference', models.CharField(blank=True, max_length=64)),
+                ('sent_at', models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    'user',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='care_notifications',
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+            ],
+            options={
+                'ordering': ['-sent_at'],
+                'indexes': [
+                    models.Index(
+                        fields=['user', 'kind', 'reference', 'sent_at'],
+                        name='care_notifi_user_id_107a02_idx',
+                    )
+                ],
+            },
+        ),
     ]

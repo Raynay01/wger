@@ -41,6 +41,7 @@ from wger.care.models import (
     Membership,
     Message,
     MultidisciplinaryNote,
+    NotificationPreference,
     Organization,
     ProfessionalRegistration,
 )
@@ -487,6 +488,12 @@ class MyDaySerializer(ModulesSerializer):
     training = serializers.DictField(allow_null=True)
     nutrition = serializers.DictField(allow_null=True)
     physio = serializers.DictField(allow_null=True)
+
+
+class NotificationPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationPreference
+        fields = ['email_messages', 'email_prescriptions', 'email_appointments']
 
 
 class MfaStatusSerializer(serializers.Serializer):

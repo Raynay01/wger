@@ -26,7 +26,7 @@ export default async function ProfessionalLayout({ children }: { children: React
         { href: '/pro/alimentos', label: 'Alimentos' },
         { href: '/pro/alertas', label: 'Alertas de dor' },
         { href: '/pro/configurar', label: 'Configurações' },
-        { href: '/conta/seguranca', label: 'Segurança' },
+        { href: '/conta/seguranca', label: 'Conta' },
       ]}
       switchTo={{ href: '/app', label: 'Meu Dia' }}
     >

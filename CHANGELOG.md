@@ -86,6 +86,14 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   stay open; `/api/v2/care/mfa/qr/` draws the QR code of allauth's setup link.
   The web app has a security page (QR code, recovery codes) and asks for the
   code at login, also after Google's sign-in.
+* Email notices outside the app, without health data or message content:
+  messages still unread after 5 minutes (at most one email per conversation
+  and hour, sent every 5 minutes by Celery or by `manage.py
+  send-message-notices` from cron), plans a professional published, and
+  appointments scheduled, moved or cancelled (to the other side, with the time
+  in the recipient's time zone). `/api/v2/care/notices/` reads and changes the
+  user's choices (all on by default); every notice sent is recorded (kind and
+  time) and part of the data export.
 * Chat between the patient and each professional (`/api/v2/care-message/`),
   with photos and videos (e.g. of an exercise). Messages can be sent while the
   follow-up is active or paused, both sides keep the history. Attachments are

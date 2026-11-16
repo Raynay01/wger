@@ -17,7 +17,17 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
           </Link>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-4 py-8">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 py-8">
+        <nav aria-label="Conta" className="mb-6 flex gap-2 text-sm">
+          <Link href="/conta/seguranca" className="rounded-lg border border-navy-100 px-3 py-1.5 font-medium text-navy-700 hover:bg-navy-100">
+            Segurança
+          </Link>
+          <Link href="/conta/avisos" className="rounded-lg border border-navy-100 px-3 py-1.5 font-medium text-navy-700 hover:bg-navy-100">
+            Avisos por e-mail
+          </Link>
+        </nav>
+        {children}
+      </main>
     </div>
   );
 }

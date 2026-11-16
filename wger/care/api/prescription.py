@@ -32,7 +32,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 # wger
-from wger.care import policy
+from wger.care import notifications, policy
 from wger.care.models import CareRelationship
 from wger.care.prescription import (
     PrescriptionStatus,
@@ -170,6 +170,7 @@ class PrescriptionViewSetMixin(PrescriptionWriteGuardMixin):
         if instance.status != PrescriptionStatus.DRAFT:
             raise exceptions.ValidationError(_('Only drafts can be published.'))
         instance.publish()
+        transaction.on_commit(lambda: notifications.notify_prescription_published(instance))
         return Response(self.get_serializer(instance).data)
 
     @extend_schema(request=None)
