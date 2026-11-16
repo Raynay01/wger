@@ -1,0 +1,1102 @@
+From 29830219811f9eac7ab4c311e350b91dc6714fcf Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 16:19:58 +0000
+Subject: [PATCH 8/8] Send photos and videos in the chat and play the received
+ videos
+
+A clip button next to the text field takes a photo or records a video
+with the camera (at most two minutes) or picks one from the library. Files
+above 50 MB, the server's limit for videos, are not sent; a refusal by the
+server (format, size, virus scan) shows its reason. Received videos are
+downloaded with the login to a temporary file, played full screen and the
+file is deleted when the player closes, so health videos do not stay on
+the phone.
+
+Correction to "Chat with the professionals from the app": the explicit
+UTF-8 decoding of the answer is not needed. The server sends
+application/json, which the http package already reads as UTF-8; only the
+test answers without a content type came out as Latin-1. The tests now
+send the content type the server sends.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/features/care/models/message.dart         |   5 +
+ lib/features/care/models/message.g.dart       |   1 +
+ .../care/providers/care_repository.dart       |  20 ++-
+ .../care/providers/conversation_notifier.dart |   7 +
+ .../providers/conversation_notifier.g.dart    |   2 +-
+ .../care/screens/conversation_screen.dart     | 104 ++++++++++++--
+ lib/features/care/widgets/message_video.dart  | 135 ++++++++++++++++++
+ lib/l10n/app_en.arb                           |   8 +-
+ lib/l10n/app_pt.arb                           |   5 +-
+ lib/l10n/app_pt_BR.arb                        |   5 +-
+ .../providers/agenda_notifier_test.mocks.dart |  34 ++++-
+ .../providers/care_overview_test.mocks.dart   |  34 ++++-
+ .../care/providers/care_repository_test.dart  |  51 ++++++-
+ .../providers/conversation_notifier_test.dart |  14 ++
+ .../conversation_notifier_test.mocks.dart     |  34 ++++-
+ .../screens/agenda_screen_test.mocks.dart     |  34 ++++-
+ .../screens/conversation_screen_test.dart     |  86 +++++++++++
+ .../conversation_screen_test.mocks.dart       |  34 ++++-
+ .../care/widgets/message_video_test.dart      |  54 +++++++
+ 19 files changed, 628 insertions(+), 39 deletions(-)
+ create mode 100644 lib/features/care/widgets/message_video.dart
+ create mode 100644 test/features/care/widgets/message_video_test.dart
+
+diff --git a/lib/features/care/models/message.dart b/lib/features/care/models/message.dart
+index af834fc..0626001 100644
+--- a/lib/features/care/models/message.dart
++++ b/lib/features/care/models/message.dart
+@@ -45,6 +45,10 @@ class Message {
+   @JsonKey(name: 'attachment_kind', unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
+   final AttachmentKind? attachmentKind;
+ 
++  /// Original file name of the attachment
++  @JsonKey(name: 'attachment_name', defaultValue: '')
++  final String attachmentName;
++
+   @JsonKey(required: true, fromJson: utcIso8601ToLocalDate)
+   final DateTime created;
+ 
+@@ -58,6 +62,7 @@ class Message {
+     this.senderName,
+     required this.text,
+     this.attachmentKind,
++    this.attachmentName = '',
+     required this.created,
+     this.readAt,
+   });
+diff --git a/lib/features/care/models/message.g.dart b/lib/features/care/models/message.g.dart
+index 4be11e6..a4190e4 100644
+--- a/lib/features/care/models/message.g.dart
++++ b/lib/features/care/models/message.g.dart
+@@ -22,6 +22,7 @@ Message _$MessageFromJson(Map<String, dynamic> json) {
+       json['attachment_kind'],
+       unknownValue: JsonKey.nullForUndefinedEnumValue,
+     ),
++    attachmentName: json['attachment_name'] as String? ?? '',
+     created: utcIso8601ToLocalDate(json['created'] as String),
+     readAt: utcIso8601ToLocalDateNull(json['read_at'] as String?),
+   );
+diff --git a/lib/features/care/providers/care_repository.dart b/lib/features/care/providers/care_repository.dart
+index fbd3ade..31ac97a 100644
+--- a/lib/features/care/providers/care_repository.dart
++++ b/lib/features/care/providers/care_repository.dart
+@@ -20,6 +20,8 @@ import 'dart:convert';
+ import 'dart:io';
+ import 'dart:typed_data';
+ 
++import 'package:http/http.dart' as http;
++import 'package:image_picker/image_picker.dart';
+ import 'package:riverpod_annotation/riverpod_annotation.dart';
+ import 'package:wger/core/consts.dart';
+ import 'package:wger/core/exceptions/http_exception.dart';
+@@ -92,8 +94,22 @@ class CareRepository {
+     if (response.statusCode >= 400) {
+       throw WgerHttpException(response);
+     }
+-    // DRF sends no charset, so decode the bytes as UTF-8 (accents)
+-    return Message.fromJson(json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>);
++    return Message.fromJson(json.decode(response.body) as Map<String, dynamic>);
++  }
++
++  /// Sends a photo or video, with an optional text. The server checks the
++  /// file (format, size, virus scan) and removes the photo's location.
++  Future<Message> sendAttachment(String relationshipId, XFile file, {String text = ''}) async {
++    final request = http.MultipartRequest('POST', base.makeUrl(messagePath))
++      ..headers.addAll({HttpHeaders.userAgentHeader: base.getAppNameHeaderValue()})
++      ..fields['relationship'] = relationshipId
++      ..fields['text'] = text
++      ..files.add(await http.MultipartFile.fromPath('attachment', file.path, filename: file.name));
++    final response = await http.Response.fromStream(await base.client.send(request));
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++    return Message.fromJson(json.decode(response.body) as Map<String, dynamic>);
+   }
+ 
+   /// Marks what the professional sent as read
+diff --git a/lib/features/care/providers/conversation_notifier.dart b/lib/features/care/providers/conversation_notifier.dart
+index b1bbc85..a80c98e 100644
+--- a/lib/features/care/providers/conversation_notifier.dart
++++ b/lib/features/care/providers/conversation_notifier.dart
+@@ -20,6 +20,7 @@ import 'dart:async';
+ import 'dart:typed_data';
+ 
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:image_picker/image_picker.dart';
+ import 'package:logging/logging.dart';
+ import 'package:riverpod_annotation/riverpod_annotation.dart';
+ import 'package:wger/features/care/models/message.dart';
+@@ -51,6 +52,12 @@ class ConversationNotifier extends _$ConversationNotifier {
+     final sent = await ref.read(careRepositoryProvider).sendText(relationshipId, text.trim());
+     state = AsyncData([...?state.value, sent]);
+   }
++
++  /// Sends a photo or video and appends the stored message
++  Future<void> sendAttachment(XFile file) async {
++    final sent = await ref.read(careRepositoryProvider).sendAttachment(relationshipId, file);
++    state = AsyncData([...?state.value, sent]);
++  }
+ }
+ 
+ /// How long a downloaded attachment stays in memory after the last viewer
+diff --git a/lib/features/care/providers/conversation_notifier.g.dart b/lib/features/care/providers/conversation_notifier.g.dart
+index d451a8d..445cb7a 100644
+--- a/lib/features/care/providers/conversation_notifier.g.dart
++++ b/lib/features/care/providers/conversation_notifier.g.dart
+@@ -53,7 +53,7 @@ final class ConversationNotifierProvider
+   }
+ }
+ 
+-String _$conversationNotifierHash() => r'07dc69727164653902ce6a47878b82a74d3b0af8';
++String _$conversationNotifierHash() => r'5cfd43e3f61581cd70b22adcde1fe517417afe48';
+ 
+ /// The messages with the professional of a follow-up, oldest first
+ 
+diff --git a/lib/features/care/screens/conversation_screen.dart b/lib/features/care/screens/conversation_screen.dart
+index e957e8b..25f7a39 100644
+--- a/lib/features/care/screens/conversation_screen.dart
++++ b/lib/features/care/screens/conversation_screen.dart
+@@ -17,13 +17,16 @@
+  */
+ 
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:image_picker/image_picker.dart';
+ import 'package:intl/intl.dart';
+ import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/exceptions/http_exception.dart';
+ import 'package:wger/core/widgets/image.dart';
+ import 'package:wger/core/widgets/progress_indicator.dart';
+ import 'package:wger/features/care/models/care_relationship.dart';
+ import 'package:wger/features/care/models/message.dart';
+ import 'package:wger/features/care/providers/conversation_notifier.dart';
++import 'package:wger/features/care/widgets/message_video.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+ /// The chat with the professional of a follow-up
+@@ -70,7 +73,6 @@ class MessageBubble extends StatelessWidget {
+ 
+   @override
+   Widget build(BuildContext context) {
+-    final i18n = AppLocalizations.of(context);
+     final colors = Theme.of(context).colorScheme;
+     final time = DateFormat.Hm(Localizations.localeOf(context).toString()).format(message.created);
+ 
+@@ -86,15 +88,7 @@ class MessageBubble extends StatelessWidget {
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 if (message.attachmentKind == AttachmentKind.image) _Photo(message.id),
+-                if (message.attachmentKind == AttachmentKind.video)
+-                  Row(
+-                    mainAxisSize: MainAxisSize.min,
+-                    children: [
+-                      const Icon(Icons.videocam),
+-                      const SizedBox(width: 4),
+-                      Text(i18n.careVideo),
+-                    ],
+-                  ),
++                if (message.attachmentKind == AttachmentKind.video) MessageVideo(message),
+                 if (message.text.isNotEmpty) Text(message.text),
+                 const SizedBox(height: 4),
+                 Text(time, style: Theme.of(context).textTheme.labelSmall),
+@@ -126,10 +120,31 @@ class _Photo extends ConsumerWidget {
+   }
+ }
+ 
++/// Picks a photo or video; replaced in tests
++typedef MediaPicker = Future<XFile?> Function(MediaChoice choice);
++
++enum MediaChoice { photo, video, library }
++
++Future<XFile?> pickMedia(MediaChoice choice) {
++  final picker = ImagePicker();
++  return switch (choice) {
++    MediaChoice.photo => picker.pickImage(source: ImageSource.camera, imageQuality: 85),
++    MediaChoice.video => picker.pickVideo(
++      source: ImageSource.camera,
++      maxDuration: const Duration(minutes: 2),
++    ),
++    MediaChoice.library => picker.pickMedia(imageQuality: 85),
++  };
++}
++
++/// The server takes videos up to this size (care.messages.MAX_VIDEO_MB)
++const maxAttachmentBytes = 50 * 1024 * 1024;
++
+ class MessageComposer extends ConsumerStatefulWidget {
+   final String relationshipId;
++  final MediaPicker picker;
+ 
+-  const MessageComposer({super.key, required this.relationshipId});
++  const MessageComposer({super.key, required this.relationshipId, this.picker = pickMedia});
+ 
+   @override
+   ConsumerState<MessageComposer> createState() => _MessageComposerState();
+@@ -174,6 +189,68 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
+     }
+   }
+ 
++  void _say(String text) {
++    if (mounted) {
++      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
++    }
++  }
++
++  Future<void> _attach() async {
++    final i18n = AppLocalizations.of(context);
++    final choice = await showModalBottomSheet<MediaChoice>(
++      context: context,
++      builder: (context) => SafeArea(
++        child: Column(
++          mainAxisSize: MainAxisSize.min,
++          children: [
++            ListTile(
++              leading: const Icon(Icons.photo_camera),
++              title: Text(i18n.takePicture),
++              onTap: () => Navigator.of(context).pop(MediaChoice.photo),
++            ),
++            ListTile(
++              leading: const Icon(Icons.videocam),
++              title: Text(i18n.careRecordVideo),
++              onTap: () => Navigator.of(context).pop(MediaChoice.video),
++            ),
++            ListTile(
++              leading: const Icon(Icons.photo_library),
++              title: Text(i18n.chooseFromLibrary),
++              onTap: () => Navigator.of(context).pop(MediaChoice.library),
++            ),
++          ],
++        ),
++      ),
++    );
++    if (choice == null) {
++      return;
++    }
++    final file = await widget.picker(choice);
++    if (file == null) {
++      return;
++    }
++    if (await file.length() > maxAttachmentBytes) {
++      _say(i18n.careFileTooLarge);
++      return;
++    }
++    setState(() => _sending = true);
++    try {
++      await ref.read(conversationProvider(widget.relationshipId).notifier).sendAttachment(file);
++    } on WgerHttpException catch (e) {
++      // The server says why: format, size or a failed virus scan
++      final reasons = e.type == ErrorType.json
++          ? e.errors.values.expand((v) => v is List ? v : [v]).join(' ')
++          : '';
++      _say(reasons.isEmpty ? i18n.careSendFailed : reasons);
++    } catch (_) {
++      _say(i18n.careSendFailed);
++    } finally {
++      if (mounted) {
++        setState(() => _sending = false);
++      }
++    }
++  }
++
+   @override
+   Widget build(BuildContext context) {
+     final i18n = AppLocalizations.of(context);
+@@ -182,6 +259,11 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
+         padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+         child: Row(
+           children: [
++            IconButton(
++              tooltip: i18n.careAttach,
++              onPressed: _sending ? null : _attach,
++              icon: const Icon(Icons.attach_file),
++            ),
+             Expanded(
+               child: TextField(
+                 controller: _text,
+diff --git a/lib/features/care/widgets/message_video.dart b/lib/features/care/widgets/message_video.dart
+new file mode 100644
+index 0000000..d48e605
+--- /dev/null
++++ b/lib/features/care/widgets/message_video.dart
+@@ -0,0 +1,135 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:io';
++import 'dart:typed_data';
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:path/path.dart' as p;
++import 'package:path_provider/path_provider.dart';
++import 'package:video_player/video_player.dart';
++import 'package:wger/core/widgets/progress_indicator.dart';
++import 'package:wger/features/care/models/message.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++/// Writes a downloaded video to [directory] to play it. The player needs a
++/// file or an address, and the address needs the login, so the bytes go to
++/// a temporary file that the player deletes again.
++Future<File> writeVideoFile(Directory directory, Message message, Uint8List bytes) async {
++  final extension = p.extension(message.attachmentName).toLowerCase();
++  final file = File(
++    p.join(directory.path, 'almova-video-${message.id}${extension.isEmpty ? '.mp4' : extension}'),
++  );
++  await file.writeAsBytes(bytes, flush: true);
++  return file;
++}
++
++/// A video in a message: downloaded on request, then played full screen
++class MessageVideo extends StatelessWidget {
++  final Message message;
++
++  const MessageVideo(this.message, {super.key});
++
++  @override
++  Widget build(BuildContext context) {
++    return OutlinedButton.icon(
++      icon: const Icon(Icons.play_circle),
++      label: Text(AppLocalizations.of(context).careVideo),
++      onPressed: () => Navigator.of(context).push(
++        MaterialPageRoute(builder: (_) => VideoMessageScreen(message: message)),
++      ),
++    );
++  }
++}
++
++class VideoMessageScreen extends ConsumerStatefulWidget {
++  final Message message;
++
++  const VideoMessageScreen({super.key, required this.message});
++
++  @override
++  ConsumerState<VideoMessageScreen> createState() => _VideoMessageScreenState();
++}
++
++class _VideoMessageScreenState extends ConsumerState<VideoMessageScreen> {
++  VideoPlayerController? _controller;
++  File? _file;
++  bool _failed = false;
++
++  @override
++  void initState() {
++    super.initState();
++    _load();
++  }
++
++  Future<void> _load() async {
++    try {
++      final bytes = await ref.read(careRepositoryProvider).fetchAttachment(widget.message.id);
++      final file = await writeVideoFile(await getTemporaryDirectory(), widget.message, bytes);
++      if (!mounted) {
++        await file.delete();
++        return;
++      }
++      _file = file;
++      final controller = VideoPlayerController.file(file);
++      await controller.initialize();
++      if (!mounted) {
++        await controller.dispose();
++        return;
++      }
++      setState(() => _controller = controller..play());
++    } catch (_) {
++      if (mounted) {
++        setState(() => _failed = true);
++      }
++    }
++  }
++
++  @override
++  void dispose() {
++    _controller?.dispose();
++    // Health videos do not stay on the phone
++    _file?.delete().ignore();
++    super.dispose();
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final controller = _controller;
++    return Scaffold(
++      appBar: AppBar(title: Text(AppLocalizations.of(context).careVideo)),
++      body: Center(
++        child: _failed
++            ? const Icon(Icons.broken_image)
++            : controller == null
++            ? const CenteredProgressIndicator()
++            : GestureDetector(
++                onTap: () => setState(
++                  () => controller.value.isPlaying ? controller.pause() : controller.play(),
++                ),
++                child: AspectRatio(
++                  aspectRatio: controller.value.aspectRatio,
++                  child: VideoPlayer(controller),
++                ),
++              ),
++      ),
++    );
++  }
++}
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index cef32e6..0bcb47d 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2118,5 +2118,11 @@
+   "careCancelAppointmentQuestion": "Cancel this appointment? Your professional will be told.",
+   "@careCancelAppointmentQuestion": {},
+   "careCancelFailed": "Could not cancel. Try again.",
+-  "@careCancelFailed": {}
++  "@careCancelFailed": {},
++  "careAttach": "Attach a photo or video",
++  "@careAttach": {},
++  "careRecordVideo": "Record a video",
++  "@careRecordVideo": {},
++  "careFileTooLarge": "The file is too large: at most 50 MB.",
++  "@careFileTooLarge": {}
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index ec846ae..b24299c 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1090,5 +1090,8 @@
+     "careNoAppointments": "Nenhuma consulta marcada",
+     "careCancelAppointment": "Cancelar atendimento",
+     "careCancelAppointmentQuestion": "Cancelar este atendimento? O profissional será avisado.",
+-    "careCancelFailed": "Não foi possível cancelar. Tente de novo."
++    "careCancelFailed": "Não foi possível cancelar. Tente de novo.",
++    "careAttach": "Anexar foto ou vídeo",
++    "careRecordVideo": "Gravar um vídeo",
++    "careFileTooLarge": "O arquivo é grande demais: no máximo 50 MB."
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index a8e4177..b59511f 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1271,5 +1271,8 @@
+     "careNoAppointments": "Nenhuma consulta marcada",
+     "careCancelAppointment": "Cancelar atendimento",
+     "careCancelAppointmentQuestion": "Cancelar este atendimento? O profissional será avisado.",
+-    "careCancelFailed": "Não foi possível cancelar. Tente de novo."
++    "careCancelFailed": "Não foi possível cancelar. Tente de novo.",
++    "careAttach": "Anexar foto ou vídeo",
++    "careRecordVideo": "Gravar um vídeo",
++    "careFileTooLarge": "O arquivo é grande demais: no máximo 50 MB."
+ }
+diff --git a/test/features/care/providers/agenda_notifier_test.mocks.dart b/test/features/care/providers/agenda_notifier_test.mocks.dart
+index c8f9a33..eec14e0 100644
+--- a/test/features/care/providers/agenda_notifier_test.mocks.dart
++++ b/test/features/care/providers/agenda_notifier_test.mocks.dart
+@@ -5,8 +5,9 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i8;
++import 'dart:typed_data' as _i9;
+ 
++import 'package:image_picker/image_picker.dart' as _i8;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+@@ -99,6 +100,31 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<_i3.Message>);
+ 
++  @override
++  _i5.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i8.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
+   @override
+   _i5.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+@@ -109,12 +135,12 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i5.Future<void>);
+ 
+   @override
+-  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
+           )
+-          as _i5.Future<_i8.Uint8List>);
++          as _i5.Future<_i9.Uint8List>);
+ 
+   @override
+   _i5.Future<void> cancelAppointment(String? id) =>
+diff --git a/test/features/care/providers/care_overview_test.mocks.dart b/test/features/care/providers/care_overview_test.mocks.dart
+index 768f6d9..a468574 100644
+--- a/test/features/care/providers/care_overview_test.mocks.dart
++++ b/test/features/care/providers/care_overview_test.mocks.dart
+@@ -5,8 +5,9 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i8;
++import 'dart:typed_data' as _i9;
+ 
++import 'package:image_picker/image_picker.dart' as _i8;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+@@ -99,6 +100,31 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<_i3.Message>);
+ 
++  @override
++  _i5.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i8.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
+   @override
+   _i5.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+@@ -109,12 +135,12 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i5.Future<void>);
+ 
+   @override
+-  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
+           )
+-          as _i5.Future<_i8.Uint8List>);
++          as _i5.Future<_i9.Uint8List>);
+ 
+   @override
+   _i5.Future<void> cancelAppointment(String? id) =>
+diff --git a/test/features/care/providers/care_repository_test.dart b/test/features/care/providers/care_repository_test.dart
+index 53b1114..df25439 100644
+--- a/test/features/care/providers/care_repository_test.dart
++++ b/test/features/care/providers/care_repository_test.dart
+@@ -17,13 +17,16 @@
+  */
+ 
+ import 'dart:convert';
++import 'dart:io';
+ 
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:http/http.dart' as http;
+ import 'package:http/testing.dart';
++import 'package:image_picker/image_picker.dart';
+ import 'package:wger/core/exceptions/http_exception.dart';
+ import 'package:wger/core/network/base_provider.dart';
+ import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/models/message.dart';
+ import 'package:wger/features/care/providers/care_repository.dart';
+ 
+ Map<String, dynamic> relationship(String id, String status, {String discipline = 'training'}) => {
+@@ -150,9 +153,13 @@ void main() {
+       expect(sent.single.url.queryParameters['ordering'], 'created');
+     });
+ 
+-    test('sending a text keeps the accents of the answer', () async {
++    test('sending a text', () async {
+       final repository = answeringRequests(
+-        (_) => http.Response.bytes(utf8.encode(json.encode(message('m2', mine: true))), 201),
++        (_) => http.Response.bytes(
++          utf8.encode(json.encode(message('m2', mine: true))),
++          201,
++          headers: {'content-type': 'application/json'},
++        ),
+       );
+ 
+       final stored = await repository.sendText('r1', 'Está melhor');
+@@ -198,4 +205,44 @@ void main() {
+     expect(sent.single.method, 'POST');
+     expect(sent.single.url.path, '/api/v2/appointment/a1/cancel/');
+   });
++
++  test('a photo goes as multipart with the follow-up and the file', () async {
++    final dir = Directory.systemTemp.createTempSync('almova-test');
++    addTearDown(() => dir.deleteSync(recursive: true));
++    final photo = File('${dir.path}/joelho.jpg')..writeAsBytesSync([0xff, 0xd8, 0xff]);
++    late http.Request sent;
++    final repository = CareRepository(
++      WgerBaseProvider(
++        serverUrl: 'https://almova.test',
++        client: MockClient((request) async {
++          sent = request;
++          return http.Response.bytes(
++            utf8.encode(
++              json.encode({
++                'id': 'm9',
++                'relationship': 'r1',
++                'mine': true,
++                'text': '',
++                'attachment_kind': 'image',
++                'attachment_name': 'joelho.jpg',
++                'created': '2026-11-16T12:00:00Z',
++              }),
++            ),
++            201,
++            headers: {'content-type': 'application/json'},
++          );
++        }),
++      ),
++    );
++
++    final stored = await repository.sendAttachment('r1', XFile(photo.path));
++
++    expect(stored.attachmentKind, AttachmentKind.image);
++    expect(sent.method, 'POST');
++    expect(sent.url.path, '/api/v2/care-message/');
++    expect(sent.headers['content-type'], startsWith('multipart/form-data'));
++    final body = latin1.decode(sent.bodyBytes);
++    expect(body, contains('name="relationship"\r\n\r\nr1'));
++    expect(body, contains('name="attachment"; filename="joelho.jpg"'));
++  });
+ }
+diff --git a/test/features/care/providers/conversation_notifier_test.dart b/test/features/care/providers/conversation_notifier_test.dart
+index 330891c..9d51b14 100644
+--- a/test/features/care/providers/conversation_notifier_test.dart
++++ b/test/features/care/providers/conversation_notifier_test.dart
+@@ -16,8 +16,11 @@
+  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  */
+ 
++import 'dart:typed_data';
++
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:flutter_test/flutter_test.dart';
++import 'package:image_picker/image_picker.dart';
+ import 'package:mockito/annotations.dart';
+ import 'package:mockito/mockito.dart';
+ import 'package:wger/features/care/models/message.dart';
+@@ -76,4 +79,15 @@ void main() {
+ 
+     expect(container.read(conversationProvider('r1')).value!.map((m) => m.id), ['m1', 'm2']);
+   });
++
++  test('a sent photo is appended', () async {
++    final photo = XFile.fromData(Uint8List.fromList([1]), name: 'a.jpg');
++    when(repository.fetchMessages('r1')).thenAnswer((_) async => []);
++    when(repository.sendAttachment('r1', photo)).thenAnswer((_) async => message('m3', mine: true));
++
++    await container.read(conversationProvider('r1').future);
++    await container.read(conversationProvider('r1').notifier).sendAttachment(photo);
++
++    expect(container.read(conversationProvider('r1')).value!.map((m) => m.id), ['m3']);
++  });
+ }
+diff --git a/test/features/care/providers/conversation_notifier_test.mocks.dart b/test/features/care/providers/conversation_notifier_test.mocks.dart
+index 035b0bb..f001ae5 100644
+--- a/test/features/care/providers/conversation_notifier_test.mocks.dart
++++ b/test/features/care/providers/conversation_notifier_test.mocks.dart
+@@ -5,8 +5,9 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i8;
++import 'dart:typed_data' as _i9;
+ 
++import 'package:image_picker/image_picker.dart' as _i8;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+@@ -99,6 +100,31 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<_i3.Message>);
+ 
++  @override
++  _i5.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i8.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
+   @override
+   _i5.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+@@ -109,12 +135,12 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i5.Future<void>);
+ 
+   @override
+-  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
+           )
+-          as _i5.Future<_i8.Uint8List>);
++          as _i5.Future<_i9.Uint8List>);
+ 
+   @override
+   _i5.Future<void> cancelAppointment(String? id) =>
+diff --git a/test/features/care/screens/agenda_screen_test.mocks.dart b/test/features/care/screens/agenda_screen_test.mocks.dart
+index b5a1094..79bd2a5 100644
+--- a/test/features/care/screens/agenda_screen_test.mocks.dart
++++ b/test/features/care/screens/agenda_screen_test.mocks.dart
+@@ -5,8 +5,9 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i8;
++import 'dart:typed_data' as _i9;
+ 
++import 'package:image_picker/image_picker.dart' as _i8;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+@@ -99,6 +100,31 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<_i3.Message>);
+ 
++  @override
++  _i5.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i8.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
+   @override
+   _i5.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+@@ -109,12 +135,12 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i5.Future<void>);
+ 
+   @override
+-  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
+           )
+-          as _i5.Future<_i8.Uint8List>);
++          as _i5.Future<_i9.Uint8List>);
+ 
+   @override
+   _i5.Future<void> cancelAppointment(String? id) =>
+diff --git a/test/features/care/screens/conversation_screen_test.dart b/test/features/care/screens/conversation_screen_test.dart
+index 9fb872d..352739a 100644
+--- a/test/features/care/screens/conversation_screen_test.dart
++++ b/test/features/care/screens/conversation_screen_test.dart
+@@ -16,11 +16,17 @@
+  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  */
+ 
++import 'dart:convert';
++import 'dart:typed_data';
++
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:flutter_test/flutter_test.dart';
++import 'package:http/http.dart' as http;
++import 'package:image_picker/image_picker.dart';
+ import 'package:material_ui/material_ui.dart';
+ import 'package:mockito/annotations.dart';
+ import 'package:mockito/mockito.dart';
++import 'package:wger/core/exceptions/http_exception.dart';
+ import 'package:wger/features/care/models/care_relationship.dart';
+ import 'package:wger/features/care/models/message.dart';
+ import 'package:wger/features/care/providers/care_repository.dart';
+@@ -125,4 +131,84 @@ void main() {
+     expect(find.text('Não foi possível enviar. Tente de novo.'), findsOneWidget);
+     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, 'Oi');
+   });
++
++  group('attachments', () {
++    Widget composer(MediaPicker picker) => ProviderScope(
++      overrides: [careRepositoryProvider.overrideWithValue(repository)],
++      child: MaterialApp(
++        locale: const Locale('pt', 'BR'),
++        localizationsDelegates: appLocalizationsDelegates,
++        supportedLocales: AppLocalizations.supportedLocales,
++        home: Scaffold(
++          body: MessageComposer(relationshipId: 'r1', picker: picker),
++        ),
++      ),
++    );
++
++    Future<void> attach(WidgetTester tester, String option) async {
++      await tester.tap(find.byTooltip('Anexar foto ou vídeo'));
++      await tester.pumpAndSettle();
++      await tester.tap(find.text(option));
++      await tester.pumpAndSettle();
++    }
++
++    setUp(() {
++      when(repository.fetchMessages('r1')).thenAnswer((_) async => []);
++    });
++
++    testWidgets('a photo from the camera is sent', (tester) async {
++      final photo = XFile.fromData(Uint8List.fromList([1, 2]), name: 'foto.jpg');
++      MediaChoice? asked;
++      when(repository.sendAttachment('r1', photo)).thenAnswer(
++        (_) async =>
++            Message(id: 'm1', relationship: 'r1', mine: true, text: '', created: DateTime(2026)),
++      );
++
++      await tester.pumpWidget(
++        composer((choice) async {
++          asked = choice;
++          return photo;
++        }),
++      );
++      await attach(tester, 'Tire uma foto');
++
++      expect(asked, MediaChoice.photo);
++      verify(repository.sendAttachment('r1', photo)).called(1);
++    });
++
++    testWidgets('a file above 50 MB is not sent', (tester) async {
++      final video = XFile.fromData(Uint8List(maxAttachmentBytes + 1), name: 'longo.mp4');
++
++      await tester.pumpWidget(composer((_) async => video));
++      await attach(tester, 'Escolher na galeria');
++
++      expect(find.text('O arquivo é grande demais: no máximo 50 MB.'), findsOneWidget);
++      verifyNever(repository.sendAttachment(any, any));
++    });
++
++    testWidgets('the reason of a refusal is shown', (tester) async {
++      final video = XFile.fromData(Uint8List.fromList([1]), name: 'v.mp4');
++      when(repository.sendAttachment('r1', video)).thenThrow(
++        WgerHttpException(
++          http.Response.bytes(
++            utf8.encode('{"attachment": ["Arquivo não é um vídeo válido"]}'),
++            400,
++            headers: {'content-type': 'application/json'},
++          ),
++        ),
++      );
++
++      await tester.pumpWidget(composer((_) async => video));
++      await attach(tester, 'Gravar um vídeo');
++
++      expect(find.text('Arquivo não é um vídeo válido'), findsOneWidget);
++    });
++
++    testWidgets('closing the picker sends nothing', (tester) async {
++      await tester.pumpWidget(composer((_) async => null));
++      await attach(tester, 'Tire uma foto');
++
++      verifyNever(repository.sendAttachment(any, any));
++    });
++  });
+ }
+diff --git a/test/features/care/screens/conversation_screen_test.mocks.dart b/test/features/care/screens/conversation_screen_test.mocks.dart
+index 29aaaa1..1231177 100644
+--- a/test/features/care/screens/conversation_screen_test.mocks.dart
++++ b/test/features/care/screens/conversation_screen_test.mocks.dart
+@@ -5,8 +5,9 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i8;
++import 'dart:typed_data' as _i9;
+ 
++import 'package:image_picker/image_picker.dart' as _i8;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+@@ -99,6 +100,31 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<_i3.Message>);
+ 
++  @override
++  _i5.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i8.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
+   @override
+   _i5.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+@@ -109,12 +135,12 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i5.Future<void>);
+ 
+   @override
+-  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
+           )
+-          as _i5.Future<_i8.Uint8List>);
++          as _i5.Future<_i9.Uint8List>);
+ 
+   @override
+   _i5.Future<void> cancelAppointment(String? id) =>
+diff --git a/test/features/care/widgets/message_video_test.dart b/test/features/care/widgets/message_video_test.dart
+new file mode 100644
+index 0000000..df26496
+--- /dev/null
++++ b/test/features/care/widgets/message_video_test.dart
+@@ -0,0 +1,54 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:io';
++import 'dart:typed_data';
++
++import 'package:flutter_test/flutter_test.dart';
++import 'package:wger/features/care/models/message.dart';
++import 'package:wger/features/care/widgets/message_video.dart';
++
++Message video(String name) => Message(
++  id: 'm7',
++  relationship: 'r1',
++  mine: false,
++  text: '',
++  attachmentKind: AttachmentKind.video,
++  attachmentName: name,
++  created: DateTime.utc(2026),
++);
++
++void main() {
++  late Directory dir;
++
++  setUp(() => dir = Directory.systemTemp.createTempSync('almova-video'));
++  tearDown(() => dir.deleteSync(recursive: true));
++
++  test('the downloaded video goes to a file with its own extension', () async {
++    final file = await writeVideoFile(dir, video('Agachamento.MOV'), Uint8List.fromList([1, 2, 3]));
++
++    expect(file.path, endsWith('almova-video-m7.mov'));
++    expect(file.readAsBytesSync(), [1, 2, 3]);
++  });
++
++  test('without a name the file is an mp4', () async {
++    final file = await writeVideoFile(dir, video(''), Uint8List.fromList([1]));
++
++    expect(file.path, endsWith('almova-video-m7.mp4'));
++  });
++}
+-- 
+2.43.0
+
