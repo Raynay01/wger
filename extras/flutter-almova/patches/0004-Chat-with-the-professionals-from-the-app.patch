@@ -1,0 +1,1396 @@
+From ff33b8e8c98ff0332ae1357db628721ea8726fef Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 15:25:11 +0000
+Subject: [PATCH 4/4] Chat with the professionals from the app
+
+Tapping a professional on the follow-up card opens the conversation of
+that follow-up: the messages oldest first (newest at the bottom), photos
+downloaded with the login from the attachment endpoint, videos named as
+such, and a field to send a text while the follow-up is open (an ended one
+keeps the history). Opening the conversation marks the professional's
+unread messages as read. A failed send keeps the text and says so.
+
+The answer of the server is decoded as UTF-8 explicitly: DRF sends JSON
+without a charset, and the default Latin-1 decoding broke accents.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/core/widgets/dashboard/widgets/care.dart  |   5 +
+ lib/features/care/models/message.dart         |  66 ++++++
+ lib/features/care/models/message.g.dart       |  33 +++
+ .../care/providers/care_repository.dart       |  54 +++++
+ .../care/providers/conversation_notifier.dart |  70 ++++++
+ .../providers/conversation_notifier.g.dart    | 108 ++++++++++
+ .../care/screens/conversation_screen.dart     | 204 ++++++++++++++++++
+ lib/l10n/app_en.arb                           |  14 +-
+ lib/l10n/app_pt.arb                           |   8 +-
+ lib/l10n/app_pt_BR.arb                        |   8 +-
+ .../providers/care_overview_test.mocks.dart   |  70 ++++--
+ .../care/providers/care_repository_test.dart  |  81 +++++++
+ .../providers/conversation_notifier_test.dart |  79 +++++++
+ .../conversation_notifier_test.mocks.dart     | 118 ++++++++++
+ .../screens/conversation_screen_test.dart     | 128 +++++++++++
+ .../conversation_screen_test.mocks.dart       | 118 ++++++++++
+ 16 files changed, 1148 insertions(+), 16 deletions(-)
+ create mode 100644 lib/features/care/models/message.dart
+ create mode 100644 lib/features/care/models/message.g.dart
+ create mode 100644 lib/features/care/providers/conversation_notifier.dart
+ create mode 100644 lib/features/care/providers/conversation_notifier.g.dart
+ create mode 100644 lib/features/care/screens/conversation_screen.dart
+ create mode 100644 test/features/care/providers/conversation_notifier_test.dart
+ create mode 100644 test/features/care/providers/conversation_notifier_test.mocks.dart
+ create mode 100644 test/features/care/screens/conversation_screen_test.dart
+ create mode 100644 test/features/care/screens/conversation_screen_test.mocks.dart
+
+diff --git a/lib/core/widgets/dashboard/widgets/care.dart b/lib/core/widgets/dashboard/widgets/care.dart
+index 0fcce52..344a675 100644
+--- a/lib/core/widgets/dashboard/widgets/care.dart
++++ b/lib/core/widgets/dashboard/widgets/care.dart
+@@ -22,6 +22,7 @@ import 'package:material_ui/material_ui.dart';
+ import 'package:wger/features/care/models/appointment.dart';
+ import 'package:wger/features/care/models/care_relationship.dart';
+ import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/features/care/screens/conversation_screen.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+ String disciplineLabel(AppLocalizations i18n, Discipline? discipline) => switch (discipline) {
+@@ -72,6 +73,10 @@ class DashboardCareWidget extends ConsumerWidget {
+               leading: Icon(disciplineIcon(relationship.discipline)),
+               title: Text(relationship.professionalName),
+               subtitle: Text(disciplineLabel(i18n, relationship.discipline)),
++              trailing: Icon(Icons.chat_bubble_outline, semanticLabel: i18n.careMessages),
++              onTap: () => Navigator.of(context).push(
++                MaterialPageRoute(builder: (_) => ConversationScreen(relationship: relationship)),
++              ),
+             ),
+           if (next != null) _NextAppointment(next),
+         ],
+diff --git a/lib/features/care/models/message.dart b/lib/features/care/models/message.dart
+new file mode 100644
+index 0000000..af834fc
+--- /dev/null
++++ b/lib/features/care/models/message.dart
+@@ -0,0 +1,66 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:json_annotation/json_annotation.dart';
++import 'package:wger/core/json.dart';
++
++part 'message.g.dart';
++
++enum AttachmentKind { image, video }
++
++/// A message between the user and a professional (Django `care.Message`)
++@JsonSerializable(createToJson: false)
++class Message {
++  @JsonKey(required: true)
++  final String id;
++
++  @JsonKey(required: true)
++  final String relationship;
++
++  /// Sent by the user
++  @JsonKey(required: true)
++  final bool mine;
++
++  @JsonKey(name: 'sender_name')
++  final String? senderName;
++
++  @JsonKey(defaultValue: '')
++  final String text;
++
++  @JsonKey(name: 'attachment_kind', unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
++  final AttachmentKind? attachmentKind;
++
++  @JsonKey(required: true, fromJson: utcIso8601ToLocalDate)
++  final DateTime created;
++
++  @JsonKey(name: 'read_at', fromJson: utcIso8601ToLocalDateNull)
++  final DateTime? readAt;
++
++  const Message({
++    required this.id,
++    required this.relationship,
++    required this.mine,
++    this.senderName,
++    required this.text,
++    this.attachmentKind,
++    required this.created,
++    this.readAt,
++  });
++
++  factory Message.fromJson(Map<String, dynamic> json) => _$MessageFromJson(json);
++}
+diff --git a/lib/features/care/models/message.g.dart b/lib/features/care/models/message.g.dart
+new file mode 100644
+index 0000000..4be11e6
+--- /dev/null
++++ b/lib/features/care/models/message.g.dart
+@@ -0,0 +1,33 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'message.dart';
++
++// **************************************************************************
++// JsonSerializableGenerator
++// **************************************************************************
++
++Message _$MessageFromJson(Map<String, dynamic> json) {
++  $checkKeys(
++    json,
++    requiredKeys: const ['id', 'relationship', 'mine', 'created'],
++  );
++  return Message(
++    id: json['id'] as String,
++    relationship: json['relationship'] as String,
++    mine: json['mine'] as bool,
++    senderName: json['sender_name'] as String?,
++    text: json['text'] as String? ?? '',
++    attachmentKind: $enumDecodeNullable(
++      _$AttachmentKindEnumMap,
++      json['attachment_kind'],
++      unknownValue: JsonKey.nullForUndefinedEnumValue,
++    ),
++    created: utcIso8601ToLocalDate(json['created'] as String),
++    readAt: utcIso8601ToLocalDateNull(json['read_at'] as String?),
++  );
++}
++
++const _$AttachmentKindEnumMap = {
++  AttachmentKind.image: 'image',
++  AttachmentKind.video: 'video',
++};
+diff --git a/lib/features/care/providers/care_repository.dart b/lib/features/care/providers/care_repository.dart
+index f545d7a..82e27f2 100644
+--- a/lib/features/care/providers/care_repository.dart
++++ b/lib/features/care/providers/care_repository.dart
+@@ -16,13 +16,19 @@
+  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  */
+ 
++import 'dart:convert';
++import 'dart:io';
++import 'dart:typed_data';
++
+ import 'package:riverpod_annotation/riverpod_annotation.dart';
+ import 'package:wger/core/consts.dart';
++import 'package:wger/core/exceptions/http_exception.dart';
+ import 'package:wger/core/json.dart';
+ import 'package:wger/core/network/base_provider.dart';
+ import 'package:wger/core/network/wger_base.dart';
+ import 'package:wger/features/care/models/appointment.dart';
+ import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/models/message.dart';
+ 
+ part 'care_repository.g.dart';
+ 
+@@ -33,6 +39,7 @@ CareRepository careRepository(Ref ref) => CareRepository(ref.read(wgerBaseProvid
+ class CareRepository {
+   static const relationshipPath = 'care-relationship';
+   static const appointmentPath = 'appointment';
++  static const messagePath = 'care-message';
+ 
+   final WgerBaseProvider base;
+ 
+@@ -65,4 +72,51 @@ class CareRepository {
+     return data.map((e) => Appointment.fromJson(e as Map<String, dynamic>)).toList()
+       ..sort((a, b) => a.start.compareTo(b.start));
+   }
++
++  /// The conversation of a follow-up, oldest first
++  Future<List<Message>> fetchMessages(String relationshipId) async {
++    final url = base.makeUrl(
++      messagePath,
++      query: {'relationship': relationshipId, 'ordering': 'created', 'limit': API_MAX_PAGE_SIZE},
++    );
++    final data = await base.fetchPaginated(url);
++    return data.map((e) => Message.fromJson(e as Map<String, dynamic>)).toList();
++  }
++
++  Future<Message> sendText(String relationshipId, String text) async {
++    final response = await base.client.post(
++      base.makeUrl(messagePath),
++      headers: base.getDefaultHeaders(),
++      body: json.encode({'relationship': relationshipId, 'text': text}),
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++    // DRF sends no charset, so decode the bytes as UTF-8 (accents)
++    return Message.fromJson(json.decode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>);
++  }
++
++  /// Marks what the professional sent as read
++  Future<void> markRead(String relationshipId) async {
++    final response = await base.client.post(
++      base.makeUrl(messagePath, objectMethod: 'read'),
++      headers: base.getDefaultHeaders(),
++      body: json.encode({'relationship': relationshipId}),
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++  }
++
++  /// The photo or video of a message; only the two people of the follow-up get it
++  Future<Uint8List> fetchAttachment(String messageId) async {
++    final response = await base.client.get(
++      base.makeUrl('$messagePath/$messageId/attachment'),
++      headers: {HttpHeaders.userAgentHeader: base.getAppNameHeaderValue()},
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++    return response.bodyBytes;
++  }
+ }
+diff --git a/lib/features/care/providers/conversation_notifier.dart b/lib/features/care/providers/conversation_notifier.dart
+new file mode 100644
+index 0000000..b1bbc85
+--- /dev/null
++++ b/lib/features/care/providers/conversation_notifier.dart
+@@ -0,0 +1,70 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:async';
++import 'dart:typed_data';
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:logging/logging.dart';
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/features/care/models/message.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++part 'conversation_notifier.g.dart';
++
++final _logger = Logger('ConversationNotifier');
++
++/// The messages with the professional of a follow-up, oldest first
++@riverpod
++class ConversationNotifier extends _$ConversationNotifier {
++  @override
++  Future<List<Message>> build(String relationshipId) async {
++    final repository = ref.read(careRepositoryProvider);
++    final messages = await repository.fetchMessages(relationshipId);
++    if (messages.any((m) => !m.mine && m.readAt == null)) {
++      unawaited(
++        repository
++            .markRead(relationshipId)
++            .catchError((Object e) => _logger.warning('Could not mark the messages as read', e)),
++      );
++    }
++    return messages;
++  }
++
++  /// Sends a text and appends the stored message
++  Future<void> send(String text) async {
++    final sent = await ref.read(careRepositoryProvider).sendText(relationshipId, text.trim());
++    state = AsyncData([...?state.value, sent]);
++  }
++}
++
++/// How long a downloaded attachment stays in memory after the last viewer
++const attachmentCacheTime = Duration(minutes: 5);
++
++/// The photo of a message, downloaded with the login
++final messageAttachmentProvider = FutureProvider.autoDispose.family<Uint8List, String>((
++  ref,
++  messageId,
++) {
++  final link = ref.keepAlive();
++  Timer? timer;
++  ref.onCancel(() => timer = Timer(attachmentCacheTime, link.close));
++  ref.onResume(() => timer?.cancel());
++  ref.onDispose(() => timer?.cancel());
++  return ref.read(careRepositoryProvider).fetchAttachment(messageId);
++});
+diff --git a/lib/features/care/providers/conversation_notifier.g.dart b/lib/features/care/providers/conversation_notifier.g.dart
+new file mode 100644
+index 0000000..d451a8d
+--- /dev/null
++++ b/lib/features/care/providers/conversation_notifier.g.dart
+@@ -0,0 +1,108 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'conversation_notifier.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++/// The messages with the professional of a follow-up, oldest first
++
++@ProviderFor(ConversationNotifier)
++final conversationProvider = ConversationNotifierFamily._();
++
++/// The messages with the professional of a follow-up, oldest first
++final class ConversationNotifierProvider
++    extends $AsyncNotifierProvider<ConversationNotifier, List<Message>> {
++  /// The messages with the professional of a follow-up, oldest first
++  ConversationNotifierProvider._({
++    required ConversationNotifierFamily super.from,
++    required String super.argument,
++  }) : super(
++         retry: null,
++         name: r'conversationProvider',
++         isAutoDispose: true,
++         dependencies: null,
++         $allTransitiveDependencies: null,
++       );
++
++  @override
++  String debugGetCreateSourceHash() => _$conversationNotifierHash();
++
++  @override
++  String toString() {
++    return r'conversationProvider'
++        ''
++        '($argument)';
++  }
++
++  @$internal
++  @override
++  ConversationNotifier create() => ConversationNotifier();
++
++  @override
++  bool operator ==(Object other) {
++    return other is ConversationNotifierProvider && other.argument == argument;
++  }
++
++  @override
++  int get hashCode {
++    return argument.hashCode;
++  }
++}
++
++String _$conversationNotifierHash() => r'07dc69727164653902ce6a47878b82a74d3b0af8';
++
++/// The messages with the professional of a follow-up, oldest first
++
++final class ConversationNotifierFamily extends $Family
++    with
++        $ClassFamilyOverride<
++          ConversationNotifier,
++          AsyncValue<List<Message>>,
++          List<Message>,
++          FutureOr<List<Message>>,
++          String
++        > {
++  ConversationNotifierFamily._()
++    : super(
++        retry: null,
++        name: r'conversationProvider',
++        dependencies: null,
++        $allTransitiveDependencies: null,
++        isAutoDispose: true,
++      );
++
++  /// The messages with the professional of a follow-up, oldest first
++
++  ConversationNotifierProvider call(String relationshipId) =>
++      ConversationNotifierProvider._(argument: relationshipId, from: this);
++
++  @override
++  String toString() => r'conversationProvider';
++}
++
++/// The messages with the professional of a follow-up, oldest first
++
++abstract class _$ConversationNotifier extends $AsyncNotifier<List<Message>> {
++  late final _$args = ref.$arg as String;
++  String get relationshipId => _$args;
++
++  FutureOr<List<Message>> build(String relationshipId);
++  @$mustCallSuper
++  @override
++  WhenComplete runBuild() {
++    final ref = this.ref as $Ref<AsyncValue<List<Message>>, List<Message>>;
++    final element =
++        ref.element
++            as $ClassProviderElement<
++              AnyNotifier<AsyncValue<List<Message>>, List<Message>>,
++              AsyncValue<List<Message>>,
++              Object?,
++              Object?
++            >;
++    return element.handleCreate(ref, () => build(_$args));
++  }
++}
+diff --git a/lib/features/care/screens/conversation_screen.dart b/lib/features/care/screens/conversation_screen.dart
+new file mode 100644
+index 0000000..e957e8b
+--- /dev/null
++++ b/lib/features/care/screens/conversation_screen.dart
+@@ -0,0 +1,204 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:intl/intl.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/widgets/image.dart';
++import 'package:wger/core/widgets/progress_indicator.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/models/message.dart';
++import 'package:wger/features/care/providers/conversation_notifier.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++/// The chat with the professional of a follow-up
++class ConversationScreen extends ConsumerWidget {
++  final CareRelationship relationship;
++
++  const ConversationScreen({super.key, required this.relationship});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final conversation = ref.watch(conversationProvider(relationship.id));
++
++    return Scaffold(
++      appBar: AppBar(title: Text(relationship.professionalName)),
++      body: Column(
++        children: [
++          Expanded(
++            child: switch (conversation) {
++              AsyncValue(:final value?) when value.isEmpty => Center(
++                child: Text(i18n.careNoMessages),
++              ),
++              AsyncValue(:final value?) => ListView.builder(
++                reverse: true,
++                padding: const EdgeInsets.all(8),
++                itemCount: value.length,
++                itemBuilder: (context, index) => MessageBubble(value[value.length - 1 - index]),
++              ),
++              AsyncValue(:final error?) => Center(child: Text(error.toString())),
++              _ => const CenteredProgressIndicator(),
++            },
++          ),
++          if (relationship.isOpen) MessageComposer(relationshipId: relationship.id),
++        ],
++      ),
++    );
++  }
++}
++
++class MessageBubble extends StatelessWidget {
++  final Message message;
++
++  const MessageBubble(this.message, {super.key});
++
++  @override
++  Widget build(BuildContext context) {
++    final i18n = AppLocalizations.of(context);
++    final colors = Theme.of(context).colorScheme;
++    final time = DateFormat.Hm(Localizations.localeOf(context).toString()).format(message.created);
++
++    return Align(
++      alignment: message.mine ? Alignment.centerRight : Alignment.centerLeft,
++      child: ConstrainedBox(
++        constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width * 0.8),
++        child: Card(
++          color: message.mine ? colors.primaryContainer : colors.surfaceContainerHighest,
++          child: Padding(
++            padding: const EdgeInsets.all(10),
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                if (message.attachmentKind == AttachmentKind.image) _Photo(message.id),
++                if (message.attachmentKind == AttachmentKind.video)
++                  Row(
++                    mainAxisSize: MainAxisSize.min,
++                    children: [
++                      const Icon(Icons.videocam),
++                      const SizedBox(width: 4),
++                      Text(i18n.careVideo),
++                    ],
++                  ),
++                if (message.text.isNotEmpty) Text(message.text),
++                const SizedBox(height: 4),
++                Text(time, style: Theme.of(context).textTheme.labelSmall),
++              ],
++            ),
++          ),
++        ),
++      ),
++    );
++  }
++}
++
++class _Photo extends ConsumerWidget {
++  final String messageId;
++
++  const _Photo(this.messageId);
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final file = ref.watch(messageAttachmentProvider(messageId));
++    return ConstrainedBox(
++      constraints: const BoxConstraints(maxHeight: 240),
++      child: switch (file) {
++        AsyncValue(:final value?) => Image.memory(value, fit: BoxFit.contain),
++        AsyncValue(:final error?) => ImageError('Network error', errorMessage: error.toString()),
++        _ => const SizedBox(height: 120, child: CenteredProgressIndicator()),
++      },
++    );
++  }
++}
++
++class MessageComposer extends ConsumerStatefulWidget {
++  final String relationshipId;
++
++  const MessageComposer({super.key, required this.relationshipId});
++
++  @override
++  ConsumerState<MessageComposer> createState() => _MessageComposerState();
++}
++
++class _MessageComposerState extends ConsumerState<MessageComposer> {
++  // A controller: the field is cleared after sending
++  late final TextEditingController _text;
++  bool _sending = false;
++
++  @override
++  void initState() {
++    super.initState();
++    _text = TextEditingController();
++  }
++
++  @override
++  void dispose() {
++    _text.dispose();
++    super.dispose();
++  }
++
++  Future<void> _send() async {
++    final text = _text.text.trim();
++    if (text.isEmpty || _sending) {
++      return;
++    }
++    setState(() => _sending = true);
++    try {
++      await ref.read(conversationProvider(widget.relationshipId).notifier).send(text);
++      _text.clear();
++    } catch (_) {
++      if (mounted) {
++        ScaffoldMessenger.of(
++          context,
++        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).careSendFailed)));
++      }
++    } finally {
++      if (mounted) {
++        setState(() => _sending = false);
++      }
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final i18n = AppLocalizations.of(context);
++    return SafeArea(
++      child: Padding(
++        padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
++        child: Row(
++          children: [
++            Expanded(
++              child: TextField(
++                controller: _text,
++                minLines: 1,
++                maxLines: 5,
++                textCapitalization: TextCapitalization.sentences,
++                decoration: InputDecoration(hintText: i18n.careWriteMessage),
++              ),
++            ),
++            IconButton(
++              tooltip: i18n.careSend,
++              onPressed: _sending ? null : _send,
++              icon: const Icon(Icons.send),
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++}
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index 56af625..17a2b0d 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2096,5 +2096,17 @@
+         "type": "String"
+       }
+     }
+-  }
++  },
++  "careMessages": "Messages",
++  "@careMessages": {},
++  "careNoMessages": "No messages yet",
++  "@careNoMessages": {},
++  "careWriteMessage": "Write a message",
++  "@careWriteMessage": {},
++  "careSend": "Send",
++  "@careSend": {},
++  "careSendFailed": "Could not send. Try again.",
++  "@careSendFailed": {},
++  "careVideo": "Video",
++  "@careVideo": {"description": "A video attached to a message"}
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index 170fe8f..aaa9efb 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1079,5 +1079,11 @@
+     "careAppointmentSession": "Sessão",
+     "careAppointmentAssessment": "Avaliação",
+     "careAppointmentFollowUp": "Retorno",
+-    "careAppointmentWith": "{kind} com {professional}"
++    "careAppointmentWith": "{kind} com {professional}",
++    "careMessages": "Mensagens",
++    "careNoMessages": "Nenhuma mensagem ainda",
++    "careWriteMessage": "Escreva uma mensagem",
++    "careSend": "Enviar",
++    "careSendFailed": "Não foi possível enviar. Tente de novo.",
++    "careVideo": "Vídeo"
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index 898a40c..5d2a6d0 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1260,5 +1260,11 @@
+     "careAppointmentSession": "Sessão",
+     "careAppointmentAssessment": "Avaliação",
+     "careAppointmentFollowUp": "Retorno",
+-    "careAppointmentWith": "{kind} com {professional}"
++    "careAppointmentWith": "{kind} com {professional}",
++    "careMessages": "Mensagens",
++    "careNoMessages": "Nenhuma mensagem ainda",
++    "careWriteMessage": "Escreva uma mensagem",
++    "careSend": "Enviar",
++    "careSendFailed": "Não foi possível enviar. Tente de novo.",
++    "careVideo": "Vídeo"
+ }
+diff --git a/test/features/care/providers/care_overview_test.mocks.dart b/test/features/care/providers/care_overview_test.mocks.dart
+index 9a8938f..65a904b 100644
+--- a/test/features/care/providers/care_overview_test.mocks.dart
++++ b/test/features/care/providers/care_overview_test.mocks.dart
+@@ -4,13 +4,15 @@
+ 
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+-import 'dart:async' as _i4;
++import 'dart:async' as _i5;
++import 'dart:typed_data' as _i8;
+ 
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+-import 'package:wger/features/care/models/appointment.dart' as _i6;
+-import 'package:wger/features/care/models/care_relationship.dart' as _i5;
+-import 'package:wger/features/care/providers/care_repository.dart' as _i3;
++import 'package:wger/features/care/models/appointment.dart' as _i7;
++import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i4;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -33,10 +35,14 @@ class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvi
+     : super(parent, parentInvocation);
+ }
+ 
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
+ /// A class which mocks [CareRepository].
+ ///
+ /// See the documentation for Mockito's code generation for more information.
+-class MockCareRepository extends _i1.Mock implements _i3.CareRepository {
++class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+   MockCareRepository() {
+     _i1.throwOnMissingStub(this);
+   }
+@@ -53,22 +59,60 @@ class MockCareRepository extends _i1.Mock implements _i3.CareRepository {
+           as _i2.WgerBaseProvider);
+ 
+   @override
+-  _i4.Future<List<_i5.CareRelationship>> fetchMyProfessionals() =>
++  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMyProfessionals, []),
+-            returnValue: _i4.Future<List<_i5.CareRelationship>>.value(
+-              <_i5.CareRelationship>[],
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
+             ),
+           )
+-          as _i4.Future<List<_i5.CareRelationship>>);
++          as _i5.Future<List<_i6.CareRelationship>>);
+ 
+   @override
+-  _i4.Future<List<_i6.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchUpcomingAppointments, [from]),
+-            returnValue: _i4.Future<List<_i6.Appointment>>.value(
+-              <_i6.Appointment>[],
++            returnValue: _i5.Future<List<_i7.Appointment>>.value(
++              <_i7.Appointment>[],
+             ),
+           )
+-          as _i4.Future<List<_i6.Appointment>>);
++          as _i5.Future<List<_i7.Appointment>>);
++
++  @override
++  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i5.Future<List<_i3.Message>>);
++
++  @override
++  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++          )
++          as _i5.Future<_i8.Uint8List>);
+ }
+diff --git a/test/features/care/providers/care_repository_test.dart b/test/features/care/providers/care_repository_test.dart
+index 3249bd2..a632a5e 100644
+--- a/test/features/care/providers/care_repository_test.dart
++++ b/test/features/care/providers/care_repository_test.dart
+@@ -21,6 +21,7 @@ import 'dart:convert';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:http/http.dart' as http;
+ import 'package:http/testing.dart';
++import 'package:wger/core/exceptions/http_exception.dart';
+ import 'package:wger/core/network/base_provider.dart';
+ import 'package:wger/features/care/models/care_relationship.dart';
+ import 'package:wger/features/care/providers/care_repository.dart';
+@@ -99,4 +100,84 @@ void main() {
+       isTrue,
+     );
+   });
++
++  group('messages', () {
++    late List<http.Request> sent;
++
++    CareRepository answeringRequests(http.Response Function(http.Request) answer) {
++      sent = [];
++      return CareRepository(
++        WgerBaseProvider(
++          serverUrl: 'https://almova.test',
++          client: MockClient((request) async {
++            sent.add(request);
++            return answer(request);
++          }),
++        ),
++      );
++    }
++
++    Map<String, dynamic> message(String id, {bool mine = false}) => {
++      'id': id,
++      'relationship': 'r1',
++      'mine': mine,
++      'sender_name': mine ? 'Ana' : 'Bruno',
++      'text': 'Como está o joelho?',
++      'attachment_kind': null,
++      'created': '2026-11-16T12:00:00Z',
++      'read_at': null,
++    };
++
++    test('the conversation of a follow-up, oldest first', () async {
++      final repository = answeringRequests(
++        (_) => http.Response.bytes(
++          utf8.encode(
++            json.encode({
++              'count': 1,
++              'next': null,
++              'results': [message('m1')],
++            }),
++          ),
++          200,
++        ),
++      );
++
++      final messages = await repository.fetchMessages('r1');
++
++      expect(messages.single.text, 'Como está o joelho?');
++      expect(sent.single.url.path, '/api/v2/care-message/');
++      expect(sent.single.url.queryParameters['relationship'], 'r1');
++      expect(sent.single.url.queryParameters['ordering'], 'created');
++    });
++
++    test('sending a text keeps the accents of the answer', () async {
++      final repository = answeringRequests(
++        (_) => http.Response.bytes(utf8.encode(json.encode(message('m2', mine: true))), 201),
++      );
++
++      final stored = await repository.sendText('r1', 'Está melhor');
++
++      expect(stored.text, 'Como está o joelho?');
++      expect(sent.single.method, 'POST');
++      expect(json.decode(sent.single.body), {'relationship': 'r1', 'text': 'Está melhor'});
++    });
++
++    test('mark as read and the attachment', () async {
++      final repository = answeringRequests((_) => http.Response.bytes([7, 8], 200));
++
++      await repository.markRead('r1');
++      final bytes = await repository.fetchAttachment('m1');
++
++      expect(sent[0].url.path, '/api/v2/care-message/read/');
++      expect(json.decode(sent[0].body), {'relationship': 'r1'});
++      expect(sent[1].url.path, '/api/v2/care-message/m1/attachment/');
++      expect(bytes, [7, 8]);
++    });
++
++    test('a refused message throws', () async {
++      final repository = answeringRequests((_) => http.Response('{"relationship": ["x"]}', 400));
++
++      expect(repository.sendText('r1', 'oi'), throwsA(isA<WgerHttpException>()));
++    });
++  });
+ }
+diff --git a/test/features/care/providers/conversation_notifier_test.dart b/test/features/care/providers/conversation_notifier_test.dart
+new file mode 100644
+index 0000000..330891c
+--- /dev/null
++++ b/test/features/care/providers/conversation_notifier_test.dart
+@@ -0,0 +1,79 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/features/care/models/message.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/features/care/providers/conversation_notifier.dart';
++
++import 'conversation_notifier_test.mocks.dart';
++
++Message message(String id, {bool mine = false, DateTime? readAt}) => Message(
++  id: id,
++  relationship: 'r1',
++  mine: mine,
++  text: 'oi',
++  created: DateTime.utc(2026, 11, 16, 12),
++  readAt: readAt,
++);
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++  late ProviderContainer container;
++
++  setUp(() {
++    repository = MockCareRepository();
++    container = ProviderContainer(
++      overrides: [careRepositoryProvider.overrideWithValue(repository)],
++    );
++    addTearDown(container.dispose);
++    when(repository.markRead(any)).thenAnswer((_) async {});
++  });
++
++  test("opening the conversation marks the professional's messages as read", () async {
++    when(repository.fetchMessages('r1')).thenAnswer((_) async => [message('m1')]);
++
++    await container.read(conversationProvider('r1').future);
++
++    verify(repository.markRead('r1')).called(1);
++  });
++
++  test('nothing to mark when all was read or sent by the user', () async {
++    when(repository.fetchMessages('r1')).thenAnswer(
++      (_) async => [message('m1', mine: true), message('m2', readAt: DateTime.utc(2026))],
++    );
++
++    await container.read(conversationProvider('r1').future);
++
++    verifyNever(repository.markRead(any));
++  });
++
++  test('a sent message is appended', () async {
++    when(repository.fetchMessages('r1')).thenAnswer((_) async => [message('m1')]);
++    when(repository.sendText('r1', 'tudo bem')).thenAnswer((_) async => message('m2', mine: true));
++
++    await container.read(conversationProvider('r1').future);
++    await container.read(conversationProvider('r1').notifier).send('  tudo bem ');
++
++    expect(container.read(conversationProvider('r1')).value!.map((m) => m.id), ['m1', 'm2']);
++  });
++}
+diff --git a/test/features/care/providers/conversation_notifier_test.mocks.dart b/test/features/care/providers/conversation_notifier_test.mocks.dart
+new file mode 100644
+index 0000000..34e09bd
+--- /dev/null
++++ b/test/features/care/providers/conversation_notifier_test.mocks.dart
+@@ -0,0 +1,118 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/providers/conversation_notifier_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i5;
++import 'dart:typed_data' as _i8;
++
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/appointment.dart' as _i7;
++import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i5.Future<List<_i7.Appointment>>.value(
++              <_i7.Appointment>[],
++            ),
++          )
++          as _i5.Future<List<_i7.Appointment>>);
++
++  @override
++  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i5.Future<List<_i3.Message>>);
++
++  @override
++  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++          )
++          as _i5.Future<_i8.Uint8List>);
++}
+diff --git a/test/features/care/screens/conversation_screen_test.dart b/test/features/care/screens/conversation_screen_test.dart
+new file mode 100644
+index 0000000..9fb872d
+--- /dev/null
++++ b/test/features/care/screens/conversation_screen_test.dart
+@@ -0,0 +1,128 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/models/message.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/features/care/screens/conversation_screen.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++import 'conversation_screen_test.mocks.dart';
++
++const relationship = CareRelationship(
++  id: 'r1',
++  discipline: Discipline.training,
++  status: 'active',
++  professionalName: 'Bruno',
++);
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++
++  setUp(() {
++    repository = MockCareRepository();
++    when(repository.markRead(any)).thenAnswer((_) async {});
++  });
++
++  Widget render(CareRelationship relationship) => ProviderScope(
++    overrides: [careRepositoryProvider.overrideWithValue(repository)],
++    child: MaterialApp(
++      locale: const Locale('pt', 'BR'),
++      localizationsDelegates: appLocalizationsDelegates,
++      supportedLocales: AppLocalizations.supportedLocales,
++      home: ConversationScreen(relationship: relationship),
++    ),
++  );
++
++  testWidgets('shows the messages and sends a new one', (tester) async {
++    when(repository.fetchMessages('r1')).thenAnswer(
++      (_) async => [
++        Message(
++          id: 'm1',
++          relationship: 'r1',
++          mine: false,
++          text: 'Como foi o treino?',
++          created: DateTime(2026, 11, 16, 9, 5),
++        ),
++      ],
++    );
++    when(repository.sendText('r1', 'Foi ótimo')).thenAnswer(
++      (_) async => Message(
++        id: 'm2',
++        relationship: 'r1',
++        mine: true,
++        text: 'Foi ótimo',
++        created: DateTime(2026, 11, 16, 9, 7),
++      ),
++    );
++
++    await tester.pumpWidget(render(relationship));
++    await tester.pumpAndSettle();
++
++    expect(find.text('Bruno'), findsOneWidget);
++    expect(find.text('Como foi o treino?'), findsOneWidget);
++    expect(find.text('09:05'), findsOneWidget);
++
++    await tester.enterText(find.byType(TextField), 'Foi ótimo');
++    await tester.tap(find.byTooltip('Enviar'));
++    await tester.pumpAndSettle();
++
++    expect(find.text('Foi ótimo'), findsOneWidget);
++    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
++  });
++
++  testWidgets('an ended follow-up keeps the history but has no field', (tester) async {
++    when(repository.fetchMessages('r1')).thenAnswer((_) async => []);
++
++    await tester.pumpWidget(
++      render(
++        const CareRelationship(
++          id: 'r1',
++          discipline: Discipline.training,
++          status: 'ended',
++          professionalName: 'Bruno',
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++
++    expect(find.text('Nenhuma mensagem ainda'), findsOneWidget);
++    expect(find.byType(TextField), findsNothing);
++  });
++
++  testWidgets('a failed send keeps the text and says so', (tester) async {
++    when(repository.fetchMessages('r1')).thenAnswer((_) async => []);
++    when(repository.sendText(any, any)).thenThrow(Exception('offline'));
++
++    await tester.pumpWidget(render(relationship));
++    await tester.pumpAndSettle();
++    await tester.enterText(find.byType(TextField), 'Oi');
++    await tester.tap(find.byTooltip('Enviar'));
++    await tester.pumpAndSettle();
++
++    expect(find.text('Não foi possível enviar. Tente de novo.'), findsOneWidget);
++    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, 'Oi');
++  });
++}
+diff --git a/test/features/care/screens/conversation_screen_test.mocks.dart b/test/features/care/screens/conversation_screen_test.mocks.dart
+new file mode 100644
+index 0000000..ab6559e
+--- /dev/null
++++ b/test/features/care/screens/conversation_screen_test.mocks.dart
+@@ -0,0 +1,118 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/screens/conversation_screen_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i5;
++import 'dart:typed_data' as _i8;
++
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/appointment.dart' as _i7;
++import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i5.Future<List<_i7.Appointment>>.value(
++              <_i7.Appointment>[],
++            ),
++          )
++          as _i5.Future<List<_i7.Appointment>>);
++
++  @override
++  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i5.Future<List<_i3.Message>>);
++
++  @override
++  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<_i8.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i5.Future<_i8.Uint8List>.value(_i8.Uint8List(0)),
++          )
++          as _i5.Future<_i8.Uint8List>);
++}
+-- 
+2.43.0
+

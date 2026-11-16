@@ -29,6 +29,11 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
    acompanham o paciente (treino, fisioterapia, nutrição) e o próximo
    atendimento. Some quando ninguém acompanha, sem internet ou num servidor
    sem o ALMOVA. Dá para esconder nas configurações do painel, como os outros.
+4. **Mensagens:** tocar num profissional no cartão abre a conversa daquele
+   acompanhamento. Mostra o histórico, as fotos (baixadas com o login) e
+   avisa dos vídeos; envia texto enquanto o acompanhamento está aberto e marca
+   como lidas as mensagens do profissional. Enviar foto ou vídeo pelo app e
+   tocar vídeos ficam para a próxima etapa.
 
 ## Construir o APK
 
@@ -50,3 +55,9 @@ ALMOVA, guardada fora do repositório.
 - Contra o servidor local: o código do app entrou, enviou uma foto, baixou a
   mesma foto byte a byte; outra conta foi recusada; a foto ficou só na pasta
   privada.
+- Contra o servidor local: o cartão achou a fisioterapeuta e o próximo
+  retorno; a conversa recebeu a mensagem com foto (a mesma foto, byte a byte),
+  enviou uma resposta com acentos e marcou a mensagem da profissional como lida.
+- APK de teste (`app-arm64-v8a-release.apk`, 38,2 MB): identificador
+  `br.com.almova.app`, nome ALMOVA, assinado com uma chave de teste. Não foi
+  aberto num celular: este ambiente não tem emulador Android.
