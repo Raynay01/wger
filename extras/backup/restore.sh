@@ -18,7 +18,7 @@ target="${3:?name of the new database}"
 
 cd "$dir"
 echo "Checking the checksums"
-sha256sum --check --strict "${name}.sha256"
+sha256sum -c "${name}.sha256"
 
 if psql --no-password --dbname=postgres --tuples-only --no-align \
   --command="SELECT 1 FROM pg_database WHERE datname = '${target//\'/}'" | grep -q 1; then
@@ -38,6 +38,6 @@ if [ -n "${RESTORE_MEDIA_TO:-}" ] && [ -f "${name}.media.tar.gz.age" ]; then
     exit 1
   fi
   age --decrypt -i "$BACKUP_AGE_IDENTITY" "${name}.media.tar.gz.age" \
-    | tar --extract --gzip --file=- --directory="$RESTORE_MEDIA_TO"
+    | tar -xzf - -C "$RESTORE_MEDIA_TO"
   echo "Media files restored into ${RESTORE_MEDIA_TO}"
 fi

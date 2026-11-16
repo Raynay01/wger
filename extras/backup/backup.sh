@@ -42,7 +42,12 @@ if [ -n "${BACKUP_MEDIA_DIRS:-}" ]; then
     [ -d "$dir" ] && media+=("$dir")
   done
   if [ "${#media[@]}" -gt 0 ]; then
-    tar --create --gzip --absolute-names --file=- "${media[@]}" \
+    # Paths relative to / (tar of GNU and BusyBox alike)
+    rel=()
+    for dir in "${media[@]}"; do
+      rel+=("${dir#/}")
+    done
+    tar -czf - -C / "${rel[@]}" \
       | age "${recipients[@]}" -o "${name}.media.tar.gz.age.part"
     mv "${name}.media.tar.gz.age.part" "${name}.media.tar.gz.age"
     files+=("${name}.media.tar.gz.age")

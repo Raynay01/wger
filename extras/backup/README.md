@@ -59,6 +59,13 @@ linha e todos os arquivos, confere que outra chave não abre o backup e que um
 arquivo corrompido é recusado. O banco temporário é apagado no fim; o banco de
 origem não é alterado.
 
-Resultado em 15/11/2026 (PostgreSQL 16, banco de homologação com todas as
-migrações): 126 tabelas idênticas, anexo do chat idêntico, chave errada e arquivo
-corrompido recusados.
+Resultados:
+
+- 15/11/2026, PostgreSQL 16, banco com todas as migrações: 126 tabelas
+  idênticas, anexo do chat idêntico, chave errada e arquivo corrompido recusados.
+- 16/11/2026, homologação com PostgreSQL 18.7 (imagem `almova/backup`) depois do
+  teste completo no navegador: 137 tabelas e 24.212 linhas idênticas, 3 anexos do
+  chat idênticos, chave errada e arquivo corrompido recusados.
+
+Na pilha Docker, o backup roda com `docker compose --profile backup run --rm backup`
+(ver `extras/docker/almova/README.md`).

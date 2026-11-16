@@ -156,6 +156,17 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   records and functional assessments (`/api/v2/functional-assessment/`).
 
 ### Others
+* `extras/docker/almova/`: staging and production stack of ALMOVA with every
+  image pinned by version and digest (PostgreSQL 18.7, Redis 8.10.3, PowerSync
+  1.28.3, ClamAV 1.5.4, nginx 1.30.6), the server and web app images built
+  from this repository and a backup image (pg_dump 18.7, age 1.3.2). nginx only
+  exposes the web app, `/api/v2/`, `/allauth/`, `/ps/` and the static files.
+* The production server image installs exactly the Python versions of
+  `uv.lock`, checked against their hashes, instead of resolving the ranges of
+  `pyproject.toml`; its base image and Node are pinned by digest (Node from
+  the official image instead of a remote setup script, which failed silently
+  when unreachable); `sass` is pinned; and the private media folder exists in
+  the image, so a fresh volume is writable for the chat attachments.
 * Encrypted backups (`extras/backup/`): `backup.sh` streams the database
   dump and the media folders (the private chat attachments included) into
   age, so no plain copy touches the disk and the server only holds the
