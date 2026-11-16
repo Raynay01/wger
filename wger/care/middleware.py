@@ -15,6 +15,7 @@
 
 # Django
 from django.conf import settings
+from django.contrib.auth import logout
 from django.http import JsonResponse
 from django.urls import resolve
 from django.urls.exceptions import Resolver404
@@ -26,7 +27,10 @@ from rest_framework.request import Request
 from rest_framework.settings import api_settings
 
 # wger
-from wger.care import mfa
+from wger.care import (
+    login_age,
+    mfa,
+)
 
 
 # What a professional without a second step can still use: set it up, and
@@ -82,3 +86,24 @@ class ProfessionalMFAMiddleware:
             },
             status=403,
         )
+
+
+class ProfessionalLoginAgeMiddleware:
+    """
+    Logs a professional's browser session out once it is older than
+    CARE_PROFESSIONAL_LOGIN_DAYS (the app tokens are cut at the refresh)
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        user = getattr(request, 'user', None)
+        if (
+            settings.CARE_PROFESSIONAL_LOGIN_DAYS
+            and user is not None
+            and user.is_authenticated
+            and login_age.login_expired(user, request.session)
+        ):
+            logout(request)
+        return self.get_response(request)

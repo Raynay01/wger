@@ -280,6 +280,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   accounts must turn on two-step verification before using the API.
   `MFA_TOTP_ISSUER` (default `WEB_APP_NAME`) names the account in the
   authenticator app.
+* `CARE_PROFESSIONAL_LOGIN_DAYS` (default `30` in production, `0` is off):
+  professional accounts log in again this many days after the login, counted
+  from the login itself; refreshing the token does not extend it. Patients
+  keep the long login (`REFRESH_TOKEN_LIFETIME`).
 * `FCM_PROJECT_ID` and `FCM_SERVICE_ACCOUNT_FILE` (default empty, off): push
   notices through Firebase Cloud Messaging (HTTP v1), with the key file of a
   service account mounted as a file.

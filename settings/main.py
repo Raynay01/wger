@@ -291,6 +291,8 @@ MFA_SUPPORTED_TYPES = env.list(
 MFA_TOTP_ISSUER = env.str('MFA_TOTP_ISSUER', WEB_APP_NAME)
 # Professional accounts must turn on two-step verification before using the API
 CARE_PROFESSIONAL_MFA = env.bool('CARE_PROFESSIONAL_MFA', True)
+# Days a professional stays logged in, counted from the login; 0 is off
+CARE_PROFESSIONAL_LOGIN_DAYS = env.int('CARE_PROFESSIONAL_LOGIN_DAYS', 30)
 
 # Push notices through Firebase Cloud Messaging; mount the service account key
 # as a secret file, never in an environment variable

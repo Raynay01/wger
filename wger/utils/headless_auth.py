@@ -28,6 +28,7 @@ from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework.exceptions import AuthenticationFailed
 
 # wger
+from wger.care.login_age import login_expired
 from wger.utils.timezone_auth import activate_user_timezone
 
 
@@ -124,6 +125,10 @@ class WgerJWTTokenStrategy(JWTTokenStrategy):
     def _refresh_token(self, refresh_token: str) -> tuple[str, str] | None:
         validated = internal.validate_refresh_token(refresh_token)
         if validated is None or validated[0] is None:
+            return None
+        if login_expired(validated[0], validated[1]):
+            # Too old for a professional (CARE_PROFESSIONAL_LOGIN_DAYS): log out
+            validated[1].delete()
             return None
         if not app_settings.JWT_ROTATE_REFRESH_TOKEN:
             return super().refresh_token(refresh_token)

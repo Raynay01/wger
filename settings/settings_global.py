@@ -171,6 +171,10 @@ MIDDLEWARE = [
     # Custom authentication middleware. Creates users on-the-fly for certain paths
     'wger.utils.middleware.WgerAuthenticationMiddleware',
 
+    # Professionals log in again after CARE_PROFESSIONAL_LOGIN_DAYS. After the
+    # middleware above, which sets request.user once more
+    'wger.care.middleware.ProfessionalLoginAgeMiddleware',
+
     # Activates the user's time zone. Has to come after the authentication
     # middlewares: reading request.user earlier caches it and the guest user
     # would never be created
@@ -311,6 +315,10 @@ MFA_SUPPORTED_TYPES = ['totp', 'recovery_codes', 'webauthn']
 # on two-step verification before the API answers them. Off here so tests and
 # installations without professionals keep their behavior; on in production.
 CARE_PROFESSIONAL_MFA = False
+
+# Days a professional stays logged in before entering the password again,
+# counted from the login (refreshing the token does not extend it). 0 is off.
+CARE_PROFESSIONAL_LOGIN_DAYS = 0
 
 # Virus scan of uploads with ClamAV (clamd). Off while the host is empty; once
 # set, an upload is only accepted after clamd answers OK
