@@ -1,8 +1,8 @@
 From 29830219811f9eac7ab4c311e350b91dc6714fcf Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 16:19:58 +0000
-Subject: [PATCH 8/9] Send photos and videos in the chat and play the received
- videos
+Subject: [PATCH 08/10] Send photos and videos in the chat and play the
+ received videos
 
 A clip button next to the text field takes a photo or records a video
 with the camera (at most two minutes) or picks one from the library. Files

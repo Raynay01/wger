@@ -1,0 +1,288 @@
+From b26c98ea33839c00021c6872e97effe129dfef5e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 16:27:25 +0000
+Subject: [PATCH 10/10] Say ALMOVA instead of wger in the app texts
+
+The English, Portuguese and Brazilian Portuguese texts name ALMOVA where
+they meant the app or its server: the login ("New to ALMOVA?"), the server
+and token fields, the barcode, health sync and calculated value notes, and
+the sync service screen, which no longer tells patients to check a
+self-hosted PowerSync. The about text keeps the credit to wger, which
+ALMOVA is built on. The Brazilian Portuguese file gets the texts it took
+from English so far. Other languages keep the wger texts until they are
+translated.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/l10n/app_en.arb                           | 20 +++++++++----------
+ lib/l10n/app_pt.arb                           |  4 ++--
+ lib/l10n/app_pt_BR.arb                        | 18 ++++++++++-------
+ test/core/recovery_screens_test.dart          |  5 ++---
+ .../widgets/settings/health_sync_test.dart    |  2 +-
+ .../auth/screens/auth_screen_test.dart        |  6 +++---
+ .../measurements/widgets/entries_test.dart    |  2 +-
+ .../widgets/forms/category_test.dart          |  2 +-
+ 8 files changed, 31 insertions(+), 28 deletions(-)
+
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index 0bcb47d..01f17f3 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -58,7 +58,7 @@
+   "@refreshTokenValidChars": {
+     "description": "Error message when the user pastes a string that does not match the JWT shape"
+   },
+-  "refreshTokenHelperText": "Generate a JWT refresh token on the wger website and paste it here. Useful when your server sits behind an auth proxy or when you want to skip the regular login flow.",
++  "refreshTokenHelperText": "Generate a JWT refresh token on the ALMOVA website and paste it here. Useful when your server sits behind an auth proxy or when you want to skip the regular login flow.",
+   "@refreshTokenHelperText": {
+     "description": "Helper text on the refresh-token paste field"
+   },
+@@ -106,7 +106,7 @@
+   "@manageAccountOnWebSubtitle": {
+     "description": "Helper text below the 'Manage account on the web' button listing what is configurable there"
+   },
+-  "customServerUrl": "URL of the wger instance",
++  "customServerUrl": "URL of the ALMOVA server",
+   "@customServerUrl": {
+     "description": "Label in the form where the users can enter their own wger instance"
+   },
+@@ -154,9 +154,9 @@
+   "@authOptionPasswordTitle": {},
+   "signInWithToken": "Sign in with token",
+   "@signInWithToken": {},
+-  "tokenSubtitle": "Generate one on the wger website",
++  "tokenSubtitle": "Generate one on the ALMOVA website",
+   "@tokenSubtitle": {},
+-  "newToWger": "New to wger?",
++  "newToWger": "New to ALMOVA?",
+   "@newToWger": {},
+   "alreadyHaveAccount": "Already have an account?",
+   "@alreadyHaveAccount": {},
+@@ -1126,7 +1126,7 @@
+   "goToDetailPage": "Go to detail page",
+   "@goToDetailPage": {},
+   "aboutWhySupportTitle": "Open Source & free to use ❤️",
+-  "aboutDescription": "Thank you for using wger! wger is a collaborative open source project, made by fitness enthusiasts from around the world.",
++  "aboutDescription": "Thank you for using ALMOVA! ALMOVA is built on wger, a collaborative open source project made by fitness enthusiasts from around the world.",
+   "@aboutDescription": {
+     "description": "Text in the about dialog"
+   },
+@@ -1274,7 +1274,7 @@
+     }
+   },
+   "powerSyncUnreachableTitle": "Sync service unreachable",
+-  "powerSyncUnreachableContent": "Your wger server is reachable, but the (separate) service that handles offline sync is not responding. If you self-host wger, check your configuration and make sure the PowerSync service is running correctly.",
++  "powerSyncUnreachableContent": "The ALMOVA server is reachable, but the (separate) service that handles offline sync is not responding. Try again later.",
+   "serverUnreachableRetry": "Try again",
+   "@serverUnreachableRetry": {
+     "description": "Button that re-runs the auto-login attempt against the saved server."
+@@ -1297,7 +1297,7 @@
+   "@productNotFound": {
+     "description": "Header label for dialog when product is not found with barcode"
+   },
+-  "productNotFoundDescription": "The product with the scanned barcode {barcode} was not found in the wger database",
++  "productNotFoundDescription": "The product with the scanned barcode {barcode} was not found in the ALMOVA database",
+   "@productNotFoundDescription": {
+     "description": "Dialog info when product is not found with barcode",
+     "type": "text",
+@@ -1875,7 +1875,7 @@
+   "@healthSyncPermissionDenied": {
+     "description": "Snackbar shown when enabling health sync fails because the platform permissions were denied"
+   },
+-  "healthSyncNoData": "No health data was found. Check in {platform} that wger is allowed to read your data.",
++  "healthSyncNoData": "No health data was found. Check in {platform} that ALMOVA is allowed to read your data.",
+   "@healthSyncNoData": {
+     "description": "Snackbar shown when enabling health sync imported nothing, pointing at the platform's permission settings",
+     "placeholders": {
+@@ -1952,7 +1952,7 @@
+   "@calculationType": {
+     "description": "Label of the field that picks what the server calculates for a category"
+   },
+-  "calculationUnknown": "This calculation was set up in a newer version of wger and cannot be changed here.",
++  "calculationUnknown": "This calculation was set up in a newer version of ALMOVA and cannot be changed here.",
+   "@calculationUnknown": {
+     "description": "Shown when the server uses a calculation type this version of the app does not know"
+   },
+@@ -1983,7 +1983,7 @@
+   "@calculationBadge": {
+     "description": "Badge marking a measurement category whose values the server computes, and the matching option when creating one. Keep it short, it sits next to a category title and opposite 'Entered by hand'"
+   },
+-  "calculationEntryInfo": "This value is calculated by wger and cannot be edited",
++  "calculationEntryInfo": "This value is calculated by ALMOVA and cannot be edited",
+   "@calculationEntryInfo": {
+     "description": "Tooltip on a measurement entry that wger computed, so it cannot be edited by hand"
+   },
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index b24299c..d10b20c 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -171,7 +171,7 @@
+     "@toggleDetails": {
+         "description": "Switch to toggle detail / overview"
+     },
+-    "aboutDescription": "Obrigado por usar o wger! wger é um projeto colaborativo de código aberto, feito por entusiastas do fitness de todo o mundo.",
++    "aboutDescription": "Obrigado por usar o ALMOVA! O ALMOVA é construído sobre o wger, um projeto colaborativo de código aberto feito por entusiastas do fitness de todo o mundo.",
+     "@aboutDescription": {
+         "description": "Text in the about dialog"
+     },
+@@ -242,7 +242,7 @@
+     "@notes": {
+         "description": "Personal notes, e.g. for a workout session"
+     },
+-    "customServerUrl": "URL da instância wger",
++    "customServerUrl": "URL do servidor ALMOVA",
+     "@customServerUrl": {
+         "description": "Label in the form where the users can enter their own wger instance"
+     },
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index b59511f..4e54289 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -72,7 +72,7 @@
+     "@invalidUrl": {
+         "description": "Error message when the user enters an invalid URL, e.g. in the login form"
+     },
+-    "customServerUrl": "URL da instância wger",
++    "customServerUrl": "Endereço do servidor ALMOVA",
+     "@customServerUrl": {
+         "description": "Label in the form where the users can enter their own wger instance"
+     },
+@@ -216,7 +216,7 @@
+     },
+     "difference": "Diferença",
+     "fiber": "Fibra",
+-    "aboutDescription": "Obrigado por usar o Wger! Wger é um projeto colaborativo de código aberto, feito por entusiastas do fitness de todo o mundo.",
++    "aboutDescription": "Obrigado por usar o ALMOVA! O ALMOVA é construído sobre o wger, um projeto colaborativo de código aberto feito por entusiastas do fitness de todo o mundo.",
+     "@aboutDescription": {
+         "description": "Text in the about dialog"
+     },
+@@ -542,7 +542,7 @@
+             }
+         }
+     },
+-    "productNotFoundDescription": "O produto com o código de barras escaneado {barcode} não foi encontrado no banco de dados da wger",
++    "productNotFoundDescription": "O produto com o código de barras {barcode} não foi encontrado no banco de dados do ALMOVA",
+     "@productNotFoundDescription": {
+         "description": "Dialog info when product is not found with barcode",
+         "type": "text",
+@@ -1152,7 +1152,7 @@
+     "@refreshTokenValidChars": {
+         "description": "Error message when the user pastes a string that does not match the JWT shape"
+     },
+-    "refreshTokenHelperText": "Gere um token de atualização JWT no site da wger e cole-o aqui. Isso é útil quando seu servidor está atrás de um proxy de autenticação ou quando você deseja ignorar o fluxo de login normal.",
++    "refreshTokenHelperText": "Gere um token de atualização JWT no site do ALMOVA e cole aqui. Útil quando o servidor fica atrás de um proxy de autenticação ou para pular o login normal.",
+     "@refreshTokenHelperText": {
+         "description": "Helper text on the refresh-token paste field"
+     },
+@@ -1209,8 +1209,8 @@
+     "serverOptionSelfHostedDetail": "Conecte-se à sua própria instância",
+     "authOptionPasswordTitle": "Nome de usuário e senha",
+     "signInWithToken": "Entrar com token",
+-    "tokenSubtitle": "Gere um no site wger",
+-    "newToWger": "É novo no wger?",
++    "tokenSubtitle": "Gere um no site do ALMOVA",
++    "newToWger": "É novo no ALMOVA?",
+     "alreadyHaveAccount": "Já tem uma conta?",
+     "tokenLabel": "Token",
+     "webHandoffLinkLabel": "Outras opções de login",
+@@ -1274,5 +1274,9 @@
+     "careCancelFailed": "Não foi possível cancelar. Tente de novo.",
+     "careAttach": "Anexar foto ou vídeo",
+     "careRecordVideo": "Gravar um vídeo",
+-    "careFileTooLarge": "O arquivo é grande demais: no máximo 50 MB."
++    "careFileTooLarge": "O arquivo é grande demais: no máximo 50 MB.",
++    "powerSyncUnreachableContent": "O servidor do ALMOVA responde, mas o serviço (separado) que sincroniza os dados para uso sem internet não está respondendo. Tente de novo mais tarde.",
++    "healthSyncNoData": "Nenhum dado de saúde foi encontrado. Confira em {platform} se o ALMOVA tem permissão para ler seus dados.",
++    "calculationUnknown": "Este cálculo foi configurado numa versão mais nova do ALMOVA e não pode ser alterado aqui.",
++    "calculationEntryInfo": "Este valor é calculado pelo ALMOVA e não pode ser editado"
+ }
+diff --git a/test/core/recovery_screens_test.dart b/test/core/recovery_screens_test.dart
+index a224613..1c72444 100644
+--- a/test/core/recovery_screens_test.dart
++++ b/test/core/recovery_screens_test.dart
+@@ -139,9 +139,8 @@ void main() {
+       await tester.pumpAndSettle();
+ 
+       expect(find.text('Sync service unreachable'), findsOneWidget);
+-      // The body should mention the PowerSync service since that's the
+-      // most common cause we want to guide users towards.
+-      expect(find.textContaining('PowerSync'), findsOneWidget);
++      // The body names the sync service, not the server, as the problem
++      expect(find.textContaining('offline sync is not responding'), findsOneWidget);
+       expect(find.text('Open documentation'), findsOneWidget);
+       expect(find.text('Try again'), findsOneWidget);
+       expect(find.text('Log out'), findsOneWidget);
+diff --git a/test/features/account/widgets/settings/health_sync_test.dart b/test/features/account/widgets/settings/health_sync_test.dart
+index a6bf220..4ea1abc 100644
+--- a/test/features/account/widgets/settings/health_sync_test.dart
++++ b/test/features/account/widgets/settings/health_sync_test.dart
+@@ -141,7 +141,7 @@ void main() {
+ 
+     expect(
+       find.text(
+-        'No health data was found. Check in Health Connect that wger is allowed to read your data.',
++        'No health data was found. Check in Health Connect that ALMOVA is allowed to read your data.',
+       ),
+       findsOneWidget,
+     );
+diff --git a/test/features/auth/screens/auth_screen_test.dart b/test/features/auth/screens/auth_screen_test.dart
+index eb8682a..44c924e 100644
+--- a/test/features/auth/screens/auth_screen_test.dart
++++ b/test/features/auth/screens/auth_screen_test.dart
+@@ -169,7 +169,7 @@ void main() {
+       // Assert
+       expect(find.text('ALMOVA'), findsOneWidget);
+ 
+-      expect(find.textContaining('New to wger?'), findsOneWidget);
++      expect(find.textContaining('New to ALMOVA?'), findsOneWidget);
+       expect(find.textContaining('Already have an account?'), findsNothing);
+ 
+       expect(find.byKey(const Key('inputUsername')), findsOneWidget);
+@@ -817,7 +817,7 @@ void main() {
+       await tester.pump();
+ 
+       // Assert
+-      expect(find.textContaining('New to wger?'), findsNothing);
++      expect(find.textContaining('New to ALMOVA?'), findsNothing);
+       expect(find.textContaining('Already have an account?'), findsOneWidget);
+ 
+       expect(find.byKey(const Key('inputUsername')), findsOneWidget);
+@@ -1018,7 +1018,7 @@ void main() {
+       await tester.pumpAndSettle();
+       expect(find.byKey(const Key('inputEmail')), findsNothing);
+       expect(find.byKey(const Key('inputPassword2')), findsNothing);
+-      expect(find.textContaining('New to wger?'), findsOneWidget);
++      expect(find.textContaining('New to ALMOVA?'), findsOneWidget);
+     });
+   });
+ }
+diff --git a/test/features/measurements/widgets/entries_test.dart b/test/features/measurements/widgets/entries_test.dart
+index 9dec82f..f156b70 100644
+--- a/test/features/measurements/widgets/entries_test.dart
++++ b/test/features/measurements/widgets/entries_test.dart
+@@ -189,7 +189,7 @@ void main() {
+     // and says so
+     expect(find.byIcon(Icons.calculate_outlined), findsOneWidget);
+     expect(
+-      find.byTooltip('This value is calculated by wger and cannot be edited'),
++      find.byTooltip('This value is calculated by ALMOVA and cannot be edited'),
+       findsOneWidget,
+     );
+   });
+diff --git a/test/features/measurements/widgets/forms/category_test.dart b/test/features/measurements/widgets/forms/category_test.dart
+index 69f52a2..1624001 100644
+--- a/test/features/measurements/widgets/forms/category_test.dart
++++ b/test/features/measurements/widgets/forms/category_test.dart
+@@ -598,7 +598,7 @@ void main() {
+       await tester.pumpAndSettle();
+ 
+       expect(
+-        find.textContaining('set up in a newer version of wger'),
++        find.textContaining('set up in a newer version of ALMOVA'),
+         findsOneWidget,
+       );
+       expect(find.byType(SegmentedButton<bool>), findsNothing);
+-- 
+2.43.0
+

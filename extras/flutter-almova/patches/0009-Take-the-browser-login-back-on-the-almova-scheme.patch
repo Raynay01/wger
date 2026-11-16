@@ -1,7 +1,7 @@
 From cd32a8c00bd1cbc169c78eca520f2b66200ba4d4 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 16:22:14 +0000
-Subject: [PATCH 9/9] Take the browser login back on the almova:// scheme
+Subject: [PATCH 09/10] Take the browser login back on the almova:// scheme
 
 The login through the browser ends with the server redirecting to
 <scheme>://app-auth with the refresh token in the fragment. With wger://
