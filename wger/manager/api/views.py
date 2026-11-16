@@ -32,6 +32,7 @@ from wger.care.api.prescription import (
     PrescriptionWriteGuardMixin,
 )
 from wger.care.models import OPEN_STATUSES
+from wger.care.policy import log_reads
 from wger.care.prescription import (
     PrescriptionStatus,
     visible_prescriptions_q,
@@ -200,6 +201,7 @@ class RoutineViewSet(PrescriptionViewSetMixin, viewsets.ModelViewSet):
         """
         Returns the logs for the routine
         """
+        log_reads(request.user, [self.get_object().user_id], 'workout_logs')
         cache_key = CacheKeyMapper.routine_api_logs(pk, request.user.id)
         cached_data = cache.get(cache_key)
         if cached_data is not None:
@@ -215,6 +217,7 @@ class RoutineViewSet(PrescriptionViewSetMixin, viewsets.ModelViewSet):
         """
         Returns the logs for the routine
         """
+        log_reads(request.user, [self.get_object().user_id], 'workout_logs')
         cache_key = CacheKeyMapper.routine_api_stats(pk, request.user.id)
         cached_data = cache.get(cache_key)
         if cached_data is not None:

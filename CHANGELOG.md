@@ -27,7 +27,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   before.
 * Patients share read-only summaries with each professional
   (`/api/v2/access-grant/`, read via `care-relationship/{id}/shared/`), every
-  read is logged. Professionals leave notes for each other
+  read is logged. Reads of what the patient records in the professional's own
+  module (food diary, training logs, planned versus done, pain and exercise
+  records) are logged too, once per patient, kind of data and day; both are
+  part of the patient's data export. Professionals leave notes for each other
   (`/api/v2/multidisciplinary-note/`).
 * Nutrition: meal and meal item `instructions`, substitution options approved by
   the nutritionist (`/api/v2/substitution-option/`), meal adherence per day

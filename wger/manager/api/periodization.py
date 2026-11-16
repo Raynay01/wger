@@ -40,6 +40,7 @@ from wger.care.api.prescription import (
     PrescriptionViewSetMixin,
     PrescriptionWriteGuardMixin,
 )
+from wger.care.policy import log_reads
 from wger.care.prescription import visible_prescriptions_q
 from wger.exercises.models import Muscle
 from wger.manager.models import (
@@ -265,7 +266,9 @@ class TrainingPlanViewSet(PrescriptionViewSetMixin, viewsets.ModelViewSet):
         (repetitions times kg). Planned comes from the block's routine as
         prescribed, done from all training logs of the patient in that week.
         """
-        data = plan_progress(self.get_object())
+        plan = self.get_object()
+        log_reads(request.user, [plan.user_id], 'training_progress')
+        data = plan_progress(plan)
         return Response(PlanProgressSerializer(data).data)
 
     @staticmethod

@@ -19,6 +19,7 @@ Single place for the access rules between professionals and patients
 
 # Django
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 # wger
 from wger.care.disciplines import Discipline
@@ -131,4 +132,42 @@ def log_access(actor: User, relationship: CareRelationship, resource: str) -> No
         patient_id=relationship.patient_id,
         relationship=relationship,
         resource=resource,
+    )
+
+
+def log_reads(actor: User, patient_ids, resource: str) -> None:
+    """
+    A professional reading records patients wrote in the professional's own
+    module, kept once per patient, resource and day (UTC)
+    """
+    patient_ids = set(patient_ids) - {actor.id}
+    if not patient_ids:
+        return
+    day_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    patient_ids -= set(
+        AccessLog.objects.filter(
+            actor=actor,
+            patient_id__in=patient_ids,
+            resource=resource,
+            timestamp__gte=day_start,
+        ).values_list('patient_id', flat=True)
+    )
+    if not patient_ids:
+        return
+    relationships = {
+        r.patient_id: r
+        for r in CareRelationship.objects.filter(
+            professional=actor,
+            patient_id__in=patient_ids,
+            status__in=OPEN_STATUSES,
+        )
+    }
+    AccessLog.objects.bulk_create(
+        AccessLog(
+            actor=actor,
+            patient_id=patient_id,
+            relationship=relationships.get(patient_id),
+            resource=resource,
+        )
+        for patient_id in patient_ids
     )
