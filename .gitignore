@@ -101,3 +101,6 @@ extras/docker/almova/*.env
 
 # Backups written by the backup service of the staging stack
 extras/docker/almova/backups/
+
+# Marker of instalar.sh: the base data was loaded
+extras/docker/almova/.dados-base

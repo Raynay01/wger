@@ -1,0 +1,7 @@
+# ARM servers (arm64, e.g. Oracle Cloud Always Free): the official ClamAV
+# image only exists for amd64, so the antivirus is built from ./clamav.
+# Used with COMPOSE_FILE=compose.yml:compose.arm64.yml (instalar.sh sets it).
+services:
+  clamav:
+    image: almova/clamav:${ALMOVA_TAG:-homolog}
+    build: ./clamav

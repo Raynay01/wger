@@ -6,6 +6,10 @@ para pacientes. O que já está pronto do lado técnico: a pilha Docker
 (`extras/docker/almova`), o HTTPS automático (perfil `https`), os backups
 criptografados e o app Android, que só precisa do endereço para ser gerado.
 
+Para começar sem gastar nada (servidor e endereço gratuitos), siga
+`HOMOLOGACAO-GRATUITA.md`. Este roteiro é o caminho com servidor e domínio
+contratados.
+
 ## 1. O que você contrata (uma vez)
 
 | Item | O que pedir | Para quê |
