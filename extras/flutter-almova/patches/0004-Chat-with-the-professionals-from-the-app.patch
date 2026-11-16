@@ -1,7 +1,7 @@
 From ff33b8e8c98ff0332ae1357db628721ea8726fef Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 15:25:11 +0000
-Subject: [PATCH 4/8] Chat with the professionals from the app
+Subject: [PATCH 4/9] Chat with the professionals from the app
 
 Tapping a professional on the follow-up card opens the conversation of
 that follow-up: the messages oldest first (newest at the bottom), photos

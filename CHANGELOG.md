@@ -287,6 +287,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   professional accounts log in again this many days after the login, counted
   from the login itself; refreshing the token does not extend it. Patients
   keep the long login (`REFRESH_TOKEN_LIFETIME`).
+* `APP_AUTH_SCHEME` (default `wger`, `almova` in production): URL scheme of
+  the mobile app that the login through the browser (`/user/app-auth/`) hands
+  the token to. **Changed default** in production: the ALMOVA app uses its own
+  scheme, so the wger app on the same phone cannot receive the token.
 * `FCM_PROJECT_ID` and `FCM_SERVICE_ACCOUNT_FILE` (default empty, off): push
   notices through Firebase Cloud Messaging (HTTP v1), with the key file of a
   service account mounted as a file.

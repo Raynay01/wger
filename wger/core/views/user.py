@@ -131,8 +131,8 @@ logger = logging.getLogger(__name__)
 _NEW_REFRESH_TOKEN_SESSION_KEY = '_wger_new_long_lived_refresh_token'
 
 
-# Custom URL scheme registered by the flutter app in Info.plist, AndroidManifest.xml, etc.
-_APP_AUTH_SCHEME = 'wger'
+# The custom URL scheme of the app (APP_AUTH_SCHEME) is registered by the
+# flutter app in Info.plist, AndroidManifest.xml, etc.
 _APP_AUTH_HOST = 'app-auth'
 
 # Hard cap on the echoed ?state= value. The app generates 256 bits of
@@ -597,7 +597,7 @@ def app_auth_handoff(request):
     fragment = f'token={quote(token, safe="")}'
     if state:
         fragment += f'&state={quote(state, safe="")}'
-    return_uri = f'{_APP_AUTH_SCHEME}://{_APP_AUTH_HOST}#{fragment}'
+    return_uri = f'{settings.APP_AUTH_SCHEME}://{_APP_AUTH_HOST}#{fragment}'
     return render(
         request,
         'user/app_auth_handoff.html',

@@ -320,6 +320,11 @@ CARE_PROFESSIONAL_MFA = False
 # counted from the login (refreshing the token does not extend it). 0 is off.
 CARE_PROFESSIONAL_LOGIN_DAYS = 0
 
+# URL scheme of the mobile app the browser login hands the token back to
+# (/user/app-auth/). Each app needs its own: another app with the same scheme
+# on the phone could receive the token.
+APP_AUTH_SCHEME = 'wger'
+
 # Virus scan of uploads with ClamAV (clamd). Off while the host is empty; once
 # set, an upload is only accepted after clamd answers OK
 CLAMAV_HOST = ''

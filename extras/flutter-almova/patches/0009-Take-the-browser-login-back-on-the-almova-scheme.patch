@@ -1,0 +1,192 @@
+From cd32a8c00bd1cbc169c78eca520f2b66200ba4d4 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 16:22:14 +0000
+Subject: [PATCH 9/9] Take the browser login back on the almova:// scheme
+
+The login through the browser ends with the server redirecting to
+<scheme>://app-auth with the refresh token in the fragment. With wger://
+and both apps on a phone, either app could receive the token. The app now
+registers and accepts almova:// (Android intent filter, iOS URL types)
+and ignores wger:// links; the ALMOVA server sends almova:// through its
+APP_AUTH_SCHEME setting.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ android/app/src/main/AndroidManifest.xml |  4 ++--
+ ios/Runner/Info.plist                    |  4 ++--
+ lib/core/app_link_router.dart            |  6 +++---
+ lib/features/auth/widgets/auth_card.dart |  2 +-
+ test/core/app_link_router_test.dart      | 25 ++++++++++++++----------
+ 5 files changed, 23 insertions(+), 18 deletions(-)
+
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index c394fde..cbce31b 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -85,13 +85,13 @@
+                 android:name="flutter_deeplinking_enabled"
+                 android:value="false" />
+ 
+-            <!-- Web-handoff deep link: the server redirects to wger://app-auth#token=…
++            <!-- Web-handoff deep link: the server redirects to almova://app-auth#token=…
+                  after a browser login; app_link_router consumes the URI. -->
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW" />
+                 <category android:name="android.intent.category.DEFAULT" />
+                 <category android:name="android.intent.category.BROWSABLE" />
+-                <data android:scheme="wger" android:host="app-auth" />
++                <data android:scheme="almova" android:host="app-auth" />
+             </intent-filter>
+ 
+             <!-- Health Connect permissions rationale -->
+diff --git a/ios/Runner/Info.plist b/ios/Runner/Info.plist
+index a33e555..a948106 100644
+--- a/ios/Runner/Info.plist
++++ b/ios/Runner/Info.plist
+@@ -64,7 +64,7 @@
+ 		<string>$(FLUTTER_BUILD_NAME)</string>
+ 		<key>CFBundleSignature</key>
+ 		<string>????</string>
+-		<!-- app_link_router (app_links) is the sole consumer of the wger:// deep
++		<!-- app_link_router (app_links) is the sole consumer of the almova:// deep
+ 		     link. Disable Flutter's built-in deep linking so the engine does not
+ 		     also push the callback URL as a named route, which matches nothing
+ 		     and throws in onUnknownRoute. -->
+@@ -79,7 +79,7 @@
+ 				<string>Editor</string>
+ 				<key>CFBundleURLSchemes</key>
+ 				<array>
+-					<string>wger</string>
++					<string>almova</string>
+ 				</array>
+ 			</dict>
+ 		</array>
+diff --git a/lib/core/app_link_router.dart b/lib/core/app_link_router.dart
+index dd9ab3d..b273230 100644
+--- a/lib/core/app_link_router.dart
++++ b/lib/core/app_link_router.dart
+@@ -30,7 +30,7 @@ import 'package:wger/core/shared_preferences.dart';
+ 
+ /// Custom URL scheme + host the wger web-handoff view redirects to.
+ /// Must match the registration in iOS Info.plist, AndroidManifest.xml, etc.
+-const APP_AUTH_SCHEME = 'wger';
++const APP_AUTH_SCHEME = 'almova';
+ const APP_AUTH_HOST = 'app-auth';
+ 
+ /// Maximum age of an outstanding handoff state nonce. After that a returning
+@@ -74,7 +74,7 @@ Future<String?> consumeAppAuthState(String? received) async {
+   return stored == received ? serverUrl : null;
+ }
+ 
+-/// Routes incoming `wger://app-auth#token=<jwt>` deep links into the auth
++/// Routes incoming `almova://app-auth#token=<jwt>` deep links into the auth
+ /// notifier, completing the server-side web-handoff login flow.
+ ///
+ /// Must be instantiated once at app bootstrap (not bound to widget lifetime),
+@@ -138,7 +138,7 @@ class AppLinkRouter {
+     }
+   }
+ 
+-  /// Returns the refresh token carried by a `wger://app-auth#token=<jwt>`
++  /// Returns the refresh token carried by a `almova://app-auth#token=<jwt>`
+   /// deep link, or null when the URI does not match (wrong scheme, wrong
+   /// host, or missing/empty `token` fragment parameter).
+   static String? tokenFromUri(Uri uri) => fragmentParam(uri, 'token');
+diff --git a/lib/features/auth/widgets/auth_card.dart b/lib/features/auth/widgets/auth_card.dart
+index 66e113f..17e127f 100644
+--- a/lib/features/auth/widgets/auth_card.dart
++++ b/lib/features/auth/widgets/auth_card.dart
+@@ -110,7 +110,7 @@ class _AuthCardState extends ConsumerState<AuthCard> {
+ 
+   /// Opens the server's web-handoff page in the system browser. The user
+   /// authenticates there (password, social, SSO, …) and the server redirects
+-  /// back via `wger://app-auth#token=…`, which the app_link_router picks up
++  /// back via `almova://app-auth#token=…`, which the app_link_router picks up
+   /// and feeds into the existing refresh-token login path.
+   Future<void> _launchWebHandoff() async {
+     var serverUrl = _serverUrlController.text.trim();
+diff --git a/test/core/app_link_router_test.dart b/test/core/app_link_router_test.dart
+index 09046a7..aaf4539 100644
+--- a/test/core/app_link_router_test.dart
++++ b/test/core/app_link_router_test.dart
+@@ -25,19 +25,19 @@ import 'package:wger/core/app_link_router.dart';
+ void main() {
+   group('AppLinkRouter.tokenFromUri', () {
+     test('extracts token from a plain fragment', () {
+-      final uri = Uri.parse('wger://app-auth#token=abc.def.ghi');
++      final uri = Uri.parse('almova://app-auth#token=abc.def.ghi');
+       expect(AppLinkRouter.tokenFromUri(uri), 'abc.def.ghi');
+     });
+ 
+     test('extracts token when fragment carries multiple pairs', () {
+-      final uri = Uri.parse('wger://app-auth#state=xyz&token=abc.def.ghi');
++      final uri = Uri.parse('almova://app-auth#state=xyz&token=abc.def.ghi');
+       expect(AppLinkRouter.tokenFromUri(uri), 'abc.def.ghi');
+     });
+ 
+     test('url-decodes the token value', () {
+       // %3D is "=" — JWTs don't actually contain it, but the encoder is
+       // configured to escape every non-alphanumeric so we should be lenient.
+-      final uri = Uri.parse('wger://app-auth#token=abc%2Edef%2Eghi');
++      final uri = Uri.parse('almova://app-auth#token=abc%2Edef%2Eghi');
+       expect(AppLinkRouter.tokenFromUri(uri), 'abc.def.ghi');
+     });
+ 
+@@ -47,41 +47,46 @@ void main() {
+     });
+ 
+     test('returns null for a wrong host', () {
+-      final uri = Uri.parse('wger://other-host#token=abc.def.ghi');
++      final uri = Uri.parse('almova://other-host#token=abc.def.ghi');
++      expect(AppLinkRouter.tokenFromUri(uri), isNull);
++    });
++
++    test("returns null for the wger app's scheme", () {
++      final uri = Uri.parse('wger://app-auth#token=abc.def.ghi');
+       expect(AppLinkRouter.tokenFromUri(uri), isNull);
+     });
+ 
+     test('returns null when the fragment is empty', () {
+-      final uri = Uri.parse('wger://app-auth');
++      final uri = Uri.parse('almova://app-auth');
+       expect(AppLinkRouter.tokenFromUri(uri), isNull);
+     });
+ 
+     test('returns null when the fragment carries no token parameter', () {
+-      final uri = Uri.parse('wger://app-auth#state=xyz');
++      final uri = Uri.parse('almova://app-auth#state=xyz');
+       expect(AppLinkRouter.tokenFromUri(uri), isNull);
+     });
+ 
+     test('returns null when the token parameter is empty', () {
+-      final uri = Uri.parse('wger://app-auth#token=');
++      final uri = Uri.parse('almova://app-auth#token=');
+       expect(AppLinkRouter.tokenFromUri(uri), isNull);
+     });
+ 
+     test('ignores the query string', () {
+       // The token must come from the fragment, not the query — that's the
+       // server-log / Referer leak surface we're explicitly avoiding.
+-      final uri = Uri.parse('wger://app-auth?token=abc.def.ghi');
++      final uri = Uri.parse('almova://app-auth?token=abc.def.ghi');
+       expect(AppLinkRouter.tokenFromUri(uri), isNull);
+     });
+   });
+ 
+   group('fragmentParam', () {
+     test('extracts state from a fragment with multiple pairs', () {
+-      final uri = Uri.parse('wger://app-auth#token=abc&state=NONCE');
++      final uri = Uri.parse('almova://app-auth#token=abc&state=NONCE');
+       expect(fragmentParam(uri, 'state'), 'NONCE');
+     });
+ 
+     test('returns null when the requested parameter is absent', () {
+-      final uri = Uri.parse('wger://app-auth#token=abc');
++      final uri = Uri.parse('almova://app-auth#token=abc');
+       expect(fragmentParam(uri, 'state'), isNull);
+     });
+   });
+-- 
+2.43.0
+
