@@ -294,7 +294,9 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
 * ALMOVA Docker stack (`extras/docker/almova`): the `https` profile puts
   Caddy in front of nginx with certificates from Let's Encrypt for
   `ALMOVA_DOMAIN`. The access logs of Caddy and nginx no longer keep query
-  strings, which can carry tokens.
+  strings, which can carry tokens. `instalar.sh` installs the stack on a fresh
+  Ubuntu server, and `compose.arm64.yml` builds ClamAV for ARM servers, for
+  which the official image does not exist.
 * `FCM_PROJECT_ID` and `FCM_SERVICE_ACCOUNT_FILE` (default empty, off): push
   notices through Firebase Cloud Messaging (HTTP v1), with the key file of a
   service account mounted as a file.
