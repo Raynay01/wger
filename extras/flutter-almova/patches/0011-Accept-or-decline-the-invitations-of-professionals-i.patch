@@ -1,0 +1,978 @@
+From d6fd62d39b5339a0520974aa78392e05b335411e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 16:33:34 +0000
+Subject: [PATCH 11/11] Accept or decline the invitations of professionals in
+ the app
+
+Open invitations to the user's email address show on the follow-up card,
+above the professionals and also when nobody follows the user yet: who
+invites, the profession and the clinic, and the consent text of the web
+app saying what accepting authorizes. "Accept and authorize" accepts with
+the agreement the server records as consent; "Decline" ends the
+invitation. The card reloads afterwards; a failed answer says so.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/core/widgets/dashboard/widgets/care.dart  |   8 +-
+ lib/features/care/care.dart                   |   7 +
+ .../care/providers/care_overview.dart         |  19 +-
+ .../care/providers/care_overview.g.dart       |   2 +-
+ .../care/providers/care_repository.dart       |  28 +++
+ .../care/widgets/invitation_tile.dart         | 104 ++++++++++
+ lib/l10n/app_en.arb                           |  18 +-
+ lib/l10n/app_pt.arb                           |  10 +-
+ lib/l10n/app_pt_BR.arb                        |  10 +-
+ .../care/providers/agenda_notifier_test.dart  |   1 +
+ .../providers/agenda_notifier_test.mocks.dart |  28 +++
+ .../care/providers/care_overview_test.dart    |  17 ++
+ .../providers/care_overview_test.mocks.dart   |  28 +++
+ .../care/providers/care_repository_test.dart  |  48 +++++
+ .../conversation_notifier_test.mocks.dart     |  28 +++
+ .../screens/agenda_screen_test.mocks.dart     |  28 +++
+ .../conversation_screen_test.mocks.dart       |  28 +++
+ .../care/widgets/invitation_tile_test.dart    | 124 ++++++++++++
+ .../widgets/invitation_tile_test.mocks.dart   | 181 ++++++++++++++++++
+ 19 files changed, 708 insertions(+), 9 deletions(-)
+ create mode 100644 lib/features/care/widgets/invitation_tile.dart
+ create mode 100644 test/features/care/widgets/invitation_tile_test.dart
+ create mode 100644 test/features/care/widgets/invitation_tile_test.mocks.dart
+
+diff --git a/lib/core/widgets/dashboard/widgets/care.dart b/lib/core/widgets/dashboard/widgets/care.dart
+index c86b29a..06b3a40 100644
+--- a/lib/core/widgets/dashboard/widgets/care.dart
++++ b/lib/core/widgets/dashboard/widgets/care.dart
+@@ -24,6 +24,7 @@ import 'package:wger/features/care/models/appointment.dart';
+ import 'package:wger/features/care/providers/care_overview.dart';
+ import 'package:wger/features/care/screens/agenda_screen.dart';
+ import 'package:wger/features/care/screens/conversation_screen.dart';
++import 'package:wger/features/care/widgets/invitation_tile.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+ /// The professionals who follow the user and the next appointment. Hidden
+@@ -34,7 +35,7 @@ class DashboardCareWidget extends ConsumerWidget {
+   @override
+   Widget build(BuildContext context, WidgetRef ref) {
+     final overview = ref.watch(careOverviewProvider).value;
+-    if (overview == null || overview.professionals.isEmpty) {
++    if (overview == null || overview.isEmpty) {
+       return const SizedBox.shrink();
+     }
+     final i18n = AppLocalizations.of(context);
+@@ -47,6 +48,11 @@ class DashboardCareWidget extends ConsumerWidget {
+           ListTile(
+             title: Text(i18n.careFollowUp, style: Theme.of(context).textTheme.headlineSmall),
+           ),
++          if (overview.invitations.isNotEmpty) ...[
++            ListTile(title: Text(i18n.careInvitations), dense: true),
++            for (final invitation in overview.invitations) InvitationTile(invitation),
++            const Divider(),
++          ],
+           for (final relationship in overview.professionals)
+             ListTile(
+               leading: Icon(disciplineIcon(relationship.discipline)),
+diff --git a/lib/features/care/care.dart b/lib/features/care/care.dart
+index 80e448d..33571e0 100644
+--- a/lib/features/care/care.dart
++++ b/lib/features/care/care.dart
+@@ -41,3 +41,10 @@ String appointmentKindLabel(AppLocalizations i18n, String kind) => switch (kind)
+   'follow_up' => i18n.careAppointmentFollowUp,
+   _ => kind,
+ };
++
++String professionLabel(AppLocalizations i18n, Discipline? discipline) => switch (discipline) {
++  Discipline.training => i18n.careProfessionTraining,
++  Discipline.physio => i18n.careProfessionPhysio,
++  Discipline.nutrition => i18n.careProfessionNutrition,
++  null => '',
++};
+diff --git a/lib/features/care/providers/care_overview.dart b/lib/features/care/providers/care_overview.dart
+index 86b0258..8dc5af5 100644
+--- a/lib/features/care/providers/care_overview.dart
++++ b/lib/features/care/providers/care_overview.dart
+@@ -24,12 +24,19 @@ import 'package:wger/features/care/providers/care_repository.dart';
+ 
+ part 'care_overview.g.dart';
+ 
+-/// The user's professionals and the next appointment with one of them
++/// The user's professionals, open invitations and the next appointment
+ class CareOverview {
+   final List<CareRelationship> professionals;
++  final List<CareRelationship> invitations;
+   final Appointment? nextAppointment;
+ 
+-  const CareOverview({required this.professionals, this.nextAppointment});
++  const CareOverview({
++    required this.professionals,
++    this.invitations = const [],
++    this.nextAppointment,
++  });
++
++  bool get isEmpty => professionals.isEmpty && invitations.isEmpty;
+ }
+ 
+ /// Null while offline: the follow-up is REST only
+@@ -39,9 +46,12 @@ Future<CareOverview?> careOverview(Ref ref) async {
+     return null;
+   }
+   final repository = ref.read(careRepositoryProvider);
+-  final professionals = await repository.fetchMyProfessionals();
++  final (professionals, invitations) = await (
++    repository.fetchMyProfessionals(),
++    repository.fetchInvitations(),
++  ).wait;
+   if (professionals.isEmpty) {
+-    return const CareOverview(professionals: []);
++    return CareOverview(professionals: const [], invitations: invitations);
+   }
+ 
+   // The user may be a professional too: only appointments as a patient
+@@ -49,6 +59,7 @@ Future<CareOverview?> careOverview(Ref ref) async {
+   final upcoming = await repository.fetchUpcomingAppointments(DateTime.now());
+   return CareOverview(
+     professionals: professionals,
++    invitations: invitations,
+     nextAppointment: upcoming.where((a) => mine.contains(a.relationship)).firstOrNull,
+   );
+ }
+diff --git a/lib/features/care/providers/care_overview.g.dart b/lib/features/care/providers/care_overview.g.dart
+index 04d46d1..d249238 100644
+--- a/lib/features/care/providers/care_overview.g.dart
++++ b/lib/features/care/providers/care_overview.g.dart
+@@ -45,4 +45,4 @@ final class CareOverviewProvider
+   }
+ }
+ 
+-String _$careOverviewHash() => r'714e3220b8bc0fd75aef81ccd48972b90d76b8a8';
++String _$careOverviewHash() => r'dbdb4bee077f2889dc2e0fd934c230aed72e6f99';
+diff --git a/lib/features/care/providers/care_repository.dart b/lib/features/care/providers/care_repository.dart
+index 31ac97a..331b836 100644
+--- a/lib/features/care/providers/care_repository.dart
++++ b/lib/features/care/providers/care_repository.dart
+@@ -60,6 +60,34 @@ class CareRepository {
+         .toList();
+   }
+ 
++  /// Open invitations of professionals to the user's email address
++  Future<List<CareRelationship>> fetchInvitations() async {
++    final url = base.makeUrl(
++      relationshipPath,
++      query: {'role': 'patient', 'status': 'invited', 'limit': API_MAX_PAGE_SIZE},
++    );
++    final data = await base.fetchPaginated(url);
++    return data.map((e) => CareRelationship.fromJson(e as Map<String, dynamic>)).toList();
++  }
++
++  /// Accepts an invitation; the server records the consent to be followed
++  Future<void> acceptInvitation(String id) => _postAction('$relationshipPath/$id/accept', {
++    'accept_terms': true,
++  });
++
++  Future<void> declineInvitation(String id) => _postAction('$relationshipPath/$id/decline', {});
++
++  Future<void> _postAction(String path, Map<String, dynamic> body) async {
++    final response = await base.client.post(
++      base.makeUrl(path),
++      headers: base.getDefaultHeaders(),
++      body: json.encode(body),
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++  }
++
+   /// Scheduled appointments from [from] on, earliest first
+   Future<List<Appointment>> fetchUpcomingAppointments(DateTime from) async {
+     final url = base.makeUrl(
+diff --git a/lib/features/care/widgets/invitation_tile.dart b/lib/features/care/widgets/invitation_tile.dart
+new file mode 100644
+index 0000000..0c3de83
+--- /dev/null
++++ b/lib/features/care/widgets/invitation_tile.dart
+@@ -0,0 +1,104 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/features/care/care.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++/// An invitation of a professional: what accepting authorizes, accept or decline
++class InvitationTile extends ConsumerStatefulWidget {
++  final CareRelationship invitation;
++
++  const InvitationTile(this.invitation, {super.key});
++
++  @override
++  ConsumerState<InvitationTile> createState() => _InvitationTileState();
++}
++
++class _InvitationTileState extends ConsumerState<InvitationTile> {
++  bool _busy = false;
++
++  Future<void> _answer(bool accept) async {
++    final i18n = AppLocalizations.of(context);
++    final repository = ref.read(careRepositoryProvider);
++    setState(() => _busy = true);
++    try {
++      if (accept) {
++        await repository.acceptInvitation(widget.invitation.id);
++      } else {
++        await repository.declineInvitation(widget.invitation.id);
++      }
++      ref.invalidate(careOverviewProvider);
++    } catch (_) {
++      if (mounted) {
++        ScaffoldMessenger.of(
++          context,
++        ).showSnackBar(SnackBar(content: Text(i18n.careInvitationFailed)));
++      }
++    } finally {
++      if (mounted) {
++        setState(() => _busy = false);
++      }
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final i18n = AppLocalizations.of(context);
++    final invitation = widget.invitation;
++    final where = [
++      professionLabel(i18n, invitation.discipline),
++      ?invitation.organizationName,
++    ].where((part) => part.isNotEmpty).join(' · ');
++
++    return Padding(
++      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Text(invitation.professionalName, style: Theme.of(context).textTheme.titleMedium),
++          Text(where, style: Theme.of(context).textTheme.bodySmall),
++          const SizedBox(height: 8),
++          Text(
++            i18n.careInvitationConsent(
++              disciplineLabel(i18n, invitation.discipline).toLowerCase(),
++            ),
++          ),
++          const SizedBox(height: 8),
++          Wrap(
++            spacing: 8,
++            children: [
++              FilledButton(
++                onPressed: _busy ? null : () => _answer(true),
++                child: Text(i18n.careInvitationAccept),
++              ),
++              OutlinedButton(
++                onPressed: _busy ? null : () => _answer(false),
++                child: Text(i18n.careInvitationDecline),
++              ),
++            ],
++          ),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index 01f17f3..8e8fc45 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2124,5 +2124,21 @@
+   "careRecordVideo": "Record a video",
+   "@careRecordVideo": {},
+   "careFileTooLarge": "The file is too large: at most 50 MB.",
+-  "@careFileTooLarge": {}
++  "@careFileTooLarge": {},
++  "careInvitations": "Invitations",
++  "@careInvitations": {},
++  "careInvitationAccept": "Accept and authorize",
++  "@careInvitationAccept": {},
++  "careInvitationDecline": "Decline",
++  "@careInvitationDecline": {},
++  "careInvitationFailed": "Could not answer the invitation. Try again.",
++  "@careInvitationFailed": {},
++  "careInvitationConsent": "By accepting, you authorize this professional to prescribe and follow your {area} and to see what you record in it. Your data of the other areas is only shared if you authorize it later, and you can end the follow-up whenever you want.",
++  "@careInvitationConsent": {"description": "Consent text shown before accepting the invitation of a professional; area is e.g. \"training\"", "placeholders": {"area": {"type": "String"}}},
++  "careProfessionTraining": "Physical education professional",
++  "@careProfessionTraining": {},
++  "careProfessionPhysio": "Physiotherapist",
++  "@careProfessionPhysio": {},
++  "careProfessionNutrition": "Nutritionist",
++  "@careProfessionNutrition": {}
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index d10b20c..8e22188 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1093,5 +1093,13 @@
+     "careCancelFailed": "Não foi possível cancelar. Tente de novo.",
+     "careAttach": "Anexar foto ou vídeo",
+     "careRecordVideo": "Gravar um vídeo",
+-    "careFileTooLarge": "O arquivo é grande demais: no máximo 50 MB."
++    "careFileTooLarge": "O arquivo é grande demais: no máximo 50 MB.",
++    "careInvitations": "Convites",
++    "careInvitationAccept": "Aceitar e autorizar",
++    "careInvitationDecline": "Recusar",
++    "careInvitationFailed": "Não foi possível responder ao convite. Tente de novo.",
++    "careInvitationConsent": "Ao aceitar, você autoriza este profissional a prescrever e acompanhar a sua parte de {area} e a ver o que você registrar nela. Seus dados dos outros módulos só são compartilhados se você autorizar depois, e você pode encerrar o acompanhamento quando quiser.",
++    "careProfessionTraining": "Profissional de Educação Física",
++    "careProfessionPhysio": "Fisioterapeuta",
++    "careProfessionNutrition": "Nutricionista"
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index 4e54289..7eb5e3a 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1278,5 +1278,13 @@
+     "powerSyncUnreachableContent": "O servidor do ALMOVA responde, mas o serviço (separado) que sincroniza os dados para uso sem internet não está respondendo. Tente de novo mais tarde.",
+     "healthSyncNoData": "Nenhum dado de saúde foi encontrado. Confira em {platform} se o ALMOVA tem permissão para ler seus dados.",
+     "calculationUnknown": "Este cálculo foi configurado numa versão mais nova do ALMOVA e não pode ser alterado aqui.",
+-    "calculationEntryInfo": "Este valor é calculado pelo ALMOVA e não pode ser editado"
++    "calculationEntryInfo": "Este valor é calculado pelo ALMOVA e não pode ser editado",
++    "careInvitations": "Convites",
++    "careInvitationAccept": "Aceitar e autorizar",
++    "careInvitationDecline": "Recusar",
++    "careInvitationFailed": "Não foi possível responder ao convite. Tente de novo.",
++    "careInvitationConsent": "Ao aceitar, você autoriza este profissional a prescrever e acompanhar a sua parte de {area} e a ver o que você registrar nela. Seus dados dos outros módulos só são compartilhados se você autorizar depois, e você pode encerrar o acompanhamento quando quiser.",
++    "careProfessionTraining": "Profissional de Educação Física",
++    "careProfessionPhysio": "Fisioterapeuta",
++    "careProfessionNutrition": "Nutricionista"
+ }
+diff --git a/test/features/care/providers/agenda_notifier_test.dart b/test/features/care/providers/agenda_notifier_test.dart
+index 811e57e..8d06b54 100644
+--- a/test/features/care/providers/agenda_notifier_test.dart
++++ b/test/features/care/providers/agenda_notifier_test.dart
+@@ -55,6 +55,7 @@ void main() {
+ 
+   setUp(() {
+     repository = MockCareRepository();
++    when(repository.fetchInvitations()).thenAnswer((_) async => []);
+     container = ProviderContainer(
+       overrides: [
+         careRepositoryProvider.overrideWithValue(repository),
+diff --git a/test/features/care/providers/agenda_notifier_test.mocks.dart b/test/features/care/providers/agenda_notifier_test.mocks.dart
+index eec14e0..2260e91 100644
+--- a/test/features/care/providers/agenda_notifier_test.mocks.dart
++++ b/test/features/care/providers/agenda_notifier_test.mocks.dart
+@@ -69,6 +69,34 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<List<_i6.CareRelationship>>);
+ 
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
+   @override
+   _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+diff --git a/test/features/care/providers/care_overview_test.dart b/test/features/care/providers/care_overview_test.dart
+index 6c7b78c..df59882 100644
+--- a/test/features/care/providers/care_overview_test.dart
++++ b/test/features/care/providers/care_overview_test.dart
+@@ -64,6 +64,7 @@ void main() {
+ 
+   setUp(() {
+     repository = MockCareRepository();
++    when(repository.fetchInvitations()).thenAnswer((_) async => []);
+   });
+ 
+   test('the next appointment is one of the user as patient', () async {
+@@ -97,4 +98,20 @@ void main() {
+     expect(overview, isNull);
+     verifyZeroInteractions(repository);
+   });
++
++  test('an invitation shows even before anyone follows the user', () async {
++    const invitation = CareRelationship(
++      id: 'r9',
++      discipline: Discipline.physio,
++      status: 'invited',
++      professionalName: 'Paula',
++    );
++    when(repository.fetchMyProfessionals()).thenAnswer((_) async => []);
++    when(repository.fetchInvitations()).thenAnswer((_) async => [invitation]);
++
++    final overview = await container().read(careOverviewProvider.future);
++
++    expect(overview!.invitations, [invitation]);
++    expect(overview.isEmpty, isFalse);
++  });
+ }
+diff --git a/test/features/care/providers/care_overview_test.mocks.dart b/test/features/care/providers/care_overview_test.mocks.dart
+index a468574..876855f 100644
+--- a/test/features/care/providers/care_overview_test.mocks.dart
++++ b/test/features/care/providers/care_overview_test.mocks.dart
+@@ -69,6 +69,34 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<List<_i6.CareRelationship>>);
+ 
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
+   @override
+   _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+diff --git a/test/features/care/providers/care_repository_test.dart b/test/features/care/providers/care_repository_test.dart
+index df25439..698a293 100644
+--- a/test/features/care/providers/care_repository_test.dart
++++ b/test/features/care/providers/care_repository_test.dart
+@@ -245,4 +245,52 @@ void main() {
+     expect(body, contains('name="relationship"\r\n\r\nr1'));
+     expect(body, contains('name="attachment"; filename="joelho.jpg"'));
+   });
++
++  group('invitations', () {
++    late List<http.Request> sent;
++
++    CareRepository answeringRequests(String body) {
++      sent = [];
++      return CareRepository(
++        WgerBaseProvider(
++          serverUrl: 'https://almova.test',
++          client: MockClient((request) async {
++            sent.add(request);
++            return http.Response.bytes(
++              utf8.encode(body),
++              200,
++              headers: {'content-type': 'application/json'},
++            );
++          }),
++        ),
++      );
++    }
++
++    test('the open invitations to the user', () async {
++      final repository = answeringRequests(
++        json.encode({
++          'count': 1,
++          'next': null,
++          'results': [relationship('r9', 'invited', discipline: 'physio')],
++        }),
++      );
++
++      final invitations = await repository.fetchInvitations();
++
++      expect(invitations.single.id, 'r9');
++      expect(sent.single.url.queryParameters['role'], 'patient');
++      expect(sent.single.url.queryParameters['status'], 'invited');
++    });
++
++    test('accepting gives the consent, declining needs nothing', () async {
++      final repository = answeringRequests('{}');
++
++      await repository.acceptInvitation('r9');
++      await repository.declineInvitation('r8');
++
++      expect(sent[0].url.path, '/api/v2/care-relationship/r9/accept/');
++      expect(json.decode(sent[0].body), {'accept_terms': true});
++      expect(sent[1].url.path, '/api/v2/care-relationship/r8/decline/');
++    });
++  });
+ }
+diff --git a/test/features/care/providers/conversation_notifier_test.mocks.dart b/test/features/care/providers/conversation_notifier_test.mocks.dart
+index f001ae5..99d5182 100644
+--- a/test/features/care/providers/conversation_notifier_test.mocks.dart
++++ b/test/features/care/providers/conversation_notifier_test.mocks.dart
+@@ -69,6 +69,34 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<List<_i6.CareRelationship>>);
+ 
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
+   @override
+   _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+diff --git a/test/features/care/screens/agenda_screen_test.mocks.dart b/test/features/care/screens/agenda_screen_test.mocks.dart
+index 79bd2a5..9c9896a 100644
+--- a/test/features/care/screens/agenda_screen_test.mocks.dart
++++ b/test/features/care/screens/agenda_screen_test.mocks.dart
+@@ -69,6 +69,34 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<List<_i6.CareRelationship>>);
+ 
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
+   @override
+   _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+diff --git a/test/features/care/screens/conversation_screen_test.mocks.dart b/test/features/care/screens/conversation_screen_test.mocks.dart
+index 1231177..004c7a8 100644
+--- a/test/features/care/screens/conversation_screen_test.mocks.dart
++++ b/test/features/care/screens/conversation_screen_test.mocks.dart
+@@ -69,6 +69,34 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           )
+           as _i5.Future<List<_i6.CareRelationship>>);
+ 
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
+   @override
+   _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+diff --git a/test/features/care/widgets/invitation_tile_test.dart b/test/features/care/widgets/invitation_tile_test.dart
+new file mode 100644
+index 0000000..35207ff
+--- /dev/null
++++ b/test/features/care/widgets/invitation_tile_test.dart
+@@ -0,0 +1,124 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/core/network/network_provider.dart';
++import 'package:wger/core/widgets/dashboard/widgets/care.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++import 'invitation_tile_test.mocks.dart';
++
++const invitation = CareRelationship(
++  id: 'r9',
++  discipline: Discipline.physio,
++  status: 'invited',
++  professionalName: 'Paula',
++  organizationName: 'Clínica Movimento',
++);
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++
++  setUp(() {
++    repository = MockCareRepository();
++    when(repository.fetchMyProfessionals()).thenAnswer((_) async => []);
++    when(repository.fetchInvitations()).thenAnswer((_) async => [invitation]);
++    when(repository.fetchUpcomingAppointments(any)).thenAnswer((_) async => []);
++  });
++
++  Widget render() => ProviderScope(
++    overrides: [
++      careRepositoryProvider.overrideWithValue(repository),
++      networkStatusProvider.overrideWithValue(true),
++    ],
++    child: const MaterialApp(
++      locale: Locale('pt', 'BR'),
++      localizationsDelegates: appLocalizationsDelegates,
++      supportedLocales: AppLocalizations.supportedLocales,
++      home: Scaffold(body: SingleChildScrollView(child: DashboardCareWidget())),
++    ),
++  );
++
++  testWidgets('the invitation says what accepting authorizes', (tester) async {
++    await tester.pumpWidget(render());
++    await tester.pumpAndSettle();
++
++    expect(find.text('Convites'), findsOneWidget);
++    expect(find.text('Paula'), findsOneWidget);
++    expect(find.text('Fisioterapeuta · Clínica Movimento'), findsOneWidget);
++    expect(
++      find.textContaining('acompanhar a sua parte de fisioterapia e a ver o que você registrar'),
++      findsOneWidget,
++    );
++  });
++
++  testWidgets('accepting tells the server and reloads the card', (tester) async {
++    when(repository.acceptInvitation('r9')).thenAnswer((_) async {});
++
++    await tester.pumpWidget(render());
++    await tester.pumpAndSettle();
++    when(repository.fetchInvitations()).thenAnswer((_) async => []);
++    when(repository.fetchMyProfessionals()).thenAnswer(
++      (_) async => [
++        const CareRelationship(
++          id: 'r9',
++          discipline: Discipline.physio,
++          status: 'active',
++          professionalName: 'Paula',
++        ),
++      ],
++    );
++    await tester.tap(find.text('Aceitar e autorizar'));
++    await tester.pumpAndSettle();
++
++    verify(repository.acceptInvitation('r9')).called(1);
++    expect(find.text('Convites'), findsNothing);
++    expect(find.text('Fisioterapia'), findsOneWidget);
++  });
++
++  testWidgets('declining', (tester) async {
++    when(repository.declineInvitation('r9')).thenAnswer((_) async {});
++
++    await tester.pumpWidget(render());
++    await tester.pumpAndSettle();
++    await tester.tap(find.text('Recusar'));
++    await tester.pumpAndSettle();
++
++    verify(repository.declineInvitation('r9')).called(1);
++    verifyNever(repository.acceptInvitation(any));
++  });
++
++  testWidgets('a failed answer says so', (tester) async {
++    when(repository.acceptInvitation('r9')).thenThrow(Exception('offline'));
++
++    await tester.pumpWidget(render());
++    await tester.pumpAndSettle();
++    await tester.tap(find.text('Aceitar e autorizar'));
++    await tester.pumpAndSettle();
++
++    expect(find.text('Não foi possível responder ao convite. Tente de novo.'), findsOneWidget);
++  });
++}
+diff --git a/test/features/care/widgets/invitation_tile_test.mocks.dart b/test/features/care/widgets/invitation_tile_test.mocks.dart
+new file mode 100644
+index 0000000..2ea2ff8
+--- /dev/null
++++ b/test/features/care/widgets/invitation_tile_test.mocks.dart
+@@ -0,0 +1,181 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/widgets/invitation_tile_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i5;
++import 'dart:typed_data' as _i9;
++
++import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/appointment.dart' as _i7;
++import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i5.Future<List<_i7.Appointment>>.value(
++              <_i7.Appointment>[],
++            ),
++          )
++          as _i5.Future<List<_i7.Appointment>>);
++
++  @override
++  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i5.Future<List<_i3.Message>>);
++
++  @override
++  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i8.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++          )
++          as _i5.Future<_i9.Uint8List>);
++
++  @override
++  _i5.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++}
+-- 
+2.43.0
+

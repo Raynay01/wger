@@ -1,7 +1,7 @@
 From 6fad8cde0c83df7c3af866768868ca761a6b5160 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 15:43:27 +0000
-Subject: [PATCH 07/10] Agenda of the appointments with the professionals
+Subject: [PATCH 07/11] Agenda of the appointments with the professionals
 
 Tapping the next appointment on the follow-up card opens the upcoming
 appointments as a patient, earliest first: date, kind, professional, area,

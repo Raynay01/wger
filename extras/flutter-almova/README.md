@@ -47,6 +47,9 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
    de `APP_AUTH_SCHEME` (`almova` em produção).
 8. **Textos com ALMOVA:** em inglês e português, o app fala ALMOVA onde
    falava wger (login, servidor, avisos). O "Sobre" mantém o crédito ao wger.
+9. **Convites:** os convites pendentes aparecem no cartão "Acompanhamento",
+   com o texto de consentimento do site. "Aceitar e autorizar" registra o
+   consentimento no servidor; "Recusar" encerra o convite.
 
 ## Construir o APK
 
