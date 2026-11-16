@@ -74,7 +74,8 @@ class MultidisciplinaryNote(models.Model):
 
 class AccessLog(models.Model):
     """
-    A professional reading data of a patient from outside their own module
+    A professional reading data of a patient: what other modules share, and
+    once per day the records the patient writes in the professional's module
     """
 
     class Meta:

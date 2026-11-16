@@ -36,6 +36,7 @@ from wger.care.models import (
     OPEN_STATUSES,
     CareRelationship,
 )
+from wger.care.policy import log_reads
 from wger.care.prescription import visible_prescriptions_q
 from wger.physio.alerts import pain_alerts
 from wger.physio.api.serializers import (
@@ -130,6 +131,12 @@ class PatientRecordViewSet(WgerOwnerObjectModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        rows = response.data['results'] if isinstance(response.data, dict) else response.data
+        log_reads(request.user, {row['user'] for row in rows}, self.read_resource)
+        return response
+
 
 class PainRecordViewSet(PatientRecordViewSet):
     """
@@ -139,6 +146,7 @@ class PainRecordViewSet(PatientRecordViewSet):
 
     serializer_class = PainRecordSerializer
     model = PainRecord
+    read_resource = 'pain_records'
     filterset_fields = {
         'user': ['exact'],
         'protocol': ['exact'],
@@ -154,7 +162,9 @@ class PainRecordViewSet(PatientRecordViewSet):
     @action(detail=False, methods=['get'], pagination_class=None, filter_backends=[])
     def alerts(self, request):
         """Pain above the limits of the protocols of the patients you follow"""
-        return Response(PainAlertSerializer(pain_alerts(request.user), many=True).data)
+        alerts = PainAlertSerializer(pain_alerts(request.user), many=True).data
+        log_reads(request.user, {alert['patient'] for alert in alerts}, 'pain_records')
+        return Response(alerts)
 
 
 class ExerciseRecordViewSet(PatientRecordViewSet):
@@ -164,6 +174,7 @@ class ExerciseRecordViewSet(PatientRecordViewSet):
 
     serializer_class = ExerciseRecordSerializer
     model = ExerciseRecord
+    read_resource = 'exercise_records'
     filterset_fields = {
         'user': ['exact'],
         'protocol_exercise': ['exact'],

@@ -466,6 +466,7 @@ class CareRelationshipViewSet(
         from wger.nutrition.models import LogItem
 
         relationship = self._module_relationship(Discipline.NUTRITION)
+        policy.log_reads(request.user, [relationship.patient_id], 'nutrition_diary')
         day = self._date_param(relationship)
         zone = relationship.patient.userprofile.zone_info
         start = datetime.datetime.combine(day, datetime.time.min, tzinfo=zone)
@@ -496,6 +497,7 @@ class CareRelationshipViewSet(
         from wger.manager.models import WorkoutLog
 
         relationship = self._module_relationship(Discipline.TRAINING)
+        policy.log_reads(request.user, [relationship.patient_id], 'workout_logs')
         logs = WorkoutLog.objects.filter(user=relationship.patient).order_by('-date')[:200]
         return Response({'results': WorkoutLogSerializer(logs, many=True).data})
 
