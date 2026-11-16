@@ -1,0 +1,861 @@
+From 46dc189ccbb5bc98f30dc0863b2aabb9cb1c1db5 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 15:05:40 +0000
+Subject: [PATCH 1/2] Load gallery photos through the authenticated endpoint
+
+The ALMOVA server keeps progress photos in private storage and serves them
+only to their owner at /api/v2/gallery/{id}/file/, so a public /media/ URL
+no longer resolves. The gallery now downloads the file with the
+authenticated client (token refresh included) and shows it from memory.
+A downloaded photo stays cached for five minutes after the last widget
+showing it is gone; the cache key includes the storage path, so a replaced
+file is fetched again. The error shows while Riverpod retries.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ .../gallery/providers/gallery_image_file.dart |  39 +++++
+ .../gallery/providers/gallery_repository.dart |  14 ++
+ lib/features/gallery/widgets/forms.dart       |   7 +-
+ lib/features/gallery/widgets/overview.dart    |  12 +-
+ lib/features/gallery/widgets/photo.dart       |  48 ++++++
+ .../providers/gallery_image_file_test.dart    |  75 +++++++++
+ .../gallery_image_file_test.mocks.dart        | 103 ++++++++++++
+ .../gallery_notifier_test.mocks.dart          |   9 +
+ .../providers/gallery_repository_test.dart    |  34 ++++
+ .../screens/gallery_screen_test.mocks.dart    |   9 +
+ .../gallery/widgets/forms_test.mocks.dart     |   9 +
+ .../gallery/widgets/overview_test.mocks.dart  |   9 +
+ test/features/gallery/widgets/photo_test.dart | 158 ++++++++++++++++++
+ .../gallery/widgets/photo_test.mocks.dart     | 103 ++++++++++++
+ 14 files changed, 616 insertions(+), 13 deletions(-)
+ create mode 100644 lib/features/gallery/providers/gallery_image_file.dart
+ create mode 100644 lib/features/gallery/widgets/photo.dart
+ create mode 100644 test/features/gallery/providers/gallery_image_file_test.dart
+ create mode 100644 test/features/gallery/providers/gallery_image_file_test.mocks.dart
+ create mode 100644 test/features/gallery/widgets/photo_test.dart
+ create mode 100644 test/features/gallery/widgets/photo_test.mocks.dart
+
+diff --git a/lib/features/gallery/providers/gallery_image_file.dart b/lib/features/gallery/providers/gallery_image_file.dart
+new file mode 100644
+index 0000000..875c893
+--- /dev/null
++++ b/lib/features/gallery/providers/gallery_image_file.dart
+@@ -0,0 +1,39 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:async';
++import 'dart:typed_data';
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:wger/features/gallery/providers/gallery_repository.dart';
++
++/// How long a downloaded photo stays in memory after the last widget showing
++/// it went away, so scrolling back and forth does not download it again.
++const galleryImageFileCacheTime = Duration(minutes: 5);
++
++/// The file of a gallery image. Keyed by the storage path as well, so a
++/// replaced file is downloaded again.
++final galleryImageFileProvider = FutureProvider.autoDispose
++    .family<Uint8List, ({int id, String? path})>((ref, image) {
++      final link = ref.keepAlive();
++      Timer? timer;
++      ref.onCancel(() => timer = Timer(galleryImageFileCacheTime, link.close));
++      ref.onResume(() => timer?.cancel());
++      ref.onDispose(() => timer?.cancel());
++      return ref.read(galleryRepositoryProvider).fetchImageFile(image.id);
++    });
+diff --git a/lib/features/gallery/providers/gallery_repository.dart b/lib/features/gallery/providers/gallery_repository.dart
+index 334770d..4b81290 100644
+--- a/lib/features/gallery/providers/gallery_repository.dart
++++ b/lib/features/gallery/providers/gallery_repository.dart
+@@ -17,6 +17,7 @@
+  */
+ 
+ import 'dart:convert';
++import 'dart:io';
+ 
+ import 'package:drift/drift.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+@@ -93,6 +94,19 @@ class GalleryRepository {
+     return responseData['image'] as String?;
+   }
+ 
++  /// Downloads the file of an image. The server serves it to its owner only,
++  /// so it goes through the authenticated client, not a public media URL.
++  Future<Uint8List> fetchImageFile(int id) async {
++    final response = await _base.client.get(
++      _base.makeUrl(_galleryUrlPath, id: id, objectMethod: 'file'),
++      headers: {HttpHeaders.userAgentHeader: _base.getAppNameHeaderValue()},
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++    return response.bodyBytes;
++  }
++
+   /// Updates an image's metadata via the local Drift table. The PowerSync
+   /// CRUD queue propagates the change to the backend.
+   Future<void> editLocalDrift(GalleryImage image) async {
+diff --git a/lib/features/gallery/widgets/forms.dart b/lib/features/gallery/widgets/forms.dart
+index 967987b..2d1db5f 100644
+--- a/lib/features/gallery/widgets/forms.dart
++++ b/lib/features/gallery/widgets/forms.dart
+@@ -25,9 +25,9 @@ import 'package:wger/core/consts.dart';
+ import 'package:wger/core/network/network_provider.dart';
+ import 'package:wger/core/widgets/datetime_input.dart';
+ import 'package:wger/core/widgets/form_submit_button.dart';
+-import 'package:wger/core/widgets/wger_image.dart';
+ import 'package:wger/features/gallery/models/image.dart';
+ import 'package:wger/features/gallery/providers/gallery_notifier.dart';
++import 'package:wger/features/gallery/widgets/photo.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+ class ImageForm extends ConsumerStatefulWidget {
+@@ -81,10 +81,7 @@ class _ImageFormState extends ConsumerState<ImageForm> {
+ 
+     // We are editing an existing entry
+     if (widget._image.imagePath != null) {
+-      return WgerImage(
+-        mediaPath: widget._image.imagePath,
+-        fit: BoxFit.contain,
+-      );
++      return GalleryPhoto(image: widget._image, fit: BoxFit.contain);
+     }
+ 
+     // No picture available, show a message to the user
+diff --git a/lib/features/gallery/widgets/overview.dart b/lib/features/gallery/widgets/overview.dart
+index 174bed3..b27d498 100644
+--- a/lib/features/gallery/widgets/overview.dart
++++ b/lib/features/gallery/widgets/overview.dart
+@@ -23,9 +23,9 @@ import 'package:wger/core/form_screen.dart';
+ import 'package:wger/core/formatting/formatting.dart';
+ import 'package:wger/core/platform.dart';
+ import 'package:wger/core/widgets/text_prompt.dart';
+-import 'package:wger/core/widgets/wger_image.dart';
+ import 'package:wger/features/gallery/models/image.dart';
+ import 'package:wger/features/gallery/providers/gallery_notifier.dart';
++import 'package:wger/features/gallery/widgets/photo.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+ import 'forms.dart';
+@@ -56,10 +56,9 @@ class Gallery extends ConsumerWidget {
+                       context: context,
+                     );
+                   },
+-                  child: WgerImage(
++                  child: GalleryPhoto(
+                     key: Key('image-${currentImage.id!}'),
+-                    mediaPath: currentImage.imagePath,
+-                    fit: BoxFit.cover,
++                    image: currentImage,
+                   ),
+                 );
+               },
+@@ -88,10 +87,7 @@ class ImageDetail extends ConsumerWidget {
+             style: Theme.of(context).textTheme.headlineSmall,
+           ),
+           Expanded(
+-            child: WgerImage(
+-              mediaPath: image.imagePath,
+-              fit: BoxFit.contain,
+-            ),
++            child: GalleryPhoto(image: image, fit: BoxFit.contain),
+           ),
+           Padding(
+             padding: const EdgeInsets.symmetric(vertical: 8),
+diff --git a/lib/features/gallery/widgets/photo.dart b/lib/features/gallery/widgets/photo.dart
+new file mode 100644
+index 0000000..abc390a
+--- /dev/null
++++ b/lib/features/gallery/widgets/photo.dart
+@@ -0,0 +1,48 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/widgets/image.dart';
++import 'package:wger/core/widgets/progress_indicator.dart';
++import 'package:wger/features/gallery/models/image.dart';
++import 'package:wger/features/gallery/providers/gallery_image_file.dart';
++
++/// A gallery photo, downloaded with the user's login (the files are private).
++class GalleryPhoto extends ConsumerWidget {
++  final GalleryImage image;
++  final BoxFit fit;
++
++  const GalleryPhoto({super.key, required this.image, this.fit = BoxFit.cover});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final id = image.id;
++    if (id == null) {
++      return const ImageError('');
++    }
++
++    final file = ref.watch(galleryImageFileProvider((id: id, path: image.imagePath)));
++    // The error shows while Riverpod retries in the background
++    return switch (file) {
++      AsyncValue(:final value?) => Image.memory(value, fit: fit),
++      AsyncValue(:final error?) => ImageError('Network error', errorMessage: error.toString()),
++      _ => const CenteredProgressIndicator(),
++    };
++  }
++}
+diff --git a/test/features/gallery/providers/gallery_image_file_test.dart b/test/features/gallery/providers/gallery_image_file_test.dart
+new file mode 100644
+index 0000000..82296dc
+--- /dev/null
++++ b/test/features/gallery/providers/gallery_image_file_test.dart
+@@ -0,0 +1,75 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:typed_data';
++
++import 'package:fake_async/fake_async.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/features/gallery/providers/gallery_image_file.dart';
++import 'package:wger/features/gallery/providers/gallery_repository.dart';
++
++import 'gallery_image_file_test.mocks.dart';
++
++@GenerateMocks([GalleryRepository])
++void main() {
++  test('keeps a photo for a while after the last viewer, then downloads it again', () {
++    fakeAsync((async) {
++      final repository = MockGalleryRepository();
++      when(repository.fetchImageFile(3)).thenAnswer((_) async => Uint8List.fromList([1]));
++      final container = ProviderContainer(
++        overrides: [galleryRepositoryProvider.overrideWithValue(repository)],
++      );
++      addTearDown(container.dispose);
++      final photo = galleryImageFileProvider((id: 3, path: 'gallery/1/a.jpg'));
++
++      void view() {
++        container.listen(photo, (_, _) {}).close();
++        async.flushMicrotasks();
++      }
++
++      view();
++      async.elapse(galleryImageFileCacheTime - const Duration(seconds: 1));
++      view();
++      verify(repository.fetchImageFile(3)).called(1);
++
++      async.elapse(galleryImageFileCacheTime + const Duration(seconds: 1));
++      view();
++      verify(repository.fetchImageFile(3)).called(1);
++    });
++  });
++
++  test('a replaced file is downloaded again', () {
++    fakeAsync((async) {
++      final repository = MockGalleryRepository();
++      when(repository.fetchImageFile(3)).thenAnswer((_) async => Uint8List.fromList([1]));
++      final container = ProviderContainer(
++        overrides: [galleryRepositoryProvider.overrideWithValue(repository)],
++      );
++      addTearDown(container.dispose);
++
++      container.listen(galleryImageFileProvider((id: 3, path: 'gallery/1/a.jpg')), (_, _) {});
++      container.listen(galleryImageFileProvider((id: 3, path: 'gallery/1/b.jpg')), (_, _) {});
++      async.flushMicrotasks();
++
++      verify(repository.fetchImageFile(3)).called(2);
++    });
++  });
++}
+diff --git a/test/features/gallery/providers/gallery_image_file_test.mocks.dart b/test/features/gallery/providers/gallery_image_file_test.mocks.dart
+new file mode 100644
+index 0000000..68a63a6
+--- /dev/null
++++ b/test/features/gallery/providers/gallery_image_file_test.mocks.dart
+@@ -0,0 +1,103 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/gallery/providers/gallery_image_file_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i4;
++import 'dart:typed_data' as _i6;
++
++import 'package:image_picker/image_picker.dart' as _i5;
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/features/gallery/models/image.dart' as _i2;
++import 'package:wger/features/gallery/providers/gallery_repository.dart' as _i3;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeGalleryImage_0 extends _i1.SmartFake implements _i2.GalleryImage {
++  _FakeGalleryImage_0(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [GalleryRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockGalleryRepository extends _i1.Mock implements _i3.GalleryRepository {
++  MockGalleryRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i4.Stream<List<_i2.GalleryImage>> watchAllDrift() =>
++      (super.noSuchMethod(
++            Invocation.method(#watchAllDrift, []),
++            returnValue: _i4.Stream<List<_i2.GalleryImage>>.empty(),
++          )
++          as _i4.Stream<List<_i2.GalleryImage>>);
++
++  @override
++  _i4.Future<_i2.GalleryImage> addImageServer(
++    _i2.GalleryImage? image,
++    _i5.XFile? imageFile,
++  ) =>
++      (super.noSuchMethod(
++            Invocation.method(#addImageServer, [image, imageFile]),
++            returnValue: _i4.Future<_i2.GalleryImage>.value(
++              _FakeGalleryImage_0(
++                this,
++                Invocation.method(#addImageServer, [image, imageFile]),
++              ),
++            ),
++          )
++          as _i4.Future<_i2.GalleryImage>);
++
++  @override
++  _i4.Future<String?> editImageServer(
++    _i2.GalleryImage? image,
++    _i5.XFile? imageFile,
++  ) =>
++      (super.noSuchMethod(
++            Invocation.method(#editImageServer, [image, imageFile]),
++            returnValue: _i4.Future<String?>.value(),
++          )
++          as _i4.Future<String?>);
++
++  @override
++  _i4.Future<_i6.Uint8List> fetchImageFile(int? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchImageFile, [id]),
++            returnValue: _i4.Future<_i6.Uint8List>.value(_i6.Uint8List(0)),
++          )
++          as _i4.Future<_i6.Uint8List>);
++
++  @override
++  _i4.Future<void> editLocalDrift(_i2.GalleryImage? image) =>
++      (super.noSuchMethod(
++            Invocation.method(#editLocalDrift, [image]),
++            returnValue: _i4.Future<void>.value(),
++            returnValueForMissingStub: _i4.Future<void>.value(),
++          )
++          as _i4.Future<void>);
++
++  @override
++  _i4.Future<void> deleteLocalDrift(int? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#deleteLocalDrift, [id]),
++            returnValue: _i4.Future<void>.value(),
++            returnValueForMissingStub: _i4.Future<void>.value(),
++          )
++          as _i4.Future<void>);
++}
+diff --git a/test/features/gallery/providers/gallery_notifier_test.mocks.dart b/test/features/gallery/providers/gallery_notifier_test.mocks.dart
+index e5e35b7..fcd7aef 100644
+--- a/test/features/gallery/providers/gallery_notifier_test.mocks.dart
++++ b/test/features/gallery/providers/gallery_notifier_test.mocks.dart
+@@ -5,6 +5,7 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i4;
++import 'dart:typed_data' as _i6;
+ 
+ import 'package:image_picker/image_picker.dart' as _i5;
+ import 'package:mockito/mockito.dart' as _i1;
+@@ -74,6 +75,14 @@ class MockGalleryRepository extends _i1.Mock implements _i3.GalleryRepository {
+           )
+           as _i4.Future<String?>);
+ 
++  @override
++  _i4.Future<_i6.Uint8List> fetchImageFile(int? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchImageFile, [id]),
++            returnValue: _i4.Future<_i6.Uint8List>.value(_i6.Uint8List(0)),
++          )
++          as _i4.Future<_i6.Uint8List>);
++
+   @override
+   _i4.Future<void> editLocalDrift(_i2.GalleryImage? image) =>
+       (super.noSuchMethod(
+diff --git a/test/features/gallery/providers/gallery_repository_test.dart b/test/features/gallery/providers/gallery_repository_test.dart
+index 31723fc..913a885 100644
+--- a/test/features/gallery/providers/gallery_repository_test.dart
++++ b/test/features/gallery/providers/gallery_repository_test.dart
+@@ -19,7 +19,10 @@
+ import 'dart:async';
+ 
+ import 'package:flutter_test/flutter_test.dart';
++import 'package:http/http.dart' as http;
++import 'package:http/testing.dart';
+ import 'package:mockito/annotations.dart';
++import 'package:wger/core/exceptions/http_exception.dart';
+ import 'package:wger/core/network/base_provider.dart';
+ import 'package:wger/database/powersync/database.dart';
+ import 'package:wger/features/gallery/models/image.dart';
+@@ -138,4 +141,35 @@ void main() {
+   // Note: addImageServer and editImageServer are not unit-tested here. Both
+   // build an http.MultipartRequest and call .send() directly without going
+   // through WgerBaseProvider, so a proper test requires HTTP-level mocking.
++
++  group('fetchImageFile', () {
++    GalleryRepository repoAnswering(http.Response Function(http.Request) answer) =>
++        GalleryRepository(
++          WgerBaseProvider(
++            serverUrl: 'https://almova.test',
++            client: MockClient((request) async => answer(request)),
++          ),
++          db,
++        );
++
++    test('downloads the file from the endpoint that checks the owner', () async {
++      final requests = <http.Request>[];
++      final repo = repoAnswering((request) {
++        requests.add(request);
++        return http.Response.bytes([1, 2, 3], 200);
++      });
++
++      final bytes = await repo.fetchImageFile(3);
++
++      expect(bytes, [1, 2, 3]);
++      expect(requests.single.method, 'GET');
++      expect(requests.single.url.toString(), 'https://almova.test/api/v2/gallery/3/file/');
++    });
++
++    test('throws when the server refuses', () async {
++      final repo = repoAnswering((_) => http.Response('{"detail": "Not found."}', 404));
++
++      expect(repo.fetchImageFile(3), throwsA(isA<WgerHttpException>()));
++    });
++  });
+ }
+diff --git a/test/features/gallery/screens/gallery_screen_test.mocks.dart b/test/features/gallery/screens/gallery_screen_test.mocks.dart
+index 772d5d7..8fcfaa6 100644
+--- a/test/features/gallery/screens/gallery_screen_test.mocks.dart
++++ b/test/features/gallery/screens/gallery_screen_test.mocks.dart
+@@ -5,6 +5,7 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i4;
++import 'dart:typed_data' as _i6;
+ 
+ import 'package:image_picker/image_picker.dart' as _i5;
+ import 'package:mockito/mockito.dart' as _i1;
+@@ -74,6 +75,14 @@ class MockGalleryRepository extends _i1.Mock implements _i3.GalleryRepository {
+           )
+           as _i4.Future<String?>);
+ 
++  @override
++  _i4.Future<_i6.Uint8List> fetchImageFile(int? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchImageFile, [id]),
++            returnValue: _i4.Future<_i6.Uint8List>.value(_i6.Uint8List(0)),
++          )
++          as _i4.Future<_i6.Uint8List>);
++
+   @override
+   _i4.Future<void> editLocalDrift(_i2.GalleryImage? image) =>
+       (super.noSuchMethod(
+diff --git a/test/features/gallery/widgets/forms_test.mocks.dart b/test/features/gallery/widgets/forms_test.mocks.dart
+index 27f4978..c9e5693 100644
+--- a/test/features/gallery/widgets/forms_test.mocks.dart
++++ b/test/features/gallery/widgets/forms_test.mocks.dart
+@@ -5,6 +5,7 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i4;
++import 'dart:typed_data' as _i6;
+ 
+ import 'package:image_picker/image_picker.dart' as _i5;
+ import 'package:mockito/mockito.dart' as _i1;
+@@ -74,6 +75,14 @@ class MockGalleryRepository extends _i1.Mock implements _i3.GalleryRepository {
+           )
+           as _i4.Future<String?>);
+ 
++  @override
++  _i4.Future<_i6.Uint8List> fetchImageFile(int? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchImageFile, [id]),
++            returnValue: _i4.Future<_i6.Uint8List>.value(_i6.Uint8List(0)),
++          )
++          as _i4.Future<_i6.Uint8List>);
++
+   @override
+   _i4.Future<void> editLocalDrift(_i2.GalleryImage? image) =>
+       (super.noSuchMethod(
+diff --git a/test/features/gallery/widgets/overview_test.mocks.dart b/test/features/gallery/widgets/overview_test.mocks.dart
+index 0feb3b2..9311317 100644
+--- a/test/features/gallery/widgets/overview_test.mocks.dart
++++ b/test/features/gallery/widgets/overview_test.mocks.dart
+@@ -5,6 +5,7 @@
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+ import 'dart:async' as _i4;
++import 'dart:typed_data' as _i6;
+ 
+ import 'package:image_picker/image_picker.dart' as _i5;
+ import 'package:mockito/mockito.dart' as _i1;
+@@ -74,6 +75,14 @@ class MockGalleryRepository extends _i1.Mock implements _i3.GalleryRepository {
+           )
+           as _i4.Future<String?>);
+ 
++  @override
++  _i4.Future<_i6.Uint8List> fetchImageFile(int? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchImageFile, [id]),
++            returnValue: _i4.Future<_i6.Uint8List>.value(_i6.Uint8List(0)),
++          )
++          as _i4.Future<_i6.Uint8List>);
++
+   @override
+   _i4.Future<void> editLocalDrift(_i2.GalleryImage? image) =>
+       (super.noSuchMethod(
+diff --git a/test/features/gallery/widgets/photo_test.dart b/test/features/gallery/widgets/photo_test.dart
+new file mode 100644
+index 0000000..f2fca8b
+--- /dev/null
++++ b/test/features/gallery/widgets/photo_test.dart
+@@ -0,0 +1,158 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:typed_data';
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/core/widgets/image.dart';
++import 'package:wger/features/gallery/providers/gallery_repository.dart';
++import 'package:wger/features/gallery/widgets/photo.dart';
++
++import '../../../../test_data/gallery.dart';
++import 'photo_test.mocks.dart';
++
++/// A 1x1 transparent PNG
++final png = Uint8List.fromList([
++  0x89,
++  0x50,
++  0x4E,
++  0x47,
++  0x0D,
++  0x0A,
++  0x1A,
++  0x0A,
++  0x00,
++  0x00,
++  0x00,
++  0x0D,
++  0x49,
++  0x48,
++  0x44,
++  0x52,
++  0x00,
++  0x00,
++  0x00,
++  0x01,
++  0x00,
++  0x00,
++  0x00,
++  0x01,
++  0x08,
++  0x06,
++  0x00,
++  0x00,
++  0x00,
++  0x1F,
++  0x15,
++  0xC4,
++  0x89,
++  0x00,
++  0x00,
++  0x00,
++  0x0D,
++  0x49,
++  0x44,
++  0x41,
++  0x54,
++  0x78,
++  0x9C,
++  0x63,
++  0x00,
++  0x01,
++  0x00,
++  0x00,
++  0x05,
++  0x00,
++  0x01,
++  0x0D,
++  0x0A,
++  0x2D,
++  0xB4,
++  0x00,
++  0x00,
++  0x00,
++  0x00,
++  0x49,
++  0x45,
++  0x4E,
++  0x44,
++  0xAE,
++  0x42,
++  0x60,
++  0x82,
++]);
++
++@GenerateMocks([GalleryRepository])
++void main() {
++  late MockGalleryRepository repository;
++
++  setUp(() {
++    repository = MockGalleryRepository();
++  });
++
++  Widget render(Widget child) => ProviderScope(
++    overrides: [galleryRepositoryProvider.overrideWithValue(repository)],
++    child: MaterialApp(home: Scaffold(body: child)),
++  );
++
++  testWidgets('shows the file downloaded with the login', (tester) async {
++    final image = getTestImages().first;
++    when(repository.fetchImageFile(image.id)).thenAnswer((_) async => png);
++
++    await tester.pumpWidget(render(GalleryPhoto(image: image)));
++    await tester.pumpAndSettle();
++
++    final shown = tester.widget<Image>(find.byType(Image));
++    expect((shown.image as MemoryImage).bytes, png);
++    expect(find.byType(ImageError), findsNothing);
++  });
++
++  testWidgets('a photo on screen twice is downloaded once', (tester) async {
++    final image = getTestImages().first;
++    when(repository.fetchImageFile(image.id)).thenAnswer((_) async => png);
++
++    await tester.pumpWidget(
++      render(
++        Column(
++          children: [
++            Expanded(child: GalleryPhoto(image: image)),
++            Expanded(child: GalleryPhoto(image: image)),
++          ],
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++
++    verify(repository.fetchImageFile(image.id)).called(1);
++  });
++
++  testWidgets('shows an error when the download fails', (tester) async {
++    final image = getTestImages().first;
++    when(repository.fetchImageFile(image.id)).thenAnswer((_) async => throw Exception('404'));
++
++    await tester.pumpWidget(render(GalleryPhoto(image: image)));
++    await tester.pump();
++    await tester.pump();
++
++    expect(find.byType(ImageError), findsOneWidget);
++  });
++}
+diff --git a/test/features/gallery/widgets/photo_test.mocks.dart b/test/features/gallery/widgets/photo_test.mocks.dart
+new file mode 100644
+index 0000000..80210b7
+--- /dev/null
++++ b/test/features/gallery/widgets/photo_test.mocks.dart
+@@ -0,0 +1,103 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/gallery/widgets/photo_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i4;
++import 'dart:typed_data' as _i6;
++
++import 'package:image_picker/image_picker.dart' as _i5;
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/features/gallery/models/image.dart' as _i2;
++import 'package:wger/features/gallery/providers/gallery_repository.dart' as _i3;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeGalleryImage_0 extends _i1.SmartFake implements _i2.GalleryImage {
++  _FakeGalleryImage_0(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [GalleryRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockGalleryRepository extends _i1.Mock implements _i3.GalleryRepository {
++  MockGalleryRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i4.Stream<List<_i2.GalleryImage>> watchAllDrift() =>
++      (super.noSuchMethod(
++            Invocation.method(#watchAllDrift, []),
++            returnValue: _i4.Stream<List<_i2.GalleryImage>>.empty(),
++          )
++          as _i4.Stream<List<_i2.GalleryImage>>);
++
++  @override
++  _i4.Future<_i2.GalleryImage> addImageServer(
++    _i2.GalleryImage? image,
++    _i5.XFile? imageFile,
++  ) =>
++      (super.noSuchMethod(
++            Invocation.method(#addImageServer, [image, imageFile]),
++            returnValue: _i4.Future<_i2.GalleryImage>.value(
++              _FakeGalleryImage_0(
++                this,
++                Invocation.method(#addImageServer, [image, imageFile]),
++              ),
++            ),
++          )
++          as _i4.Future<_i2.GalleryImage>);
++
++  @override
++  _i4.Future<String?> editImageServer(
++    _i2.GalleryImage? image,
++    _i5.XFile? imageFile,
++  ) =>
++      (super.noSuchMethod(
++            Invocation.method(#editImageServer, [image, imageFile]),
++            returnValue: _i4.Future<String?>.value(),
++          )
++          as _i4.Future<String?>);
++
++  @override
++  _i4.Future<_i6.Uint8List> fetchImageFile(int? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchImageFile, [id]),
++            returnValue: _i4.Future<_i6.Uint8List>.value(_i6.Uint8List(0)),
++          )
++          as _i4.Future<_i6.Uint8List>);
++
++  @override
++  _i4.Future<void> editLocalDrift(_i2.GalleryImage? image) =>
++      (super.noSuchMethod(
++            Invocation.method(#editLocalDrift, [image]),
++            returnValue: _i4.Future<void>.value(),
++            returnValueForMissingStub: _i4.Future<void>.value(),
++          )
++          as _i4.Future<void>);
++
++  @override
++  _i4.Future<void> deleteLocalDrift(int? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#deleteLocalDrift, [id]),
++            returnValue: _i4.Future<void>.value(),
++            returnValueForMissingStub: _i4.Future<void>.value(),
++          )
++          as _i4.Future<void>);
++}
+-- 
+2.43.0
+
