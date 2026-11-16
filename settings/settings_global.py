@@ -214,6 +214,7 @@ TEMPLATES = [
                 'wger.utils.context_processor.processor',
                 # Django
                 'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.csp',
                 'django.template.context_processors.debug',
                 'django.template.context_processors.i18n',
                 'django.template.context_processors.media',

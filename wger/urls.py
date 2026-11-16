@@ -30,7 +30,7 @@ from django.urls import path
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
-    SpectacularSwaggerView,
+    SpectacularSwaggerSplitView,
 )
 from rest_framework import routers
 from rest_framework_simplejwt.views import (
@@ -495,7 +495,7 @@ urlpatterns += [
     ),
     path(
         'api/v2/schema/ui',
-        SpectacularSwaggerView.as_view(url_name='schema', metadata_class=None),
+        SpectacularSwaggerSplitView.as_view(url_name='schema', metadata_class=None),
         name='api-swagger-ui',
     ),
     path(

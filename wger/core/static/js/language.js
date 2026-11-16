@@ -23,3 +23,10 @@ function submitLanguageForm(languageCode) {
     document.getElementById('language-input').value = languageCode;
     document.getElementById('language-form').submit();
 }
+
+document.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-language]');
+    if (button) {
+        submitLanguageForm(button.dataset.language);
+    }
+});

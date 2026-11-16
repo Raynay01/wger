@@ -46,3 +46,19 @@ window.addEventListener('pageshow', (event) => {
             button.disabled = false;
         });
 });
+
+// Shows or hides the password of the field next to the eye button
+// (forms/password_with_toggle.html)
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('.password-toggle-btn');
+    const wrapper = button?.closest('.password-wrapper');
+    const input = wrapper?.querySelector('input');
+    if (!input) {
+        return;
+    }
+    event.preventDefault();
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    wrapper.querySelector('.eye-open').style.display = show ? 'none' : 'block';
+    wrapper.querySelector('.eye-closed').style.display = show ? 'block' : 'none';
+});

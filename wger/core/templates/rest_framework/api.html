@@ -5,7 +5,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'rest_framework/css/prettify.css' %}"/>
     <script src="{% static 'rest_framework/js/prettify-min.js' %}"></script>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
         document.addEventListener('DOMContentLoaded', function () {
             prettyPrint();
         });

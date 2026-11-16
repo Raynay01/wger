@@ -99,8 +99,8 @@ class AllowedOriginsTestCase(SimpleTestCase):
 
 class SecurityHeadersTestCase(SimpleTestCase):
     """
-    In production, Django sends the security headers: HSTS when configured, the
-    enforced framing and plugin policy, and the full policy as report-only
+    In production, Django sends the security headers: HSTS when configured and
+    the content security policy, with inline scripts only by nonce
     """
 
     names = [
@@ -120,9 +120,13 @@ class SecurityHeadersTestCase(SimpleTestCase):
             middleware.index('django.middleware.security.SecurityMiddleware'),
             middleware.index('django.middleware.common.CommonMiddleware'),
         )
-        self.assertEqual(values['SECURE_CSP']['frame-ancestors'], ["'none'"])
-        self.assertEqual(values['SECURE_CSP']['object-src'], ["'none'"])
-        self.assertIn('<CSP_NONCE_SENTINEL>', values['SECURE_CSP_REPORT_ONLY']['script-src'])
+        policy = values['SECURE_CSP']
+        self.assertEqual(policy['frame-ancestors'], ["'none'"])
+        self.assertEqual(policy['object-src'], ["'none'"])
+        self.assertEqual(policy['default-src'], ["'self'"])
+        self.assertEqual(policy['script-src'], ["'self'", '<CSP_NONCE_SENTINEL>'])
+        self.assertEqual(policy['frame-src'], ["'self'"])
+        self.assertFalse(values['SECURE_CSP_REPORT_ONLY'])
         self.assertEqual(values['SECURE_HSTS_SECONDS'], 0)
 
     def test_hsts_from_the_environment(self):
@@ -134,8 +138,18 @@ class SecurityHeadersTestCase(SimpleTestCase):
         self.assertEqual(values['SECURE_HSTS_SECONDS'], 63072000)
         self.assertTrue(values['SECURE_HSTS_INCLUDE_SUBDOMAINS'])
 
-    def test_media_host_in_the_report_only_policy(self):
-        values = production_settings(
-            ['SECURE_CSP_REPORT_ONLY'], MEDIA_URL='https://cdn.almova.com.br/m/'
-        )
-        self.assertIn('cdn.almova.com.br', values['SECURE_CSP_REPORT_ONLY']['img-src'])
+    def test_media_host_in_the_policy(self):
+        values = production_settings(['SECURE_CSP'], MEDIA_URL='https://cdn.almova.com.br/m/')
+        self.assertIn('cdn.almova.com.br', values['SECURE_CSP']['img-src'])
+        self.assertIn('cdn.almova.com.br', values['SECURE_CSP']['script-src'])
+
+    def test_captcha_hosts(self):
+        for environment, host in (
+            ({'CAPTCHA_PROVIDER': 'turnstile'}, 'https://challenges.cloudflare.com'),
+            ({'CAPTCHA_PROVIDER': 'recaptcha'}, 'https://www.google.com'),
+            ({'USE_RECAPTCHA': 'True'}, 'https://www.google.com'),
+        ):
+            with self.subTest(environment):
+                policy = production_settings(['SECURE_CSP'], **environment)['SECURE_CSP']
+                self.assertIn(host, policy['script-src'])
+                self.assertIn(host, policy['frame-src'])
