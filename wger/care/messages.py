@@ -18,12 +18,14 @@ Chat between the patient and the professional of a relationship
 """
 
 # Standard Library
+import io
 import pathlib
 import re
 
 # Django
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.core.validators import FileExtensionValidator
 from django.db.models import (
     Count,
@@ -40,7 +42,10 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 # Third Party
-from PIL import Image
+from PIL import (
+    Image,
+    ImageOps,
+)
 
 # wger
 from wger.care.models import (
@@ -80,6 +85,25 @@ CHUNK = 64 * 1024
 
 def is_party(user: User, relationship: CareRelationship) -> bool:
     return user.id in (relationship.professional_id, relationship.patient_id)
+
+
+def without_metadata(upload) -> ContentFile:
+    """
+    The photo encoded again without its metadata (EXIF: location, camera,
+    time), turned upright first by its EXIF orientation
+    """
+    upload.seek(0)
+    image = Image.open(upload)
+    image_format = image.format
+    image = ImageOps.exif_transpose(image)
+    if image_format == 'JPEG' and image.mode not in ('RGB', 'L'):
+        image = image.convert('RGB')
+    output = io.BytesIO()
+    image.save(
+        output, format=image_format, **({'quality': 90} if image_format in ('JPEG', 'WEBP') else {})
+    )
+    upload.seek(0)
+    return ContentFile(output.getvalue(), name=upload.name)
 
 
 def classify_attachment(upload) -> str:

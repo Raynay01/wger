@@ -438,6 +438,9 @@ class MessageSerializer(serializers.ModelSerializer):
                 attrs['attachment_kind'] = messages.classify_attachment(upload)
             except DjangoValidationError as error:
                 raise serializers.ValidationError({'attachment': error.messages})
+            if attrs['attachment_kind'] == AttachmentKind.IMAGE:
+                # The location of the photo must not reach the other side
+                attrs['attachment'] = messages.without_metadata(upload)
             attrs['attachment_name'] = original_name
         if attrs.get('exercise'):
             relationship = attrs['relationship']
