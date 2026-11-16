@@ -45,6 +45,8 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
 7. **Login pelo navegador volta por `almova://`:** com `wger://`, o app do
    wger no mesmo celular poderia receber o token. O servidor manda o esquema
    de `APP_AUTH_SCHEME` (`almova` em produção).
+8. **Textos com ALMOVA:** em inglês e português, o app fala ALMOVA onde
+   falava wger (login, servidor, avisos). O "Sobre" mantém o crédito ao wger.
 
 ## Construir o APK
 
