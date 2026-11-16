@@ -50,6 +50,61 @@ msgstr "A verificação de vírus não está disponível agora. Tente de novo ma
 msgid "The virus scan refused this file."
 msgstr "A verificação de vírus recusou este arquivo."
 
+#: care/notifications.py
+msgid "New messages"
+msgstr "Mensagens novas"
+
+#: care/notifications.py
+msgid "Published plans"
+msgstr "Planos publicados"
+
+#: care/notifications.py
+msgid "Appointments"
+msgstr "Atendimentos"
+
+#: care/notifications.py
+msgid "You have new messages in a conversation. Open the app to read them."
+msgstr "Você tem mensagens novas numa conversa. Abra o app para ler."
+
+#: care/notifications.py
+msgid "New plan"
+msgstr "Plano novo"
+
+#: care/notifications.py
+msgid "A professional published a new plan for you. Open the app to see it."
+msgstr "Um profissional publicou um plano novo para você. Abra o app para ver."
+
+#: care/notifications.py
+msgid "Appointment scheduled"
+msgstr "Atendimento marcado"
+
+#: care/notifications.py
+#, python-format
+msgid "An appointment was scheduled for %(moment)s."
+msgstr "Um atendimento foi marcado para %(moment)s."
+
+#: care/notifications.py
+msgid "Appointment changed"
+msgstr "Atendimento remarcado"
+
+#: care/notifications.py
+#, python-format
+msgid "An appointment was moved to %(moment)s."
+msgstr "Um atendimento foi remarcado para %(moment)s."
+
+#: care/notifications.py
+msgid "Appointment cancelled"
+msgstr "Atendimento cancelado"
+
+#: care/notifications.py
+#, python-format
+msgid "The appointment of %(moment)s was cancelled."
+msgstr "O atendimento de %(moment)s foi cancelado."
+
+#: care/notifications.py
+msgid "You can turn these emails off in the app, under Notices."
+msgstr "Você pode desligar estes e-mails no app, em Avisos."
+
 #: care/api/prescription.py:79
 msgid "A prescription cannot be moved to another patient."
 msgstr "Uma prescrição não pode ser transferida para outro paciente."

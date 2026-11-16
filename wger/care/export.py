@@ -38,6 +38,8 @@ from wger.care.models import (
     Membership,
     Message,
     MultidisciplinaryNote,
+    NotificationLog,
+    NotificationPreference,
     ProfessionalRegistration,
 )
 
@@ -119,6 +121,10 @@ def export_user_data(user: User) -> dict:
                 }
                 for m in Message.objects.filter(relationship__patient=user).select_related('sender')
             ],
+            'notice_preferences': _rows(NotificationPreference.objects.filter(user=user)),
+            'notices_sent': list(
+                NotificationLog.objects.filter(user=user).values('kind', 'channel', 'sent_at')
+            ),
             'notes_for_you': list(
                 MultidisciplinaryNote.objects.filter(
                     relationship__patient=user,

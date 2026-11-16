@@ -728,6 +728,8 @@ WGER_SOCIAL_PROVIDERS = []
 # to it; without an address they only ask to log in with the invited email.
 WEB_APP_URL = ''
 WEB_APP_NAME = 'ALMOVA'
+# Language of the notices sent outside the app (emails), the language of the web app
+WEB_APP_LANGUAGE = 'pt-br'
 
 # Whether to link to the mobile app in the app stores in the footer and on the landing page.
 WGER_SHOW_APP_STORE_LINKS = True

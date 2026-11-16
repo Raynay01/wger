@@ -39,6 +39,11 @@ from .note import (
     MultidisciplinaryNote,
     NoteCategory,
 )
+from .notification import (
+    NotificationKind,
+    NotificationLog,
+    NotificationPreference,
+)
 from .organization import (
     CARING_ROLES,
     MANAGING_ROLES,

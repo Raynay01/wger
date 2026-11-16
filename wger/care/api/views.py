@@ -53,6 +53,7 @@ from wger.care import (
     invitations,
     messages,
     mfa,
+    notifications,
     policy,
     sharing,
 )
@@ -76,6 +77,7 @@ from wger.care.api.serializers import (
     ModulesSerializer,
     MultidisciplinaryNoteSerializer,
     MyDaySerializer,
+    NotificationPreferenceSerializer,
     OrganizationSerializer,
     ProfessionalRegistrationSerializer,
     SharedDataSerializer,
@@ -98,6 +100,7 @@ from wger.care.models import (
     MembershipRole,
     Message,
     MultidisciplinaryNote,
+    NotificationPreference,
     Organization,
     ProfessionalRegistration,
     RelationshipStatus,
@@ -786,6 +789,32 @@ class ConsistencyView(APIView):
         return Response(ConsistencySerializer(data).data)
 
 
+class NotificationPreferenceView(APIView):
+    """
+    The notices by email the user gets outside the app: new messages,
+    published plans and appointments. All on until the user turns them off.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses=NotificationPreferenceSerializer)
+    def get(self, request):
+        return Response(
+            NotificationPreferenceSerializer(notifications.preferences(request.user)).data
+        )
+
+    @extend_schema(
+        request=NotificationPreferenceSerializer,
+        responses=NotificationPreferenceSerializer,
+    )
+    def patch(self, request):
+        preference, _created = NotificationPreference.objects.get_or_create(user=request.user)
+        serializer = NotificationPreferenceSerializer(preference, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
 class MfaView(APIView):
     """
     Whether the account is a professional one, has two-step verification, and
@@ -878,11 +907,21 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         if appointment.relationship.professional_id != self.request.user.id:
             raise exceptions.PermissionDenied()
 
+    def _notify(self, appointment, event: str):
+        user = self.request.user
+        transaction.on_commit(lambda: notifications.notify_appointment(appointment, event, user))
+
+    def perform_create(self, serializer):
+        self._notify(serializer.save(), 'scheduled')
+
     def perform_update(self, serializer):
         self._check_professional(serializer.instance)
         if serializer.instance.status != AppointmentStatus.SCHEDULED:
             raise exceptions.ValidationError(_('Only scheduled appointments can be changed.'))
-        serializer.save()
+        start = serializer.instance.start
+        appointment = serializer.save()
+        if appointment.start != start:
+            self._notify(appointment, 'changed')
 
     @extend_schema(request=None, responses=AppointmentSerializer)
     @action(detail=True, methods=['post'])
@@ -893,6 +932,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         appointment.status = AppointmentStatus.CANCELLED
         appointment.cancelled_by = request.user
         appointment.save()
+        self._notify(appointment, 'cancelled')
         return Response(self.get_serializer(appointment).data)
 
     @extend_schema(request=None, responses=AppointmentSerializer)
