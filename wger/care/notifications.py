@@ -38,6 +38,7 @@ from django.utils import (
 from django.utils.translation import gettext as _
 
 # wger
+from wger.care import push
 from wger.care.models import (
     Appointment,
     CareRelationship,
@@ -56,10 +57,10 @@ MESSAGE_DELAY = datetime.timedelta(minutes=5)
 # At most one email about new messages per conversation in this time
 MESSAGE_INTERVAL = datetime.timedelta(hours=1)
 
-PREFERENCE_FIELD = {
-    NotificationKind.MESSAGES: 'email_messages',
-    NotificationKind.PRESCRIPTION: 'email_prescriptions',
-    NotificationKind.APPOINTMENT: 'email_appointments',
+PREFERENCE_SUFFIX = {
+    NotificationKind.MESSAGES: 'messages',
+    NotificationKind.PRESCRIPTION: 'prescriptions',
+    NotificationKind.APPOINTMENT: 'appointments',
 }
 
 
@@ -70,24 +71,27 @@ def preferences(user: User) -> NotificationPreference:
     )
 
 
+def _channels(user: User, kind: str) -> list[str]:
+    """The channels the user wants and can be reached on for this kind of notice"""
+    choices = preferences(user)
+    suffix = PREFERENCE_SUFFIX[kind]
+    channels = []
+    if user.email and getattr(choices, f'email_{suffix}'):
+        channels.append('email')
+    if getattr(choices, f'push_{suffix}') and push.enabled() and user.care_push_devices.exists():
+        channels.append('push')
+    return channels
+
+
 def wants(user: User, kind: str) -> bool:
-    return bool(user.email) and getattr(preferences(user), PREFERENCE_FIELD[kind])
+    return bool(_channels(user, kind))
 
 
 def _link(path: str) -> str:
     return f'{settings.WEB_APP_URL.rstrip("/")}{path}' if settings.WEB_APP_URL else ''
 
 
-def _send(
-    user: User,
-    kind: str,
-    reference: str,
-    subject: str,
-    text: str,
-    path: str,
-    now: datetime.datetime | None = None,
-) -> bool:
-    """Sends one notice and records it. Returns whether it went out."""
+def _email(user: User, kind: str, subject: str, text: str, path: str) -> bool:
     context = {'text': text, 'link': _link(path), 'app': settings.WEB_APP_NAME}
     body = loader.render_to_string('care/email_notice.tpl', context)
     try:
@@ -102,10 +106,35 @@ def _send(
             'Could not send a %s notice to user %s: %s', kind, user.pk, type(error).__name__
         )
         return False
-    NotificationLog.objects.create(
-        user=user, kind=kind, reference=reference, sent_at=now or timezone.now()
-    )
     return True
+
+
+def _send(
+    user: User,
+    kind: str,
+    reference: str,
+    subject: str,
+    text: str,
+    path: str,
+    now: datetime.datetime | None = None,
+) -> bool:
+    """Sends a notice on each channel the user wants and records it. True if any went out."""
+    sent = False
+    for channel in _channels(user, kind):
+        if channel == 'email':
+            delivered = _email(user, kind, subject, text, path)
+        else:
+            delivered = push.send(user, f'{settings.WEB_APP_NAME}: {subject}', text, path) > 0
+        if delivered:
+            NotificationLog.objects.create(
+                user=user,
+                kind=kind,
+                channel=channel,
+                reference=reference,
+                sent_at=now or timezone.now(),
+            )
+            sent = True
+    return sent
 
 
 def _area(relationship: CareRelationship, user: User) -> str:

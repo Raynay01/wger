@@ -30,7 +30,7 @@ class NotificationKind(models.TextChoices):
 
 
 class NotificationPreference(models.Model):
-    """Which notices a user gets by email outside the app; all on by default"""
+    """Which notices a user gets outside the app, by email and push; all on by default"""
 
     user = models.OneToOneField(
         User,
@@ -43,6 +43,12 @@ class NotificationPreference(models.Model):
     email_prescriptions = models.BooleanField(default=True)
 
     email_appointments = models.BooleanField(default=True)
+
+    push_messages = models.BooleanField(default=True)
+
+    push_prescriptions = models.BooleanField(default=True)
+
+    push_appointments = models.BooleanField(default=True)
 
     def __str__(self):
         return f'Notification preference of {self.user_id}'
@@ -80,6 +86,40 @@ class NotificationLog(models.Model):
 
     def __str__(self):
         return f'{self.kind} to {self.user_id} at {self.sent_at}'
+
+    def get_owner_object(self):
+        return self
+
+
+class PushPlatform(models.TextChoices):
+    ANDROID = 'android', 'Android'
+    IOS = 'ios', 'iOS'
+    WEB = 'web', 'Web'
+
+
+class PushDevice(models.Model):
+    """A device that gets push notices (Firebase Cloud Messaging) for its user"""
+
+    class Meta:
+        ordering = ['-last_seen']
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='care_push_devices',
+    )
+
+    token = models.CharField(max_length=512, unique=True)
+    """Registration token of Firebase Cloud Messaging"""
+
+    platform = models.CharField(max_length=10, choices=PushPlatform.choices)
+
+    created = models.DateTimeField(default=timezone.now)
+
+    last_seen = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f'{self.platform} device of {self.user_id}'
 
     def get_owner_object(self):
         return self

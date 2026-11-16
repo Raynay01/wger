@@ -43,6 +43,8 @@ from .notification import (
     NotificationKind,
     NotificationLog,
     NotificationPreference,
+    PushDevice,
+    PushPlatform,
 )
 from .organization import (
     CARING_ROLES,

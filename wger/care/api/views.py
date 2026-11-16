@@ -80,6 +80,7 @@ from wger.care.api.serializers import (
     NotificationPreferenceSerializer,
     OrganizationSerializer,
     ProfessionalRegistrationSerializer,
+    PushDeviceSerializer,
     SharedDataSerializer,
     VideoSerializer,
 )
@@ -103,6 +104,7 @@ from wger.care.models import (
     NotificationPreference,
     Organization,
     ProfessionalRegistration,
+    PushDevice,
     RelationshipStatus,
     SharingScope,
 )
@@ -813,6 +815,51 @@ class NotificationPreferenceView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class PushDeviceView(APIView):
+    """
+    Devices that get push notices. The app registers its Firebase token after
+    login (a token already known moves to the user now logged in) and removes
+    it at logout. GET answers how many devices the user has.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(responses={200: dict})
+    def get(self, request):
+        return Response({'devices': PushDevice.objects.filter(user=request.user).count()})
+
+    @extend_schema(request=PushDeviceSerializer, responses={201: dict})
+    def post(self, request):
+        serializer = PushDeviceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if 'platform' not in serializer.validated_data:
+            raise exceptions.ValidationError({'platform': _('This field is required.')})
+        PushDevice.objects.update_or_create(
+            token=serializer.validated_data['token'],
+            defaults={
+                'user': request.user,
+                'platform': serializer.validated_data['platform'],
+                'last_seen': timezone.now(),
+            },
+        )
+        return Response({'registered': True}, status=status.HTTP_201_CREATED)
+
+
+class PushDeviceRemoveView(APIView):
+    """Stops push notices on a device of the user, e.g. at logout"""
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(request=PushDeviceSerializer, responses={200: dict})
+    def post(self, request):
+        serializer = PushDeviceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        removed, _deleted = PushDevice.objects.filter(
+            user=request.user, token=serializer.validated_data['token']
+        ).delete()
+        return Response({'removed': removed > 0})
 
 
 class MfaView(APIView):
