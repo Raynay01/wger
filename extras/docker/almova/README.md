@@ -16,6 +16,7 @@ conteúdo). Assim, uma reinstalação usa exatamente os mesmos arquivos.
 | Sincronização offline | `journeyapps/powersync-service:1.28.3` |
 | Antivírus | `clamav/clamav:1.5.4` |
 | Proxy | `nginx:1.30.6-alpine3.24` |
+| HTTPS (perfil `https`) | `caddy:2.11.9-alpine` |
 | Servidor (construído daqui) | base `wger/base:2026-11-01` (Ubuntu 24.04, Python 3.12), Node 24.22.3 só na construção, dependências Python exatamente as do `uv.lock`, conferidas por hash |
 | Site (construído daqui) | `node:24.22.3-alpine` (Node 24 LTS), dependências exatamente as do `package-lock.json` |
 | Backup | `postgres:18.7-alpine` + `age` 1.3.2 compilado de `golang:1.27.4-alpine` |
@@ -64,8 +65,32 @@ armazenamento privado. Os originais na pasta pública só saem com
 docker compose exec web python3 manage.py copy-gallery-to-private
 ```
 
-O site fica em `http://localhost:8080` (`ALMOVA_HTTP_PORT`). O HTTPS fica na
-frente (balanceador ou proxy do servidor), que manda `X-Forwarded-Proto`.
+O site fica em `http://localhost:8080` (`ALMOVA_HTTP_PORT`).
+
+### HTTPS num servidor na internet
+
+O perfil `https` coloca o Caddy na frente: ele pede e renova sozinho o
+certificado do Let's Encrypt para o domínio. O domínio precisa apontar para o
+servidor e as portas 80 e 443 precisam estar abertas. No `.env` do compose (o
+arquivo `.env` desta pasta, fora do Git):
+
+```bash
+ALMOVA_DOMAIN=homolog.almova.com.br
+ACME_EMAIL=voce@seudominio.com.br
+# A porta 8080 fica só para o próprio servidor
+ALMOVA_HTTP_PORT=127.0.0.1:8080
+```
+
+e no `homolog.env`: os endereços com `https://` (`SITE_URL`, `WEB_APP_URL`,
+`CSRF_TRUSTED_ORIGINS`), o domínio em `DJANGO_ALLOWED_HOSTS` mantendo
+`localhost` e `web`, e `X_FORWARDED_PROTO_HEADER_SET=True`. Depois:
+
+```bash
+docker compose --profile https up -d
+```
+
+Os registros de acesso do Caddy e do nginx não guardam os parâmetros dos
+endereços (podem ter tokens, como nos links de convite).
 
 O que fica público: o site, `/api/v2/` e `/allauth/` (app do celular), `/ps/`
 (sincronização) e os arquivos estáticos. As páginas próprias do wger e o admin

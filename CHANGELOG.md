@@ -291,6 +291,10 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   the mobile app that the login through the browser (`/user/app-auth/`) hands
   the token to. **Changed default** in production: the ALMOVA app uses its own
   scheme, so the wger app on the same phone cannot receive the token.
+* ALMOVA Docker stack (`extras/docker/almova`): the `https` profile puts
+  Caddy in front of nginx with certificates from Let's Encrypt for
+  `ALMOVA_DOMAIN`. The access logs of Caddy and nginx no longer keep query
+  strings, which can carry tokens.
 * `FCM_PROJECT_ID` and `FCM_SERVICE_ACCOUNT_FILE` (default empty, off): push
   notices through Firebase Cloud Messaging (HTTP v1), with the key file of a
   service account mounted as a file.
