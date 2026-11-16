@@ -31,9 +31,10 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
    sem o ALMOVA. Dá para esconder nas configurações do painel, como os outros.
 4. **Mensagens:** tocar num profissional no cartão abre a conversa daquele
    acompanhamento. Mostra o histórico, as fotos (baixadas com o login) e
-   avisa dos vídeos; envia texto enquanto o acompanhamento está aberto e marca
-   como lidas as mensagens do profissional. Enviar foto ou vídeo pelo app e
-   tocar vídeos ficam para a próxima etapa.
+   toca os vídeos; envia texto, foto ou vídeo (câmera ou galeria, até 50 MB)
+   enquanto o acompanhamento está aberto e marca como lidas as mensagens do
+   profissional. O vídeo recebido é baixado com o login para um arquivo
+   temporário, apagado ao fechar o vídeo.
 5. **Agenda:** tocar no próximo atendimento abre as próximas consultas (data,
    tipo, profissional, duração, local e observações). Dá para cancelar, com
    confirmação; o profissional é avisado.
