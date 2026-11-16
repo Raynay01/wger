@@ -50,6 +50,10 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
 9. **Convites:** os convites pendentes aparecem no cartão "Acompanhamento",
    com o texto de consentimento do site. "Aceitar e autorizar" registra o
    consentimento no servidor; "Recusar" encerra o convite.
+10. **Fisioterapia de hoje:** para quem tem fisioterapeuta, o cartão abre os
+    exercícios do protocolo do dia (séries, repetições, carga, onde fazer,
+    instruções e vídeo) com "Marcar como feito", e o registro de dor de 0 a 10
+    no momento que o fisioterapeuta pediu. A dor alimenta os alertas dele.
 
 ## Construir o APK
 

@@ -1,0 +1,1413 @@
+From 101ab74a8b7b53377c76af78896643ff29d16cda Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 16:39:41 +0000
+Subject: [PATCH 12/12] Today's physiotherapy: the protocol exercises and the
+ pain
+
+Patients followed by a physiotherapist get "Today's physiotherapy" on the
+follow-up card. It shows the published protocols of the day from the
+server's day view: each exercise with sets, repetitions, time, load, where
+to do it, the instructions and the video link, and "Mark as done"
+(an exercise record; "Done today" afterwards). Below, the pain on the
+0 to 10 scale at one of the moments the physiotherapist asks for (or
+another moment), with optional place and notes; it feeds the pain alerts
+of the physiotherapist. Today's pain records are listed under the form.
+
+The new feature is named physio, after the Django app.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/core/widgets/dashboard/widgets/care.dart  |  11 +
+ lib/features/physio/models/physio_day.dart    | 140 +++++++++
+ lib/features/physio/models/physio_day.g.dart  |  59 ++++
+ .../physio/providers/physio_repository.dart   |  73 +++++
+ .../physio/providers/physio_repository.g.dart |  51 +++
+ .../providers/physio_today_notifier.dart      |  82 +++++
+ .../providers/physio_today_notifier.g.dart    |  54 ++++
+ .../physio/screens/physio_today_screen.dart   | 292 ++++++++++++++++++
+ lib/l10n/app_en.arb                           |  50 ++-
+ lib/l10n/app_pt.arb                           |  26 +-
+ lib/l10n/app_pt_BR.arb                        |  26 +-
+ .../widgets/dashboard/widgets/care_test.dart  |  23 ++
+ .../providers/physio_repository_test.dart     | 116 +++++++
+ .../screens/physio_today_screen_test.dart     | 143 +++++++++
+ .../physio_today_screen_test.mocks.dart       |  97 ++++++
+ 15 files changed, 1240 insertions(+), 3 deletions(-)
+ create mode 100644 lib/features/physio/models/physio_day.dart
+ create mode 100644 lib/features/physio/models/physio_day.g.dart
+ create mode 100644 lib/features/physio/providers/physio_repository.dart
+ create mode 100644 lib/features/physio/providers/physio_repository.g.dart
+ create mode 100644 lib/features/physio/providers/physio_today_notifier.dart
+ create mode 100644 lib/features/physio/providers/physio_today_notifier.g.dart
+ create mode 100644 lib/features/physio/screens/physio_today_screen.dart
+ create mode 100644 test/features/physio/providers/physio_repository_test.dart
+ create mode 100644 test/features/physio/screens/physio_today_screen_test.dart
+ create mode 100644 test/features/physio/screens/physio_today_screen_test.mocks.dart
+
+diff --git a/lib/core/widgets/dashboard/widgets/care.dart b/lib/core/widgets/dashboard/widgets/care.dart
+index 06b3a40..23e60ca 100644
+--- a/lib/core/widgets/dashboard/widgets/care.dart
++++ b/lib/core/widgets/dashboard/widgets/care.dart
+@@ -21,10 +21,12 @@ import 'package:intl/intl.dart';
+ import 'package:material_ui/material_ui.dart';
+ import 'package:wger/features/care/care.dart';
+ import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
+ import 'package:wger/features/care/providers/care_overview.dart';
+ import 'package:wger/features/care/screens/agenda_screen.dart';
+ import 'package:wger/features/care/screens/conversation_screen.dart';
+ import 'package:wger/features/care/widgets/invitation_tile.dart';
++import 'package:wger/features/physio/screens/physio_today_screen.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+ /// The professionals who follow the user and the next appointment. Hidden
+@@ -63,6 +65,15 @@ class DashboardCareWidget extends ConsumerWidget {
+                 MaterialPageRoute(builder: (_) => ConversationScreen(relationship: relationship)),
+               ),
+             ),
++          if (overview.professionals.any((r) => r.discipline == Discipline.physio))
++            ListTile(
++              leading: const Icon(Icons.healing),
++              title: Text(i18n.physioToday),
++              trailing: const Icon(Icons.chevron_right),
++              onTap: () => Navigator.of(
++                context,
++              ).push(MaterialPageRoute(builder: (_) => const PhysioTodayScreen())),
++            ),
+           if (next != null) _NextAppointment(next),
+         ],
+       ),
+diff --git a/lib/features/physio/models/physio_day.dart b/lib/features/physio/models/physio_day.dart
+new file mode 100644
+index 0000000..67b4caf
+--- /dev/null
++++ b/lib/features/physio/models/physio_day.dart
+@@ -0,0 +1,140 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:json_annotation/json_annotation.dart';
++import 'package:wger/core/json.dart';
++
++part 'physio_day.g.dart';
++
++/// An exercise of a physiotherapy protocol, as prescribed for the day
++@JsonSerializable(createToJson: false)
++class PhysioExercise {
++  @JsonKey(required: true)
++  final String id;
++
++  @JsonKey(required: true)
++  final String name;
++
++  final int? sets;
++  final int? repetitions;
++
++  @JsonKey(name: 'duration_seconds')
++  final int? durationSeconds;
++
++  /// E.g. "red elastic band"
++  @JsonKey(defaultValue: '')
++  final String load;
++
++  /// home, gym or clinic
++  @JsonKey(defaultValue: '')
++  final String location;
++
++  @JsonKey(name: 'video_url', defaultValue: '')
++  final String videoUrl;
++
++  @JsonKey(defaultValue: '')
++  final String instructions;
++
++  /// Recorded as done on this day
++  @JsonKey(defaultValue: false)
++  final bool done;
++
++  const PhysioExercise({
++    required this.id,
++    required this.name,
++    this.sets,
++    this.repetitions,
++    this.durationSeconds,
++    this.load = '',
++    this.location = '',
++    this.videoUrl = '',
++    this.instructions = '',
++    this.done = false,
++  });
++
++  PhysioExercise markedDone() => PhysioExercise(
++    id: id,
++    name: name,
++    sets: sets,
++    repetitions: repetitions,
++    durationSeconds: durationSeconds,
++    load: load,
++    location: location,
++    videoUrl: videoUrl,
++    instructions: instructions,
++    done: true,
++  );
++
++  factory PhysioExercise.fromJson(Map<String, dynamic> json) => _$PhysioExerciseFromJson(json);
++}
++
++@JsonSerializable(createToJson: false)
++class PhysioProtocolDay {
++  @JsonKey(required: true)
++  final String id;
++
++  @JsonKey(required: true)
++  final String name;
++
++  /// Moments the physiotherapist asks the pain for: before, during, after, next_day
++  @JsonKey(name: 'pain_moments', defaultValue: <String>[])
++  final List<String> painMoments;
++
++  @JsonKey(defaultValue: <PhysioExercise>[])
++  final List<PhysioExercise> exercises;
++
++  const PhysioProtocolDay({
++    required this.id,
++    required this.name,
++    this.painMoments = const [],
++    this.exercises = const [],
++  });
++
++  factory PhysioProtocolDay.fromJson(Map<String, dynamic> json) =>
++      _$PhysioProtocolDayFromJson(json);
++}
++
++@JsonSerializable(createToJson: false)
++class PainEntry {
++  @JsonKey(required: true)
++  final String moment;
++
++  @JsonKey(required: true)
++  final int value;
++
++  @JsonKey(required: true, fromJson: utcIso8601ToLocalDate)
++  final DateTime datetime;
++
++  const PainEntry({required this.moment, required this.value, required this.datetime});
++
++  factory PainEntry.fromJson(Map<String, dynamic> json) => _$PainEntryFromJson(json);
++}
++
++/// The physiotherapy part of the user's day (care/my-day, section physio)
++@JsonSerializable(createToJson: false)
++class PhysioDay {
++  @JsonKey(defaultValue: <PhysioProtocolDay>[])
++  final List<PhysioProtocolDay> protocols;
++
++  @JsonKey(defaultValue: <PainEntry>[])
++  final List<PainEntry> pain;
++
++  const PhysioDay({this.protocols = const [], this.pain = const []});
++
++  factory PhysioDay.fromJson(Map<String, dynamic> json) => _$PhysioDayFromJson(json);
++}
+diff --git a/lib/features/physio/models/physio_day.g.dart b/lib/features/physio/models/physio_day.g.dart
+new file mode 100644
+index 0000000..1df239a
+--- /dev/null
++++ b/lib/features/physio/models/physio_day.g.dart
+@@ -0,0 +1,59 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'physio_day.dart';
++
++// **************************************************************************
++// JsonSerializableGenerator
++// **************************************************************************
++
++PhysioExercise _$PhysioExerciseFromJson(Map<String, dynamic> json) {
++  $checkKeys(json, requiredKeys: const ['id', 'name']);
++  return PhysioExercise(
++    id: json['id'] as String,
++    name: json['name'] as String,
++    sets: (json['sets'] as num?)?.toInt(),
++    repetitions: (json['repetitions'] as num?)?.toInt(),
++    durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
++    load: json['load'] as String? ?? '',
++    location: json['location'] as String? ?? '',
++    videoUrl: json['video_url'] as String? ?? '',
++    instructions: json['instructions'] as String? ?? '',
++    done: json['done'] as bool? ?? false,
++  );
++}
++
++PhysioProtocolDay _$PhysioProtocolDayFromJson(Map<String, dynamic> json) {
++  $checkKeys(json, requiredKeys: const ['id', 'name']);
++  return PhysioProtocolDay(
++    id: json['id'] as String,
++    name: json['name'] as String,
++    painMoments: (json['pain_moments'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
++    exercises:
++        (json['exercises'] as List<dynamic>?)
++            ?.map((e) => PhysioExercise.fromJson(e as Map<String, dynamic>))
++            .toList() ??
++        [],
++  );
++}
++
++PainEntry _$PainEntryFromJson(Map<String, dynamic> json) {
++  $checkKeys(json, requiredKeys: const ['moment', 'value', 'datetime']);
++  return PainEntry(
++    moment: json['moment'] as String,
++    value: (json['value'] as num).toInt(),
++    datetime: utcIso8601ToLocalDate(json['datetime'] as String),
++  );
++}
++
++PhysioDay _$PhysioDayFromJson(Map<String, dynamic> json) => PhysioDay(
++  protocols:
++      (json['protocols'] as List<dynamic>?)
++          ?.map((e) => PhysioProtocolDay.fromJson(e as Map<String, dynamic>))
++          .toList() ??
++      [],
++  pain:
++      (json['pain'] as List<dynamic>?)
++          ?.map((e) => PainEntry.fromJson(e as Map<String, dynamic>))
++          .toList() ??
++      [],
++);
+diff --git a/lib/features/physio/providers/physio_repository.dart b/lib/features/physio/providers/physio_repository.dart
+new file mode 100644
+index 0000000..81d646a
+--- /dev/null
++++ b/lib/features/physio/providers/physio_repository.dart
+@@ -0,0 +1,73 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:convert';
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/core/exceptions/http_exception.dart';
++import 'package:wger/core/network/base_provider.dart';
++import 'package:wger/core/network/wger_base.dart';
++import 'package:wger/features/physio/models/physio_day.dart';
++
++part 'physio_repository.g.dart';
++
++@riverpod
++PhysioRepository physioRepository(Ref ref) => PhysioRepository(ref.read(wgerBaseProvider));
++
++/// REST access to the physiotherapy of the user (Django app `physio`)
++class PhysioRepository {
++  final WgerBaseProvider base;
++
++  PhysioRepository(this.base);
++
++  /// Today's protocols and pain records, in the user's time zone
++  Future<PhysioDay> fetchToday() async {
++    final data = await base.fetch(base.makeUrl('care/my-day'));
++    final physio = data['physio'];
++    return physio is Map<String, dynamic> ? PhysioDay.fromJson(physio) : const PhysioDay();
++  }
++
++  Future<void> markDone(String protocolExerciseId) =>
++      _post('exercise-record', {'protocol_exercise': protocolExerciseId});
++
++  /// Pain on the numeric scale, 0 (none) to 10 (worst imaginable)
++  Future<void> recordPain({
++    String? protocolId,
++    required String moment,
++    required int value,
++    String bodyRegion = '',
++    String notes = '',
++  }) => _post('pain-record', {
++    'protocol': protocolId,
++    'moment': moment,
++    'value': value,
++    'body_region': bodyRegion,
++    'notes': notes,
++  });
++
++  Future<void> _post(String path, Map<String, dynamic> body) async {
++    final response = await base.client.post(
++      base.makeUrl(path),
++      headers: base.getDefaultHeaders(),
++      body: json.encode(body),
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++  }
++}
+diff --git a/lib/features/physio/providers/physio_repository.g.dart b/lib/features/physio/providers/physio_repository.g.dart
+new file mode 100644
+index 0000000..62a90d1
+--- /dev/null
++++ b/lib/features/physio/providers/physio_repository.g.dart
+@@ -0,0 +1,51 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'physio_repository.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++
++@ProviderFor(physioRepository)
++final physioRepositoryProvider = PhysioRepositoryProvider._();
++
++final class PhysioRepositoryProvider
++    extends $FunctionalProvider<PhysioRepository, PhysioRepository, PhysioRepository>
++    with $Provider<PhysioRepository> {
++  PhysioRepositoryProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'physioRepositoryProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$physioRepositoryHash();
++
++  @$internal
++  @override
++  $ProviderElement<PhysioRepository> $createElement($ProviderPointer pointer) =>
++      $ProviderElement(pointer);
++
++  @override
++  PhysioRepository create(Ref ref) {
++    return physioRepository(ref);
++  }
++
++  /// {@macro riverpod.override_with_value}
++  Override overrideWithValue(PhysioRepository value) {
++    return $ProviderOverride(
++      origin: this,
++      providerOverride: $SyncValueProvider<PhysioRepository>(value),
++    );
++  }
++}
++
++String _$physioRepositoryHash() => r'f6fc9f47d2c0a4dac2fd8c8e09d593e286ab0da9';
+diff --git a/lib/features/physio/providers/physio_today_notifier.dart b/lib/features/physio/providers/physio_today_notifier.dart
+new file mode 100644
+index 0000000..51209a4
+--- /dev/null
++++ b/lib/features/physio/providers/physio_today_notifier.dart
+@@ -0,0 +1,82 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/features/physio/models/physio_day.dart';
++import 'package:wger/features/physio/providers/physio_repository.dart';
++
++part 'physio_today_notifier.g.dart';
++
++@riverpod
++class PhysioTodayNotifier extends _$PhysioTodayNotifier {
++  @override
++  Future<PhysioDay> build() => ref.read(physioRepositoryProvider).fetchToday();
++
++  Future<void> markDone(String exerciseId) async {
++    await ref.read(physioRepositoryProvider).markDone(exerciseId);
++    final day = state.value;
++    if (day == null) {
++      return;
++    }
++    state = AsyncData(
++      PhysioDay(
++        pain: day.pain,
++        protocols: [
++          for (final protocol in day.protocols)
++            PhysioProtocolDay(
++              id: protocol.id,
++              name: protocol.name,
++              painMoments: protocol.painMoments,
++              exercises: [
++                for (final e in protocol.exercises)
++                  if (e.id == exerciseId) e.markedDone() else e,
++              ],
++            ),
++        ],
++      ),
++    );
++  }
++
++  Future<void> recordPain({
++    String? protocolId,
++    required String moment,
++    required int value,
++    String bodyRegion = '',
++    String notes = '',
++  }) async {
++    await ref
++        .read(physioRepositoryProvider)
++        .recordPain(
++          protocolId: protocolId,
++          moment: moment,
++          value: value,
++          bodyRegion: bodyRegion,
++          notes: notes,
++        );
++    final day = state.value;
++    state = AsyncData(
++      PhysioDay(
++        protocols: day?.protocols ?? const [],
++        pain: [
++          ...?day?.pain,
++          PainEntry(moment: moment, value: value, datetime: DateTime.now()),
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/features/physio/providers/physio_today_notifier.g.dart b/lib/features/physio/providers/physio_today_notifier.g.dart
+new file mode 100644
+index 0000000..cdbcc98
+--- /dev/null
++++ b/lib/features/physio/providers/physio_today_notifier.g.dart
+@@ -0,0 +1,54 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'physio_today_notifier.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++
++@ProviderFor(PhysioTodayNotifier)
++final physioTodayProvider = PhysioTodayNotifierProvider._();
++
++final class PhysioTodayNotifierProvider
++    extends $AsyncNotifierProvider<PhysioTodayNotifier, PhysioDay> {
++  PhysioTodayNotifierProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'physioTodayProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$physioTodayNotifierHash();
++
++  @$internal
++  @override
++  PhysioTodayNotifier create() => PhysioTodayNotifier();
++}
++
++String _$physioTodayNotifierHash() => r'34f0fe7942dab49ffb042a13723d0cb10a1f624b';
++
++abstract class _$PhysioTodayNotifier extends $AsyncNotifier<PhysioDay> {
++  FutureOr<PhysioDay> build();
++  @$mustCallSuper
++  @override
++  WhenComplete runBuild() {
++    final ref = this.ref as $Ref<AsyncValue<PhysioDay>, PhysioDay>;
++    final element =
++        ref.element
++            as $ClassProviderElement<
++              AnyNotifier<AsyncValue<PhysioDay>, PhysioDay>,
++              AsyncValue<PhysioDay>,
++              Object?,
++              Object?
++            >;
++    return element.handleCreate(ref, build);
++  }
++}
+diff --git a/lib/features/physio/screens/physio_today_screen.dart b/lib/features/physio/screens/physio_today_screen.dart
+new file mode 100644
+index 0000000..ec94587
+--- /dev/null
++++ b/lib/features/physio/screens/physio_today_screen.dart
+@@ -0,0 +1,292 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/misc.dart';
++import 'package:wger/core/widgets/progress_indicator.dart';
++import 'package:wger/features/physio/models/physio_day.dart';
++import 'package:wger/features/physio/providers/physio_today_notifier.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++String painMomentLabel(AppLocalizations i18n, String moment) => switch (moment) {
++  'before' => i18n.physioPainBefore,
++  'during' => i18n.physioPainDuring,
++  'after' => i18n.physioPainAfter,
++  'next_day' => i18n.physioPainNextDay,
++  _ => i18n.physioPainOther,
++};
++
++String exerciseLocationLabel(AppLocalizations i18n, String location) => switch (location) {
++  'home' => i18n.physioAtHome,
++  'gym' => i18n.physioAtGym,
++  'clinic' => i18n.physioAtClinic,
++  _ => '',
++};
++
++/// Today's physiotherapy: the exercises of the protocols and the pain
++class PhysioTodayScreen extends ConsumerWidget {
++  const PhysioTodayScreen({super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final today = ref.watch(physioTodayProvider);
++
++    return Scaffold(
++      appBar: AppBar(title: Text(i18n.physioToday)),
++      body: switch (today) {
++        AsyncValue(:final value?) => ListView(
++          padding: const EdgeInsets.all(8),
++          children: [
++            if (value.protocols.isEmpty)
++              Padding(padding: const EdgeInsets.all(16), child: Text(i18n.physioNoProtocol)),
++            for (final protocol in value.protocols)
++              Card(
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    ListTile(
++                      title: Text(protocol.name, style: Theme.of(context).textTheme.titleLarge),
++                    ),
++                    for (final exercise in protocol.exercises) PhysioExerciseTile(exercise),
++                  ],
++                ),
++              ),
++            Card(
++              child: Padding(
++                padding: const EdgeInsets.all(16),
++                child: PainForm(day: value),
++              ),
++            ),
++          ],
++        ),
++        AsyncValue(:final error?) => Center(child: Text(error.toString())),
++        _ => const CenteredProgressIndicator(),
++      },
++    );
++  }
++}
++
++class PhysioExerciseTile extends ConsumerWidget {
++  final PhysioExercise exercise;
++
++  const PhysioExerciseTile(this.exercise, {super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final dose = [
++      if (exercise.sets != null) i18n.physioSets(exercise.sets!),
++      if (exercise.repetitions != null) i18n.physioRepetitions(exercise.repetitions!),
++      if (exercise.durationSeconds != null) '${exercise.durationSeconds} s',
++      if (exercise.load.isNotEmpty) exercise.load,
++    ].join(' · ');
++    final where = exerciseLocationLabel(i18n, exercise.location);
++
++    return Padding(
++      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Text(exercise.name, style: Theme.of(context).textTheme.titleMedium),
++          if (dose.isNotEmpty) Text(dose),
++          if (where.isNotEmpty) Text(where, style: Theme.of(context).textTheme.bodySmall),
++          if (exercise.instructions.isNotEmpty) Text(exercise.instructions),
++          Wrap(
++            spacing: 8,
++            crossAxisAlignment: WrapCrossAlignment.center,
++            children: [
++              if (exercise.videoUrl.isNotEmpty)
++                TextButton.icon(
++                  icon: const Icon(Icons.play_circle),
++                  label: Text(i18n.physioWatchVideo),
++                  onPressed: () => launchURL(exercise.videoUrl, context),
++                ),
++              if (exercise.done)
++                Chip(avatar: const Icon(Icons.check), label: Text(i18n.physioDoneToday))
++              else
++                OutlinedButton(
++                  onPressed: () => _markDone(context, ref),
++                  child: Text(i18n.physioMarkDone),
++                ),
++            ],
++          ),
++        ],
++      ),
++    );
++  }
++
++  Future<void> _markDone(BuildContext context, WidgetRef ref) async {
++    try {
++      await ref.read(physioTodayProvider.notifier).markDone(exercise.id);
++    } catch (_) {
++      if (context.mounted) {
++        ScaffoldMessenger.of(context).showSnackBar(
++          SnackBar(content: Text(AppLocalizations.of(context).careSendFailed)),
++        );
++      }
++    }
++  }
++}
++
++/// Pain on the 0 to 10 scale, at a moment the physiotherapist asks for
++class PainForm extends ConsumerStatefulWidget {
++  final PhysioDay day;
++
++  const PainForm({super.key, required this.day});
++
++  @override
++  ConsumerState<PainForm> createState() => _PainFormState();
++}
++
++class _PainFormState extends ConsumerState<PainForm> {
++  final _form = GlobalKey<FormState>();
++  String? _protocolId;
++  late String _moment;
++  int? _value;
++  String _region = '';
++  String _notes = '';
++  bool _saving = false;
++
++  @override
++  void initState() {
++    super.initState();
++    _protocolId = widget.day.protocols.firstOrNull?.id;
++    _moment = _moments.first;
++  }
++
++  List<String> get _moments {
++    final protocol = widget.day.protocols.where((p) => p.id == _protocolId).firstOrNull;
++    return {...?protocol?.painMoments, 'other'}.toList();
++  }
++
++  void _say(String text) {
++    ScaffoldMessenger.of(context)
++      ..hideCurrentSnackBar()
++      ..showSnackBar(SnackBar(content: Text(text)));
++  }
++
++  Future<void> _save() async {
++    final i18n = AppLocalizations.of(context);
++    if (_value == null) {
++      _say(i18n.physioPainChooseValue);
++      return;
++    }
++    _form.currentState!.save();
++    setState(() => _saving = true);
++    try {
++      await ref
++          .read(physioTodayProvider.notifier)
++          .recordPain(
++            protocolId: _protocolId,
++            moment: _moment,
++            value: _value!,
++            bodyRegion: _region.trim(),
++            notes: _notes.trim(),
++          );
++      if (mounted) {
++        _form.currentState!.reset();
++        setState(() => _value = null);
++        _say(i18n.physioPainSaved);
++      }
++    } catch (_) {
++      if (mounted) {
++        _say(i18n.careSendFailed);
++      }
++    } finally {
++      if (mounted) {
++        setState(() => _saving = false);
++      }
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final i18n = AppLocalizations.of(context);
++    final protocols = widget.day.protocols;
++
++    return Form(
++      key: _form,
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Text(i18n.physioPainQuestion, style: Theme.of(context).textTheme.titleLarge),
++          if (protocols.length > 1)
++            DropdownButtonFormField<String>(
++              initialValue: _protocolId,
++              decoration: InputDecoration(labelText: i18n.physioProtocol),
++              items: [
++                for (final p in protocols) DropdownMenuItem(value: p.id, child: Text(p.name)),
++              ],
++              onChanged: (id) => setState(() {
++                _protocolId = id;
++                _moment = _moments.first;
++              }),
++            ),
++          DropdownButtonFormField<String>(
++            key: ValueKey(_protocolId),
++            initialValue: _moment,
++            decoration: InputDecoration(labelText: i18n.physioPainMoment),
++            items: [
++              for (final m in _moments)
++                DropdownMenuItem(value: m, child: Text(painMomentLabel(i18n, m))),
++            ],
++            onChanged: (m) => setState(() => _moment = m ?? 'other'),
++          ),
++          const SizedBox(height: 12),
++          Text(i18n.physioPainScale),
++          Wrap(
++            spacing: 4,
++            children: [
++              for (var v = 0; v <= 10; v++)
++                ChoiceChip(
++                  label: Text('$v'),
++                  selected: _value == v,
++                  onSelected: (_) => setState(() => _value = v),
++                ),
++            ],
++          ),
++          TextFormField(
++            decoration: InputDecoration(labelText: i18n.physioPainRegion),
++            maxLength: 50,
++            onSaved: (v) => _region = v ?? '',
++          ),
++          TextFormField(
++            decoration: InputDecoration(labelText: i18n.physioPainNotes),
++            maxLength: 500,
++            onSaved: (v) => _notes = v ?? '',
++          ),
++          FilledButton(
++            onPressed: _saving ? null : _save,
++            child: Text(i18n.physioPainRecord),
++          ),
++          if (widget.day.pain.isNotEmpty) ...[
++            const Divider(),
++            for (final entry in widget.day.pain)
++              ListTile(
++                dense: true,
++                title: Text(painMomentLabel(i18n, entry.moment)),
++                trailing: Text('${entry.value}/10'),
++              ),
++          ],
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index 8e8fc45..75be54f 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2140,5 +2140,53 @@
+   "careProfessionPhysio": "Physiotherapist",
+   "@careProfessionPhysio": {},
+   "careProfessionNutrition": "Nutritionist",
+-  "@careProfessionNutrition": {}
++  "@careProfessionNutrition": {},
++  "physioToday": "Today's physiotherapy",
++  "@physioToday": {},
++  "physioNoProtocol": "No physiotherapy protocol for today.",
++  "@physioNoProtocol": {},
++  "physioMarkDone": "Mark as done",
++  "@physioMarkDone": {},
++  "physioDoneToday": "Done today",
++  "@physioDoneToday": {},
++  "physioWatchVideo": "Watch video",
++  "@physioWatchVideo": {},
++  "physioSets": "{count, plural, one{{count} set} other{{count} sets}}",
++  "@physioSets": {"placeholders": {"count": {"type": "int"}}},
++  "physioRepetitions": "{count, plural, one{{count} repetition} other{{count} repetitions}}",
++  "@physioRepetitions": {"placeholders": {"count": {"type": "int"}}},
++  "physioAtHome": "At home",
++  "@physioAtHome": {},
++  "physioAtGym": "At the gym",
++  "@physioAtGym": {},
++  "physioAtClinic": "At the clinic",
++  "@physioAtClinic": {},
++  "physioPainQuestion": "How is the pain?",
++  "@physioPainQuestion": {},
++  "physioProtocol": "Protocol",
++  "@physioProtocol": {},
++  "physioPainMoment": "Moment",
++  "@physioPainMoment": {},
++  "physioPainBefore": "Before the exercises",
++  "@physioPainBefore": {},
++  "physioPainDuring": "During the exercises",
++  "@physioPainDuring": {},
++  "physioPainAfter": "After the exercises",
++  "@physioPainAfter": {},
++  "physioPainNextDay": "On the next day",
++  "@physioPainNextDay": {},
++  "physioPainOther": "Another moment",
++  "@physioPainOther": {},
++  "physioPainScale": "Intensity (0 = no pain, 10 = worst imaginable pain)",
++  "@physioPainScale": {},
++  "physioPainChooseValue": "Choose the intensity from 0 to 10.",
++  "@physioPainChooseValue": {},
++  "physioPainRegion": "Where it hurts (optional)",
++  "@physioPainRegion": {},
++  "physioPainNotes": "Notes (optional)",
++  "@physioPainNotes": {},
++  "physioPainRecord": "Record pain",
++  "@physioPainRecord": {},
++  "physioPainSaved": "Pain recorded.",
++  "@physioPainSaved": {}
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index 8e22188..697ab98 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1101,5 +1101,29 @@
+     "careInvitationConsent": "Ao aceitar, você autoriza este profissional a prescrever e acompanhar a sua parte de {area} e a ver o que você registrar nela. Seus dados dos outros módulos só são compartilhados se você autorizar depois, e você pode encerrar o acompanhamento quando quiser.",
+     "careProfessionTraining": "Profissional de Educação Física",
+     "careProfessionPhysio": "Fisioterapeuta",
+-    "careProfessionNutrition": "Nutricionista"
++    "careProfessionNutrition": "Nutricionista",
++    "physioToday": "Fisioterapia de hoje",
++    "physioNoProtocol": "Nenhum protocolo de fisioterapia para hoje.",
++    "physioMarkDone": "Marcar como feito",
++    "physioDoneToday": "Feito hoje",
++    "physioWatchVideo": "Ver vídeo",
++    "physioSets": "{count, plural, one{{count} série} other{{count} séries}}",
++    "physioRepetitions": "{count, plural, one{{count} repetição} other{{count} repetições}}",
++    "physioAtHome": "Em casa",
++    "physioAtGym": "Na academia",
++    "physioAtClinic": "Na clínica",
++    "physioPainQuestion": "Como está a dor?",
++    "physioProtocol": "Protocolo",
++    "physioPainMoment": "Momento",
++    "physioPainBefore": "Antes dos exercícios",
++    "physioPainDuring": "Durante os exercícios",
++    "physioPainAfter": "Depois dos exercícios",
++    "physioPainNextDay": "No dia seguinte",
++    "physioPainOther": "Outro momento",
++    "physioPainScale": "Intensidade (0 = sem dor, 10 = pior dor imaginável)",
++    "physioPainChooseValue": "Escolha a intensidade de 0 a 10.",
++    "physioPainRegion": "Local da dor (opcional)",
++    "physioPainNotes": "Observações (opcional)",
++    "physioPainRecord": "Registrar dor",
++    "physioPainSaved": "Dor registrada."
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index 7eb5e3a..a165e5b 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1286,5 +1286,29 @@
+     "careInvitationConsent": "Ao aceitar, você autoriza este profissional a prescrever e acompanhar a sua parte de {area} e a ver o que você registrar nela. Seus dados dos outros módulos só são compartilhados se você autorizar depois, e você pode encerrar o acompanhamento quando quiser.",
+     "careProfessionTraining": "Profissional de Educação Física",
+     "careProfessionPhysio": "Fisioterapeuta",
+-    "careProfessionNutrition": "Nutricionista"
++    "careProfessionNutrition": "Nutricionista",
++    "physioToday": "Fisioterapia de hoje",
++    "physioNoProtocol": "Nenhum protocolo de fisioterapia para hoje.",
++    "physioMarkDone": "Marcar como feito",
++    "physioDoneToday": "Feito hoje",
++    "physioWatchVideo": "Ver vídeo",
++    "physioSets": "{count, plural, one{{count} série} other{{count} séries}}",
++    "physioRepetitions": "{count, plural, one{{count} repetição} other{{count} repetições}}",
++    "physioAtHome": "Em casa",
++    "physioAtGym": "Na academia",
++    "physioAtClinic": "Na clínica",
++    "physioPainQuestion": "Como está a dor?",
++    "physioProtocol": "Protocolo",
++    "physioPainMoment": "Momento",
++    "physioPainBefore": "Antes dos exercícios",
++    "physioPainDuring": "Durante os exercícios",
++    "physioPainAfter": "Depois dos exercícios",
++    "physioPainNextDay": "No dia seguinte",
++    "physioPainOther": "Outro momento",
++    "physioPainScale": "Intensidade (0 = sem dor, 10 = pior dor imaginável)",
++    "physioPainChooseValue": "Escolha a intensidade de 0 a 10.",
++    "physioPainRegion": "Local da dor (opcional)",
++    "physioPainNotes": "Observações (opcional)",
++    "physioPainRecord": "Registrar dor",
++    "physioPainSaved": "Dor registrada."
+ }
+diff --git a/test/core/widgets/dashboard/widgets/care_test.dart b/test/core/widgets/dashboard/widgets/care_test.dart
+index 93c01a3..32f2547 100644
+--- a/test/core/widgets/dashboard/widgets/care_test.dart
++++ b/test/core/widgets/dashboard/widgets/care_test.dart
+@@ -81,6 +81,29 @@ void main() {
+     expect(find.text('Próximo atendimento'), findsOneWidget);
+     expect(find.textContaining('Retorno com Paula'), findsOneWidget);
+     expect(find.textContaining('14:30'), findsOneWidget);
++    // Followed by a physiotherapist: the physiotherapy of the day
++    expect(find.text('Fisioterapia de hoje'), findsOneWidget);
++  });
++
++  testWidgets('no physiotherapy entry without a physiotherapist', (tester) async {
++    await tester.pumpWidget(
++      render(
++        const CareOverview(
++          professionals: [
++            CareRelationship(
++              id: 'r2',
++              discipline: Discipline.nutrition,
++              status: 'active',
++              professionalName: 'Nina',
++            ),
++          ],
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++
++    expect(find.text('Nina'), findsOneWidget);
++    expect(find.text('Fisioterapia de hoje'), findsNothing);
+   });
+ 
+   testWidgets('hidden when nobody follows the user', (tester) async {
+diff --git a/test/features/physio/providers/physio_repository_test.dart b/test/features/physio/providers/physio_repository_test.dart
+new file mode 100644
+index 0000000..c699797
+--- /dev/null
++++ b/test/features/physio/providers/physio_repository_test.dart
+@@ -0,0 +1,116 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:convert';
++
++import 'package:flutter_test/flutter_test.dart';
++import 'package:http/http.dart' as http;
++import 'package:http/testing.dart';
++import 'package:wger/core/network/base_provider.dart';
++import 'package:wger/features/physio/providers/physio_repository.dart';
++
++void main() {
++  late List<http.Request> sent;
++
++  PhysioRepository answering(Map<String, dynamic> body) {
++    sent = [];
++    return PhysioRepository(
++      WgerBaseProvider(
++        serverUrl: 'https://almova.test',
++        client: MockClient((request) async {
++          sent.add(request);
++          return http.Response.bytes(
++            utf8.encode(json.encode(body)),
++            200,
++            headers: {'content-type': 'application/json'},
++          );
++        }),
++      ),
++    );
++  }
++
++  test("today's protocols and pain from the day of the user", () async {
++    final repository = answering({
++      'date': '2026-11-16',
++      'physio': {
++        'protocols': [
++          {
++            'id': 'p1',
++            'name': 'Joelho',
++            'pain_moments': ['before', 'after'],
++            'exercises': [
++              {
++                'id': 'e1',
++                'name': 'Ponte',
++                'sets': 3,
++                'repetitions': 12,
++                'duration_seconds': null,
++                'load': 'faixa vermelha',
++                'location': 'home',
++                'video_url': '',
++                'instructions': 'Devagar',
++                'done': true,
++              },
++            ],
++          },
++        ],
++        'pain': [
++          {
++            'moment': 'before',
++            'value': 4,
++            'datetime': '2026-11-16T10:00:00-03:00',
++            'protocol': 'p1',
++          },
++        ],
++      },
++    });
++
++    final day = await repository.fetchToday();
++
++    expect(sent.single.url.path, '/api/v2/care/my-day/');
++    expect(day.protocols.single.painMoments, ['before', 'after']);
++    expect(day.protocols.single.exercises.single.done, isTrue);
++    expect(day.protocols.single.exercises.single.load, 'faixa vermelha');
++    expect(day.pain.single.value, 4);
++  });
++
++  test('without physiotherapy the day is empty', () async {
++    final day = await answering({'date': '2026-11-16', 'physio': null}).fetchToday();
++
++    expect(day.protocols, isEmpty);
++    expect(day.pain, isEmpty);
++  });
++
++  test('marking done and recording pain', () async {
++    final repository = answering({});
++
++    await repository.markDone('e1');
++    await repository.recordPain(protocolId: 'p1', moment: 'after', value: 7, bodyRegion: 'joelho');
++
++    expect(sent[0].url.path, '/api/v2/exercise-record/');
++    expect(json.decode(sent[0].body), {'protocol_exercise': 'e1'});
++    expect(sent[1].url.path, '/api/v2/pain-record/');
++    expect(json.decode(sent[1].body), {
++      'protocol': 'p1',
++      'moment': 'after',
++      'value': 7,
++      'body_region': 'joelho',
++      'notes': '',
++    });
++  });
++}
+diff --git a/test/features/physio/screens/physio_today_screen_test.dart b/test/features/physio/screens/physio_today_screen_test.dart
+new file mode 100644
+index 0000000..1cc25d5
+--- /dev/null
++++ b/test/features/physio/screens/physio_today_screen_test.dart
+@@ -0,0 +1,143 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/features/physio/models/physio_day.dart';
++import 'package:wger/features/physio/providers/physio_repository.dart';
++import 'package:wger/features/physio/screens/physio_today_screen.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++import 'physio_today_screen_test.mocks.dart';
++
++const day = PhysioDay(
++  protocols: [
++    PhysioProtocolDay(
++      id: 'p1',
++      name: 'Reabilitação do joelho',
++      painMoments: ['after'],
++      exercises: [
++        PhysioExercise(
++          id: 'e1',
++          name: 'Ponte',
++          sets: 3,
++          repetitions: 1,
++          load: 'faixa vermelha',
++          location: 'home',
++          instructions: 'Suba devagar',
++        ),
++      ],
++    ),
++  ],
++);
++
++@GenerateMocks([PhysioRepository])
++void main() {
++  late MockPhysioRepository repository;
++
++  setUp(() {
++    repository = MockPhysioRepository();
++    when(repository.fetchToday()).thenAnswer((_) async => day);
++  });
++
++  Future<void> render(WidgetTester tester) async {
++    tester.view.physicalSize = const Size(1080, 3000);
++    tester.view.devicePixelRatio = 1;
++    addTearDown(tester.view.reset);
++    await tester.pumpWidget(
++      ProviderScope(
++        overrides: [physioRepositoryProvider.overrideWithValue(repository)],
++        child: const MaterialApp(
++          locale: Locale('pt', 'BR'),
++          localizationsDelegates: appLocalizationsDelegates,
++          supportedLocales: AppLocalizations.supportedLocales,
++          home: PhysioTodayScreen(),
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++  }
++
++  testWidgets('shows the exercise and marks it done', (tester) async {
++    when(repository.markDone('e1')).thenAnswer((_) async {});
++    await render(tester);
++
++    expect(find.text('Reabilitação do joelho'), findsOneWidget);
++    expect(find.text('3 séries · 1 repetição · faixa vermelha'), findsOneWidget);
++    expect(find.text('Em casa'), findsOneWidget);
++    expect(find.text('Suba devagar'), findsOneWidget);
++
++    await tester.tap(find.text('Marcar como feito'));
++    await tester.pumpAndSettle();
++
++    verify(repository.markDone('e1')).called(1);
++    expect(find.text('Feito hoje'), findsOneWidget);
++    expect(find.text('Marcar como feito'), findsNothing);
++  });
++
++  testWidgets('records the pain at a moment the physiotherapist asks for', (tester) async {
++    when(
++      repository.recordPain(
++        protocolId: anyNamed('protocolId'),
++        moment: anyNamed('moment'),
++        value: anyNamed('value'),
++        bodyRegion: anyNamed('bodyRegion'),
++        notes: anyNamed('notes'),
++      ),
++    ).thenAnswer((_) async {});
++    await render(tester);
++
++    // Without a value nothing is sent
++    await tester.tap(find.text('Registrar dor'));
++    await tester.pumpAndSettle();
++    expect(find.text('Escolha a intensidade de 0 a 10.'), findsOneWidget);
++
++    expect(find.text('Depois dos exercícios'), findsOneWidget);
++    await tester.tap(find.widgetWithText(ChoiceChip, '7'));
++    await tester.enterText(
++      find.widgetWithText(TextFormField, 'Local da dor (opcional)'),
++      ' joelho ',
++    );
++    await tester.tap(find.text('Registrar dor'));
++    await tester.pumpAndSettle();
++
++    verify(
++      repository.recordPain(
++        protocolId: 'p1',
++        moment: 'after',
++        value: 7,
++        bodyRegion: 'joelho',
++        notes: '',
++      ),
++    ).called(1);
++    expect(find.text('7/10'), findsOneWidget);
++    expect(find.text('Dor registrada.'), findsOneWidget);
++  });
++
++  testWidgets('without a protocol it says so and still takes the pain', (tester) async {
++    when(repository.fetchToday()).thenAnswer((_) async => const PhysioDay());
++    await render(tester);
++
++    expect(find.text('Nenhum protocolo de fisioterapia para hoje.'), findsOneWidget);
++    expect(find.text('Outro momento'), findsOneWidget);
++  });
++}
+diff --git a/test/features/physio/screens/physio_today_screen_test.mocks.dart b/test/features/physio/screens/physio_today_screen_test.mocks.dart
+new file mode 100644
+index 0000000..e5b74ba
+--- /dev/null
++++ b/test/features/physio/screens/physio_today_screen_test.mocks.dart
+@@ -0,0 +1,97 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/physio/screens/physio_today_screen_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i5;
++
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/physio/models/physio_day.dart' as _i3;
++import 'package:wger/features/physio/providers/physio_repository.dart' as _i4;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakePhysioDay_1 extends _i1.SmartFake implements _i3.PhysioDay {
++  _FakePhysioDay_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [PhysioRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockPhysioRepository extends _i1.Mock implements _i4.PhysioRepository {
++  MockPhysioRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i5.Future<_i3.PhysioDay> fetchToday() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchToday, []),
++            returnValue: _i5.Future<_i3.PhysioDay>.value(
++              _FakePhysioDay_1(this, Invocation.method(#fetchToday, [])),
++            ),
++          )
++          as _i5.Future<_i3.PhysioDay>);
++
++  @override
++  _i5.Future<void> markDone(String? protocolExerciseId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markDone, [protocolExerciseId]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> recordPain({
++    String? protocolId,
++    required String? moment,
++    required int? value,
++    String? bodyRegion = '',
++    String? notes = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(#recordPain, [], {
++              #protocolId: protocolId,
++              #moment: moment,
++              #value: value,
++              #bodyRegion: bodyRegion,
++              #notes: notes,
++            }),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++}
+-- 
+2.43.0
+
