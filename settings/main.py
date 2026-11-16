@@ -293,6 +293,8 @@ MFA_TOTP_ISSUER = env.str('MFA_TOTP_ISSUER', WEB_APP_NAME)
 CARE_PROFESSIONAL_MFA = env.bool('CARE_PROFESSIONAL_MFA', True)
 # Days a professional stays logged in, counted from the login; 0 is off
 CARE_PROFESSIONAL_LOGIN_DAYS = env.int('CARE_PROFESSIONAL_LOGIN_DAYS', 30)
+# URL scheme of the mobile app for the browser login (the ALMOVA app: almova)
+APP_AUTH_SCHEME = env.str('APP_AUTH_SCHEME', 'almova')
 
 # Push notices through Firebase Cloud Messaging; mount the service account key
 # as a secret file, never in an environment variable

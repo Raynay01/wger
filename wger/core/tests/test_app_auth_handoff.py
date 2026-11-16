@@ -18,6 +18,7 @@ from urllib.parse import (
 )
 
 # Django
+from django.test import override_settings
 from django.urls import reverse
 
 # wger
@@ -85,3 +86,11 @@ class AppAuthHandoffTestCase(WgerTestCase):
         self.assertEqual(parsed.query, '')
         self.assertTrue(parsed.fragment.startswith('token='))
         self.assertGreater(len(parsed.fragment), len('token='))
+
+    @override_settings(APP_AUTH_SCHEME='almova')
+    def test_scheme_from_the_settings(self):
+        """The token goes to the app of this installation, not to another app on the phone"""
+        self.user_login('test')
+        response = self.client.get(reverse('core:user:app-auth-handoff'))
+        self.assertContains(response, 'almova://app-auth#token=')
+        self.assertNotContains(response, 'wger://')
