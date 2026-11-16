@@ -1,0 +1,76 @@
+From 303bb925b1b38037ce5371803575c4abaa4c3c22 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 16 Nov 2026 15:29:06 +0000
+Subject: [PATCH 5/5] Expect the follow-up card first in the dashboard order
+ tests
+
+The follow-up card is the first dashboard widget now, so the default
+order, the order after loading a stored arrangement (the missing cards are
+inserted at their default positions) and the drag test start with it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ test/core/app_settings_notifier_test.dart            | 12 +++++++-----
+ .../widgets/settings/dashboard_visibility_test.dart  |  8 ++++----
+ 2 files changed, 11 insertions(+), 9 deletions(-)
+
+diff --git a/test/core/app_settings_notifier_test.dart b/test/core/app_settings_notifier_test.dart
+index 96f6fa0..1128de4 100644
+--- a/test/core/app_settings_notifier_test.dart
++++ b/test/core/app_settings_notifier_test.dart
+@@ -51,6 +51,7 @@ void main() {
+       expect(
+         items.allWidgets,
+         orderedEquals([
++          DashboardWidget.care,
+           DashboardWidget.trophies,
+           DashboardWidget.routines,
+           DashboardWidget.nutrition,
+@@ -119,11 +120,12 @@ void main() {
+       final items = settings.dashboardItems;
+ 
+       // Loaded: [nutrition, routines], then defaults insert around:
+-      // trophies (0) → 0, weight (3), measurements (4), calendar (5)
+-      expect(items.allWidgets[0], DashboardWidget.trophies);
+-      expect(items.allWidgets[1], DashboardWidget.nutrition);
+-      expect(items.allWidgets[2], DashboardWidget.routines);
+-      expect(items.allWidgets[3], DashboardWidget.weight);
++      // care (0) → 0, trophies (1) → 1, weight (4), measurements (5), calendar (6)
++      expect(items.allWidgets[0], DashboardWidget.care);
++      expect(items.allWidgets[1], DashboardWidget.trophies);
++      expect(items.allWidgets[2], DashboardWidget.nutrition);
++      expect(items.allWidgets[3], DashboardWidget.routines);
++      expect(items.allWidgets[4], DashboardWidget.weight);
+ 
+       expect(items.isWidgetVisible(DashboardWidget.nutrition), true);
+       expect(items.isWidgetVisible(DashboardWidget.routines), false);
+diff --git a/test/features/account/widgets/settings/dashboard_visibility_test.dart b/test/features/account/widgets/settings/dashboard_visibility_test.dart
+index 4d39a85..d11a528 100644
+--- a/test/features/account/widgets/settings/dashboard_visibility_test.dart
++++ b/test/features/account/widgets/settings/dashboard_visibility_test.dart
+@@ -105,9 +105,9 @@ void main() {
+     await tester.pumpAndSettle();
+ 
+     final initial = container.read(appSettingsProvider).requireValue.dashboardItems.visibleWidgets;
+-    expect(initial[0], DashboardWidget.trophies);
+-    expect(initial[1], DashboardWidget.routines);
+-    expect(initial[2], DashboardWidget.nutrition);
++    expect(initial[0], DashboardWidget.care);
++    expect(initial[1], DashboardWidget.trophies);
++    expect(initial[2], DashboardWidget.routines);
+ 
+     final handleFinder = find.byIcon(Icons.drag_handle);
+     final firstHandle = handleFinder.at(0);
+@@ -117,7 +117,7 @@ void main() {
+ 
+     final updated = container.read(appSettingsProvider).requireValue.dashboardItems.visibleWidgets;
+     expect(updated, isNot(orderedEquals(initial)));
+-    expect(updated.indexOf(DashboardWidget.trophies), greaterThan(0));
++    expect(updated.indexOf(DashboardWidget.care), greaterThan(0));
+   });
+ }
+ 
+-- 
+2.43.0
+
