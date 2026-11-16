@@ -302,6 +302,15 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
 ## Breaking API changes
 *(only relevant if you have your own scripts or interact with the REST API)*
 
+* Progress photos (gallery) are no longer public files. New uploads go to the
+  private storage (`DJANGO_PRIVATE_MEDIA_ROOT`) and the `image` field of
+  `/api/v2/gallery/` is now the address `/api/v2/gallery/{id}/file/`, which
+  serves the file to its owner only and needs the same authentication as the
+  rest of the API. The `image` column synced by PowerSync keeps the storage
+  path; clients load the file through that endpoint with their token instead
+  of building a `/media/` address. Photos from before are served from the
+  public media until `python3 manage.py copy-gallery-to-private` copies them
+  (it keeps the originals; `--delete-public` removes them once copied).
 * Creating exercises via `POST /api/v2/exercise/` now requires the `add_exercise`
   permission. Regular users should use `/api/v2/exercise-submission/`, which
   creates the exercise together with at least one translation.
@@ -313,4 +322,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   docker compose down powersync
   docker compose up -d web
   docker compose up -d powersync
+  ```
+
+  Then copy the progress photos to the private storage (the originals stay
+  until you add `--delete-public`):
+
+  ```bash
+  docker compose exec web python3 manage.py copy-gallery-to-private
   ```
