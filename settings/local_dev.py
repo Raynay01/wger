@@ -144,6 +144,7 @@ CSRF_TRUSTED_ORIGINS += ['http://localhost:3000', 'http://127.0.0.1:3000']
 
 # Professionals turn on two-step verification, as in production
 CARE_PROFESSIONAL_MFA = True
+CARE_PROFESSIONAL_LOGIN_DAYS = 30
 MFA_TOTP_ISSUER = WEB_APP_NAME
 
 # Import other local settings that are not in version control

@@ -1,6 +1,6 @@
 # ALMOVA: primeira fase de segurança (15 e 16/11/2026)
 
-Cada conjunto de mudanças tem a sua branch (`almova/seguranca-01` a `09`),
+Cada conjunto de mudanças tem a sua branch (`almova/seguranca-01` a `10`),
 juntada depois em `claude/happy-goldberg-8nupoc`. Nenhuma migração de banco,
 nenhum dado de paciente alterado.
 
@@ -17,6 +17,7 @@ nenhum dado de paciente alterado.
 | 7 | Versões fixadas por versão e digest; imagem do servidor com exatamente as versões do `uv.lock`, conferidas por hash; pilha de homologação em `extras/docker/almova` | Os 37 passos do teste no navegador contra a homologação (PostgreSQL 18.7, configurações de produção) |
 | 8 | Fotos do chat sem metadados (localização GPS, câmera); teste que impede qualquer lista da API de mostrar dados de outra pessoa | 173 tentativas de ler ou alterar registros de outras pessoas sem sucesso; o novo teste falha se uma lista vazar |
 | 9 | Política de conteúdo do Django aplicada por completo: scripts embutidos dos modelos de página com nonce, sem `onclick`, Swagger e Redoc ajustados, reCAPTCHA sem script embutido (`almova/seguranca-09-csp-django`) | Teste que varre todos os modelos de página (falha com um script sem nonce ou um `onclick`); navegador percorreu 37 páginas, a API navegável, o Swagger e o Redoc com as configurações de produção, sem nenhum bloqueio além do logotipo externo do Redoc |
+| 10 | Login dos profissionais dura no máximo 30 dias a partir da entrada, mesmo com renovação do token (`CARE_PROFESSIONAL_LOGIN_DAYS`); pacientes continuam com 120 dias (`almova/seguranca-10-login-profissional`) | Testes: renovação no dia 29 funciona, no dia 31 é recusada e o token antigo também; paciente segue entrando; sessão do navegador sai; desligado com 0 |
 
 Problemas encontrados e corrigidos no caminho:
 
@@ -46,5 +47,3 @@ Problemas encontrados e corrigidos no caminho:
    exige o ffmpeg no servidor (troca de dependência).
 5. **Registro de acesso**: hoje fica registrado quando o profissional lê dados
    compartilhados por outra área; leituras na própria área (diário, treinos) não.
-6. **Tempo de sessão**: o login dura até 120 dias com renovação. Para
-   profissionais, um prazo menor é mais seguro.
