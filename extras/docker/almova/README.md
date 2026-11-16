@@ -14,7 +14,7 @@ conteúdo). Assim, uma reinstalação usa exatamente os mesmos arquivos.
 | Banco | `postgres:18.7-alpine` |
 | Cache e filas | `redis:8.10.3-alpine` |
 | Sincronização offline | `journeyapps/powersync-service:1.28.3` |
-| Antivírus | `clamav/clamav:1.5.4` |
+| Antivírus | `clamav/clamav:1.5.4`; em ARM, `clamav-daemon` do `ubuntu:24.04` (pasta `clamav/`) |
 | Proxy | `nginx:1.30.6-alpine3.24` |
 | HTTPS (perfil `https`) | `caddy:2.11.9-alpine` |
 | Servidor (construído daqui) | base `wger/base:2026-11-01` (Ubuntu 24.04, Python 3.12), Node 24.22.3 só na construção, dependências Python exatamente as do `uv.lock`, conferidas por hash |
@@ -23,6 +23,23 @@ conteúdo). Assim, uma reinstalação usa exatamente os mesmos arquivos.
 
 Para atualizar uma versão: troque a etiqueta e o digest, construa, rode em
 homologação os testes da seção 4 e só então leve para produção.
+
+## Instalação automática
+
+Num servidor Ubuntu 24.04 novo (ARM ou x86), o `instalar.sh` faz tudo: Docker,
+portas, endereço no DuckDNS, senhas e chaves, HTTPS, dados de base. Passo a
+passo com servidor e endereço gratuitos:
+`planning/rp-performance/HOMOLOGACAO-GRATUITA.md`.
+
+```bash
+sudo bash instalar.sh
+```
+
+Em servidores ARM (como os gratuitos da Oracle) o antivírus é construído desta
+pasta (`clamav/`, via `compose.arm64.yml`): a imagem oficial do ClamAV só
+existe para x86. O script detecta e configura (`COMPOSE_FILE` no `.env`).
+
+As seções abaixo descrevem a instalação manual.
 
 ## 1. Preparar
 
