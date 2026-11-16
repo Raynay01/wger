@@ -200,6 +200,9 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   the docs.
 
 ### Bug fixes
+* Photos sent in the chat are encoded again without their metadata (EXIF:
+  location, camera, time), turned upright by their orientation first. Before,
+  the professional received the GPS location of the patient's photos.
 * The PowerSync sync rules for ALMOVA (`extras/powersync/sync_rules.yaml`)
   keep the drafts of prescribed routines and nutrition plans (with their
   meals, items and the foods only they use) off the patient's device. The

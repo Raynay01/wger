@@ -424,3 +424,42 @@ class AttachmentVirusScanTestCase(MessageScenarioMixin, BaseTestCase, APITestCas
                 attachment=SimpleUploadedFile('treino.mp4', VIDEO, content_type='video/mp4'),
             )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class PhotoMetadataTestCase(MessageScenarioMixin, BaseTestCase, APITestCase):
+    """Photos lose their metadata, such as the location, and keep their orientation"""
+
+    def jpeg_with_location(self) -> bytes:
+        exif = Image.Exif()
+        exif[0x0112] = 6  # Orientation: rotated 90 degrees
+        exif[0x010F] = 'Camera'
+        gps = exif.get_ifd(0x8825)
+        gps[1] = 'S'
+        gps[2] = (23.0, 33.0, 1.0)
+        gps[3] = 'W'
+        gps[4] = (46.0, 38.0, 2.0)
+        buffer = io.BytesIO()
+        Image.new('RGB', (16, 8), 'blue').save(buffer, format='JPEG', exif=exif)
+        return buffer.getvalue()
+
+    def test_location_removed(self):
+        response = self.send(
+            self.patient,
+            attachment=SimpleUploadedFile('foto.jpg', self.jpeg_with_location(), 'image/jpeg'),
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        message = Message.objects.get(pk=response.data['id'])
+        with message.attachment.open('rb') as handle:
+            stored = Image.open(handle)
+            stored.load()
+        self.assertEqual(stored.format, 'JPEG')
+        self.assertEqual(dict(stored.getexif()), {})
+        # Turned upright by the orientation before the metadata went away
+        self.assertEqual(stored.size, (8, 16))
+        self.assertEqual(response.data['attachment_name'], 'foto.jpg')
+
+    def test_photo_still_served(self):
+        response = self.send(self.patient, attachment=png_upload())
+        served = self.attachment(self.trainer, response.data['id'])
+        self.assertEqual(served.status_code, status.HTTP_200_OK)
+        self.assertEqual(served['Content-Type'], 'image/png')
