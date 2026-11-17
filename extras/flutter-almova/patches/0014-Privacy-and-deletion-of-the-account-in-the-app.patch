@@ -1,0 +1,1339 @@
+From 9f64c4624c27b2b8817535be3cd4dfd8d3cb74b7 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 02:42:58 +0000
+Subject: [PATCH 14/14] Privacy and deletion of the account in the app
+
+Stores require apps with accounts to let users ask for the deletion of
+their account from within the app. "Privacy and your data" in the
+settings has the texts and rules of the web app: what happens (the
+follow-ups end at once, the team deletes the account afterwards, records
+the law requires are kept), a request only after typing EXCLUIR, the
+pending request with the option to withdraw it, and the list of requests
+with their status. Downloading the data opens the privacy page of the
+website, where the file is downloaded; the app has no file sharing plugin
+and this needs none.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/features/account/widgets/settings.dart    |   9 +
+ lib/features/care/models/data_request.dart    |  55 +++++
+ lib/features/care/models/data_request.g.dart  |  18 ++
+ .../care/providers/care_repository.dart       |  17 ++
+ .../providers/data_requests_notifier.dart     |  45 ++++
+ .../providers/data_requests_notifier.g.dart   |  59 +++++
+ lib/features/care/screens/privacy_screen.dart | 205 +++++++++++++++++
+ lib/l10n/app_en.arb                           |  48 +++-
+ lib/l10n/app_pt.arb                           |  25 ++-
+ lib/l10n/app_pt_BR.arb                        |  25 ++-
+ .../providers/agenda_notifier_test.mocks.dart |  29 +++
+ .../providers/care_overview_test.mocks.dart   |  29 +++
+ .../care/providers/care_repository_test.dart  |  64 ++++++
+ .../conversation_notifier_test.mocks.dart     |  29 +++
+ .../screens/agenda_screen_test.mocks.dart     |  29 +++
+ .../conversation_screen_test.mocks.dart       |  29 +++
+ .../care/screens/privacy_screen_test.dart     | 121 ++++++++++
+ .../screens/privacy_screen_test.mocks.dart    | 210 ++++++++++++++++++
+ .../widgets/invitation_tile_test.mocks.dart   |  29 +++
+ 19 files changed, 1072 insertions(+), 3 deletions(-)
+ create mode 100644 lib/features/care/models/data_request.dart
+ create mode 100644 lib/features/care/models/data_request.g.dart
+ create mode 100644 lib/features/care/providers/data_requests_notifier.dart
+ create mode 100644 lib/features/care/providers/data_requests_notifier.g.dart
+ create mode 100644 lib/features/care/screens/privacy_screen.dart
+ create mode 100644 test/features/care/screens/privacy_screen_test.dart
+ create mode 100644 test/features/care/screens/privacy_screen_test.mocks.dart
+
+diff --git a/lib/features/account/widgets/settings.dart b/lib/features/account/widgets/settings.dart
+index a7b5844..7c1a5ea 100644
+--- a/lib/features/account/widgets/settings.dart
++++ b/lib/features/account/widgets/settings.dart
+@@ -25,6 +25,7 @@ import 'package:wger/features/account/widgets/settings/image_cache.dart';
+ import 'package:wger/features/account/widgets/settings/language.dart';
+ import 'package:wger/features/account/widgets/settings/theme.dart';
+ import 'package:wger/features/account/widgets/settings/verbose_logging.dart';
++import 'package:wger/features/care/screens/privacy_screen.dart';
+ import 'package:wger/features/routines/screens/settings_plates_screen.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+@@ -58,6 +59,14 @@ class SettingsPage extends StatelessWidget {
+                 style: Theme.of(context).textTheme.headlineSmall,
+               ),
+             ),
++            ListTile(
++              leading: const Icon(Icons.privacy_tip),
++              title: Text(i18n.privacyTitle),
++              trailing: const Icon(Icons.chevron_right),
++              onTap: () => Navigator.of(
++                context,
++              ).push(MaterialPageRoute(builder: (_) => const PrivacyScreen())),
++            ),
+             const SettingsDataPrivacy(),
+             const HealthSyncSettingsTile(),
+             ListTile(title: Text(i18n.others, style: Theme.of(context).textTheme.headlineSmall)),
+diff --git a/lib/features/care/models/data_request.dart b/lib/features/care/models/data_request.dart
+new file mode 100644
+index 0000000..1d9693c
+--- /dev/null
++++ b/lib/features/care/models/data_request.dart
+@@ -0,0 +1,55 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:json_annotation/json_annotation.dart';
++import 'package:wger/core/json.dart';
++
++part 'data_request.g.dart';
++
++/// A request about the user's data (Django `care.DataRequest`)
++@JsonSerializable(createToJson: false)
++class DataRequest {
++  @JsonKey(required: true)
++  final String id;
++
++  /// export or deletion
++  @JsonKey(required: true)
++  final String kind;
++
++  /// pending, done, cancelled or rejected
++  @JsonKey(required: true)
++  final String status;
++
++  @JsonKey(required: true, fromJson: utcIso8601ToLocalDate)
++  final DateTime created;
++
++  @JsonKey(defaultValue: '')
++  final String notes;
++
++  const DataRequest({
++    required this.id,
++    required this.kind,
++    required this.status,
++    required this.created,
++    this.notes = '',
++  });
++
++  bool get isPendingDeletion => kind == 'deletion' && status == 'pending';
++
++  factory DataRequest.fromJson(Map<String, dynamic> json) => _$DataRequestFromJson(json);
++}
+diff --git a/lib/features/care/models/data_request.g.dart b/lib/features/care/models/data_request.g.dart
+new file mode 100644
+index 0000000..1f441d6
+--- /dev/null
++++ b/lib/features/care/models/data_request.g.dart
+@@ -0,0 +1,18 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'data_request.dart';
++
++// **************************************************************************
++// JsonSerializableGenerator
++// **************************************************************************
++
++DataRequest _$DataRequestFromJson(Map<String, dynamic> json) {
++  $checkKeys(json, requiredKeys: const ['id', 'kind', 'status', 'created']);
++  return DataRequest(
++    id: json['id'] as String,
++    kind: json['kind'] as String,
++    status: json['status'] as String,
++    created: utcIso8601ToLocalDate(json['created'] as String),
++    notes: json['notes'] as String? ?? '',
++  );
++}
+diff --git a/lib/features/care/providers/care_repository.dart b/lib/features/care/providers/care_repository.dart
+index 331b836..2e6e180 100644
+--- a/lib/features/care/providers/care_repository.dart
++++ b/lib/features/care/providers/care_repository.dart
+@@ -30,6 +30,7 @@ import 'package:wger/core/network/base_provider.dart';
+ import 'package:wger/core/network/wger_base.dart';
+ import 'package:wger/features/care/models/appointment.dart';
+ import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/models/data_request.dart';
+ import 'package:wger/features/care/models/message.dart';
+ 
+ part 'care_repository.g.dart';
+@@ -42,6 +43,7 @@ class CareRepository {
+   static const relationshipPath = 'care-relationship';
+   static const appointmentPath = 'appointment';
+   static const messagePath = 'care-message';
++  static const dataRequestPath = 'data-request';
+ 
+   final WgerBaseProvider base;
+ 
+@@ -174,4 +176,19 @@ class CareRepository {
+       throw WgerHttpException(response);
+     }
+   }
++
++  /// The user's requests about their data, newest first
++  Future<List<DataRequest>> fetchDataRequests() async {
++    final data = await base.fetchPaginated(
++      base.makeUrl(dataRequestPath, query: {'limit': API_MAX_PAGE_SIZE}),
++    );
++    return data.map((e) => DataRequest.fromJson(e as Map<String, dynamic>)).toList()
++      ..sort((a, b) => b.created.compareTo(a.created));
++  }
++
++  /// Asks for the deletion of the account: the follow-ups end at once, the
++  /// team deletes the account afterwards
++  Future<void> requestDeletion() => _postAction(dataRequestPath, {'confirm': true});
++
++  Future<void> cancelDataRequest(String id) => _postAction('$dataRequestPath/$id/cancel', {});
+ }
+diff --git a/lib/features/care/providers/data_requests_notifier.dart b/lib/features/care/providers/data_requests_notifier.dart
+new file mode 100644
+index 0000000..875b812
+--- /dev/null
++++ b/lib/features/care/providers/data_requests_notifier.dart
+@@ -0,0 +1,45 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/features/care/models/data_request.dart';
++import 'package:wger/features/care/providers/care_overview.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++part 'data_requests_notifier.g.dart';
++
++/// The user's requests about their data (LGPD), newest first
++@riverpod
++class DataRequestsNotifier extends _$DataRequestsNotifier {
++  @override
++  Future<List<DataRequest>> build() => ref.read(careRepositoryProvider).fetchDataRequests();
++
++  Future<void> requestDeletion() async {
++    await ref.read(careRepositoryProvider).requestDeletion();
++    // The follow-ups ended
++    ref.invalidate(careOverviewProvider);
++    ref.invalidateSelf();
++    await future;
++  }
++
++  Future<void> cancel(String id) async {
++    await ref.read(careRepositoryProvider).cancelDataRequest(id);
++    ref.invalidateSelf();
++    await future;
++  }
++}
+diff --git a/lib/features/care/providers/data_requests_notifier.g.dart b/lib/features/care/providers/data_requests_notifier.g.dart
+new file mode 100644
+index 0000000..77d5bea
+--- /dev/null
++++ b/lib/features/care/providers/data_requests_notifier.g.dart
+@@ -0,0 +1,59 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'data_requests_notifier.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++/// The user's requests about their data (LGPD), newest first
++
++@ProviderFor(DataRequestsNotifier)
++final dataRequestsProvider = DataRequestsNotifierProvider._();
++
++/// The user's requests about their data (LGPD), newest first
++final class DataRequestsNotifierProvider
++    extends $AsyncNotifierProvider<DataRequestsNotifier, List<DataRequest>> {
++  /// The user's requests about their data (LGPD), newest first
++  DataRequestsNotifierProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'dataRequestsProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$dataRequestsNotifierHash();
++
++  @$internal
++  @override
++  DataRequestsNotifier create() => DataRequestsNotifier();
++}
++
++String _$dataRequestsNotifierHash() => r'43b500b7cbe213cf1936d90dc9e858be2dfb44aa';
++
++/// The user's requests about their data (LGPD), newest first
++
++abstract class _$DataRequestsNotifier extends $AsyncNotifier<List<DataRequest>> {
++  FutureOr<List<DataRequest>> build();
++  @$mustCallSuper
++  @override
++  WhenComplete runBuild() {
++    final ref = this.ref as $Ref<AsyncValue<List<DataRequest>>, List<DataRequest>>;
++    final element =
++        ref.element
++            as $ClassProviderElement<
++              AnyNotifier<AsyncValue<List<DataRequest>>, List<DataRequest>>,
++              AsyncValue<List<DataRequest>>,
++              Object?,
++              Object?
++            >;
++    return element.handleCreate(ref, build);
++  }
++}
+diff --git a/lib/features/care/screens/privacy_screen.dart b/lib/features/care/screens/privacy_screen.dart
+new file mode 100644
+index 0000000..c620844
+--- /dev/null
++++ b/lib/features/care/screens/privacy_screen.dart
+@@ -0,0 +1,205 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:intl/intl.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/misc.dart';
++import 'package:wger/core/network/wger_base.dart';
++import 'package:wger/core/widgets/progress_indicator.dart';
++import 'package:wger/features/care/models/data_request.dart';
++import 'package:wger/features/care/providers/data_requests_notifier.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++/// What the user typed to confirm the deletion of the account
++const deletionConfirmationWord = 'EXCLUIR';
++
++/// LGPD: download the data (on the website) and ask for the deletion of the
++/// account, as stores require from apps with accounts
++class PrivacyScreen extends ConsumerWidget {
++  static const routeName = '/privacy';
++
++  const PrivacyScreen({super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final requests = ref.watch(dataRequestsProvider);
++    final serverUrl = ref.watch(wgerBaseProvider).serverUrl;
++
++    return Scaffold(
++      appBar: AppBar(title: Text(i18n.privacyTitle)),
++      body: ListView(
++        padding: const EdgeInsets.all(16),
++        children: [
++          Text(i18n.privacyIntro),
++          const SizedBox(height: 16),
++          Card(
++            child: Padding(
++              padding: const EdgeInsets.all(16),
++              child: Column(
++                crossAxisAlignment: CrossAxisAlignment.start,
++                children: [
++                  Text(i18n.privacyDownloadTitle, style: Theme.of(context).textTheme.titleLarge),
++                  const SizedBox(height: 8),
++                  Text(i18n.privacyDownloadText),
++                  const SizedBox(height: 8),
++                  if (serverUrl != null)
++                    OutlinedButton.icon(
++                      icon: const Icon(Icons.open_in_new),
++                      label: Text(i18n.privacyDownloadOnWebsite),
++                      onPressed: () => launchURL('$serverUrl/app/privacidade', context),
++                    ),
++                ],
++              ),
++            ),
++          ),
++          switch (requests) {
++            AsyncValue(:final value?) => _Deletion(requests: value),
++            AsyncValue(:final error?) => Text(error.toString()),
++            _ => const CenteredProgressIndicator(),
++          },
++        ],
++      ),
++    );
++  }
++}
++
++class _Deletion extends ConsumerStatefulWidget {
++  final List<DataRequest> requests;
++
++  const _Deletion({required this.requests});
++
++  @override
++  ConsumerState<_Deletion> createState() => _DeletionState();
++}
++
++class _DeletionState extends ConsumerState<_Deletion> {
++  String _confirmation = '';
++  bool _busy = false;
++
++  Future<void> _run(Future<void> Function() action, String done) async {
++    final messenger = ScaffoldMessenger.of(context);
++    final failed = AppLocalizations.of(context).careSendFailed;
++    setState(() => _busy = true);
++    try {
++      await action();
++      messenger
++        ..hideCurrentSnackBar()
++        ..showSnackBar(SnackBar(content: Text(done)));
++    } catch (_) {
++      messenger
++        ..hideCurrentSnackBar()
++        ..showSnackBar(SnackBar(content: Text(failed)));
++    } finally {
++      if (mounted) {
++        setState(() => _busy = false);
++      }
++    }
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final i18n = AppLocalizations.of(context);
++    final locale = Localizations.localeOf(context).toString();
++    String when(DateTime d) => DateFormat.yMd(locale).add_Hm().format(d);
++    final pending = widget.requests.where((r) => r.isPendingDeletion).firstOrNull;
++    final notifier = ref.read(dataRequestsProvider.notifier);
++
++    return Column(
++      crossAxisAlignment: CrossAxisAlignment.stretch,
++      children: [
++        Card(
++          child: Padding(
++            padding: const EdgeInsets.all(16),
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                Text(i18n.privacyDeleteTitle, style: Theme.of(context).textTheme.titleLarge),
++                const SizedBox(height: 8),
++                if (pending != null) ...[
++                  Text(i18n.privacyDeletionPending(when(pending.created))),
++                  const SizedBox(height: 8),
++                  OutlinedButton(
++                    onPressed: _busy
++                        ? null
++                        : () => _run(
++                            () => notifier.cancel(pending.id),
++                            i18n.privacyDeletionCancelled,
++                          ),
++                    child: Text(i18n.privacyCancelDeletion),
++                  ),
++                ] else ...[
++                  Text(i18n.privacyWhatHappens),
++                  Text('• ${i18n.privacyDeletionNow}'),
++                  Text('• ${i18n.privacyDeletionLater}'),
++                  Text('• ${i18n.privacyDeletionCopyFirst}'),
++                  TextField(
++                    autocorrect: false,
++                    decoration: InputDecoration(labelText: i18n.privacyTypeToConfirm),
++                    onChanged: (v) => setState(() => _confirmation = v),
++                  ),
++                  const SizedBox(height: 8),
++                  FilledButton(
++                    style: FilledButton.styleFrom(
++                      backgroundColor: Theme.of(context).colorScheme.error,
++                      foregroundColor: Theme.of(context).colorScheme.onError,
++                    ),
++                    onPressed:
++                        _busy || _confirmation.trim().toUpperCase() != deletionConfirmationWord
++                        ? null
++                        : () => _run(notifier.requestDeletion, i18n.privacyDeletionRequested),
++                    child: Text(i18n.privacyRequestDeletion),
++                  ),
++                ],
++              ],
++            ),
++          ),
++        ),
++        if (widget.requests.isNotEmpty)
++          Card(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              children: [
++                ListTile(
++                  title: Text(
++                    i18n.privacyYourRequests,
++                    style: Theme.of(context).textTheme.titleLarge,
++                  ),
++                ),
++                for (final r in widget.requests)
++                  ListTile(
++                    title: Text(
++                      '${r.kind == 'deletion' ? i18n.privacyKindDeletion : i18n.privacyKindExport}'
++                      ' · ${when(r.created)}',
++                    ),
++                    subtitle: r.notes.isEmpty ? null : Text(r.notes),
++                    trailing: Text(switch (r.status) {
++                      'pending' => i18n.privacyStatusPending,
++                      'done' => i18n.privacyStatusDone,
++                      'cancelled' => i18n.privacyStatusCancelled,
++                      _ => i18n.privacyStatusRejected,
++                    }),
++                  ),
++              ],
++            ),
++          ),
++      ],
++    );
++  }
++}
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index 75be54f..b5fbd7a 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2188,5 +2188,51 @@
+   "physioPainRecord": "Record pain",
+   "@physioPainRecord": {},
+   "physioPainSaved": "Pain recorded.",
+-  "@physioPainSaved": {}
++  "@physioPainSaved": {},
++  "privacyTitle": "Privacy and your data",
++  "@privacyTitle": {},
++  "privacyIntro": "Under the Brazilian data protection law (LGPD) you can see everything we keep about you, take your data to another service and ask for the deletion of your account.",
++  "@privacyIntro": {},
++  "privacyDownloadTitle": "Download my data",
++  "@privacyDownloadTitle": {},
++  "privacyDownloadText": "A file with your account, consents, professionals, what you shared and who accessed it, plans, food diary, water, workouts, measurements, photos, physiotherapy and assessments.",
++  "@privacyDownloadText": {},
++  "privacyDownloadOnWebsite": "Download on the website",
++  "@privacyDownloadOnWebsite": {},
++  "privacyDeleteTitle": "Delete my account",
++  "@privacyDeleteTitle": {},
++  "privacyWhatHappens": "What happens:",
++  "@privacyWhatHappens": {},
++  "privacyDeletionNow": "Right away: all follow-ups end and nothing is shared anymore.",
++  "@privacyDeletionNow": {},
++  "privacyDeletionLater": "Afterwards: the team deletes your account and your data. If a professional keeps clinical records the law requires (medical records), we tell you what has to be kept.",
++  "@privacyDeletionLater": {},
++  "privacyDeletionCopyFirst": "If you want a copy, download your data first.",
++  "@privacyDeletionCopyFirst": {},
++  "privacyTypeToConfirm": "Type EXCLUIR to confirm",
++  "@privacyTypeToConfirm": {"description": "The word stays EXCLUIR in every language"},
++  "privacyRequestDeletion": "Ask for the deletion of the account",
++  "@privacyRequestDeletion": {},
++  "privacyDeletionRequested": "Deletion request recorded. Your follow-ups have ended.",
++  "@privacyDeletionRequested": {},
++  "privacyDeletionPending": "Your deletion request of {date} is being reviewed. Your professionals no longer follow you or see your data.",
++  "@privacyDeletionPending": {"placeholders": {"date": {"type": "String"}}},
++  "privacyCancelDeletion": "Withdraw the deletion",
++  "@privacyCancelDeletion": {},
++  "privacyDeletionCancelled": "Deletion request withdrawn.",
++  "@privacyDeletionCancelled": {},
++  "privacyYourRequests": "Your requests",
++  "@privacyYourRequests": {},
++  "privacyKindDeletion": "Account deletion",
++  "@privacyKindDeletion": {},
++  "privacyKindExport": "Data export",
++  "@privacyKindExport": {},
++  "privacyStatusPending": "Being reviewed",
++  "@privacyStatusPending": {},
++  "privacyStatusDone": "Done",
++  "@privacyStatusDone": {},
++  "privacyStatusCancelled": "Cancelled",
++  "@privacyStatusCancelled": {},
++  "privacyStatusRejected": "Refused",
++  "@privacyStatusRejected": {}
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index 697ab98..52dffce 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1125,5 +1125,28 @@
+     "physioPainRegion": "Local da dor (opcional)",
+     "physioPainNotes": "Observações (opcional)",
+     "physioPainRecord": "Registrar dor",
+-    "physioPainSaved": "Dor registrada."
++    "physioPainSaved": "Dor registrada.",
++    "privacyTitle": "Privacidade e seus dados",
++    "privacyIntro": "Pela Lei Geral de Proteção de Dados (LGPD), você pode ver tudo o que guardamos sobre você, levar seus dados para outro serviço e pedir a exclusão da sua conta.",
++    "privacyDownloadTitle": "Baixar meus dados",
++    "privacyDownloadText": "Um arquivo com sua conta, consentimentos, profissionais, o que você compartilhou e quem acessou, planos, diário alimentar, água, treinos, medidas, fotos, fisioterapia e avaliações.",
++    "privacyDownloadOnWebsite": "Baixar pelo site",
++    "privacyDeleteTitle": "Excluir minha conta",
++    "privacyWhatHappens": "O que acontece:",
++    "privacyDeletionNow": "Na hora: todos os acompanhamentos são encerrados e nada mais é compartilhado.",
++    "privacyDeletionLater": "Depois: a equipe do app exclui a sua conta e os seus dados. Se um profissional tiver registros clínicos que a lei obriga a guardar (prontuário), avisamos você sobre o que precisa ser mantido.",
++    "privacyDeletionCopyFirst": "Se quiser uma cópia, baixe os seus dados antes.",
++    "privacyTypeToConfirm": "Digite EXCLUIR para confirmar",
++    "privacyRequestDeletion": "Pedir a exclusão da conta",
++    "privacyDeletionRequested": "Pedido de exclusão registrado. Seus acompanhamentos foram encerrados.",
++    "privacyDeletionPending": "Seu pedido de exclusão de {date} está em análise. Seus profissionais já não acompanham você nem veem os seus dados.",
++    "privacyCancelDeletion": "Desistir da exclusão",
++    "privacyDeletionCancelled": "Pedido de exclusão cancelado.",
++    "privacyYourRequests": "Seus pedidos",
++    "privacyKindDeletion": "Exclusão da conta",
++    "privacyKindExport": "Exportação dos dados",
++    "privacyStatusPending": "Em análise",
++    "privacyStatusDone": "Concluído",
++    "privacyStatusCancelled": "Cancelado",
++    "privacyStatusRejected": "Recusado"
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index a165e5b..a736c9b 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1310,5 +1310,28 @@
+     "physioPainRegion": "Local da dor (opcional)",
+     "physioPainNotes": "Observações (opcional)",
+     "physioPainRecord": "Registrar dor",
+-    "physioPainSaved": "Dor registrada."
++    "physioPainSaved": "Dor registrada.",
++    "privacyTitle": "Privacidade e seus dados",
++    "privacyIntro": "Pela Lei Geral de Proteção de Dados (LGPD), você pode ver tudo o que guardamos sobre você, levar seus dados para outro serviço e pedir a exclusão da sua conta.",
++    "privacyDownloadTitle": "Baixar meus dados",
++    "privacyDownloadText": "Um arquivo com sua conta, consentimentos, profissionais, o que você compartilhou e quem acessou, planos, diário alimentar, água, treinos, medidas, fotos, fisioterapia e avaliações.",
++    "privacyDownloadOnWebsite": "Baixar pelo site",
++    "privacyDeleteTitle": "Excluir minha conta",
++    "privacyWhatHappens": "O que acontece:",
++    "privacyDeletionNow": "Na hora: todos os acompanhamentos são encerrados e nada mais é compartilhado.",
++    "privacyDeletionLater": "Depois: a equipe do app exclui a sua conta e os seus dados. Se um profissional tiver registros clínicos que a lei obriga a guardar (prontuário), avisamos você sobre o que precisa ser mantido.",
++    "privacyDeletionCopyFirst": "Se quiser uma cópia, baixe os seus dados antes.",
++    "privacyTypeToConfirm": "Digite EXCLUIR para confirmar",
++    "privacyRequestDeletion": "Pedir a exclusão da conta",
++    "privacyDeletionRequested": "Pedido de exclusão registrado. Seus acompanhamentos foram encerrados.",
++    "privacyDeletionPending": "Seu pedido de exclusão de {date} está em análise. Seus profissionais já não acompanham você nem veem os seus dados.",
++    "privacyCancelDeletion": "Desistir da exclusão",
++    "privacyDeletionCancelled": "Pedido de exclusão cancelado.",
++    "privacyYourRequests": "Seus pedidos",
++    "privacyKindDeletion": "Exclusão da conta",
++    "privacyKindExport": "Exportação dos dados",
++    "privacyStatusPending": "Em análise",
++    "privacyStatusDone": "Concluído",
++    "privacyStatusCancelled": "Cancelado",
++    "privacyStatusRejected": "Recusado"
+ }
+diff --git a/test/features/care/providers/agenda_notifier_test.mocks.dart b/test/features/care/providers/agenda_notifier_test.mocks.dart
+index 2260e91..abd079c 100644
+--- a/test/features/care/providers/agenda_notifier_test.mocks.dart
++++ b/test/features/care/providers/agenda_notifier_test.mocks.dart
+@@ -12,6 +12,7 @@ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+ import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/data_request.dart' as _i10;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+ import 'package:wger/features/care/providers/care_repository.dart' as _i4;
+ 
+@@ -178,4 +179,32 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValueForMissingStub: _i5.Future<void>.value(),
+           )
+           as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
++              <_i10.DataRequest>[],
++            ),
++          )
++          as _i5.Future<List<_i10.DataRequest>>);
++
++  @override
++  _i5.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+diff --git a/test/features/care/providers/care_overview_test.mocks.dart b/test/features/care/providers/care_overview_test.mocks.dart
+index 876855f..9db496c 100644
+--- a/test/features/care/providers/care_overview_test.mocks.dart
++++ b/test/features/care/providers/care_overview_test.mocks.dart
+@@ -12,6 +12,7 @@ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+ import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/data_request.dart' as _i10;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+ import 'package:wger/features/care/providers/care_repository.dart' as _i4;
+ 
+@@ -178,4 +179,32 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValueForMissingStub: _i5.Future<void>.value(),
+           )
+           as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
++              <_i10.DataRequest>[],
++            ),
++          )
++          as _i5.Future<List<_i10.DataRequest>>);
++
++  @override
++  _i5.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+diff --git a/test/features/care/providers/care_repository_test.dart b/test/features/care/providers/care_repository_test.dart
+index 698a293..69a94b1 100644
+--- a/test/features/care/providers/care_repository_test.dart
++++ b/test/features/care/providers/care_repository_test.dart
+@@ -293,4 +293,68 @@ void main() {
+       expect(sent[1].url.path, '/api/v2/care-relationship/r8/decline/');
+     });
+   });
++
++  group('data requests', () {
++    late List<http.Request> sent;
++
++    CareRepository answeringRequests(String body) {
++      sent = [];
++      return CareRepository(
++        WgerBaseProvider(
++          serverUrl: 'https://almova.test',
++          client: MockClient((request) async {
++            sent.add(request);
++            return http.Response.bytes(
++              utf8.encode(body),
++              200,
++              headers: {'content-type': 'application/json'},
++            );
++          }),
++        ),
++      );
++    }
++
++    test('the requests of the user, newest first', () async {
++      final repository = answeringRequests(
++        json.encode({
++          'count': 2,
++          'next': null,
++          'results': [
++            {
++              'id': 'd1',
++              'kind': 'export',
++              'status': 'done',
++              'created': '2026-11-01T10:00:00Z',
++              'notes': '',
++            },
++            {
++              'id': 'd2',
++              'kind': 'deletion',
++              'status': 'pending',
++              'created': '2026-11-16T10:00:00Z',
++              'notes': '',
++            },
++          ],
++        }),
++      );
++
++      final requests = await repository.fetchDataRequests();
++
++      expect(requests.map((r) => r.id), ['d2', 'd1']);
++      expect(requests.first.isPendingDeletion, isTrue);
++      expect(sent.single.url.path, '/api/v2/data-request/');
++    });
++
++    test('asking for the deletion confirms it, withdrawing cancels it', () async {
++      final repository = answeringRequests('{}');
++
++      await repository.requestDeletion();
++      await repository.cancelDataRequest('d2');
++
++      expect(sent[0].method, 'POST');
++      expect(sent[0].url.path, '/api/v2/data-request/');
++      expect(json.decode(sent[0].body), {'confirm': true});
++      expect(sent[1].url.path, '/api/v2/data-request/d2/cancel/');
++    });
++  });
+ }
+diff --git a/test/features/care/providers/conversation_notifier_test.mocks.dart b/test/features/care/providers/conversation_notifier_test.mocks.dart
+index 99d5182..7c5680e 100644
+--- a/test/features/care/providers/conversation_notifier_test.mocks.dart
++++ b/test/features/care/providers/conversation_notifier_test.mocks.dart
+@@ -12,6 +12,7 @@ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+ import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/data_request.dart' as _i10;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+ import 'package:wger/features/care/providers/care_repository.dart' as _i4;
+ 
+@@ -178,4 +179,32 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValueForMissingStub: _i5.Future<void>.value(),
+           )
+           as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
++              <_i10.DataRequest>[],
++            ),
++          )
++          as _i5.Future<List<_i10.DataRequest>>);
++
++  @override
++  _i5.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+diff --git a/test/features/care/screens/agenda_screen_test.mocks.dart b/test/features/care/screens/agenda_screen_test.mocks.dart
+index 9c9896a..e1a26d5 100644
+--- a/test/features/care/screens/agenda_screen_test.mocks.dart
++++ b/test/features/care/screens/agenda_screen_test.mocks.dart
+@@ -12,6 +12,7 @@ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+ import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/data_request.dart' as _i10;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+ import 'package:wger/features/care/providers/care_repository.dart' as _i4;
+ 
+@@ -178,4 +179,32 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValueForMissingStub: _i5.Future<void>.value(),
+           )
+           as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
++              <_i10.DataRequest>[],
++            ),
++          )
++          as _i5.Future<List<_i10.DataRequest>>);
++
++  @override
++  _i5.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+diff --git a/test/features/care/screens/conversation_screen_test.mocks.dart b/test/features/care/screens/conversation_screen_test.mocks.dart
+index 004c7a8..e382d79 100644
+--- a/test/features/care/screens/conversation_screen_test.mocks.dart
++++ b/test/features/care/screens/conversation_screen_test.mocks.dart
+@@ -12,6 +12,7 @@ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+ import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/data_request.dart' as _i10;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+ import 'package:wger/features/care/providers/care_repository.dart' as _i4;
+ 
+@@ -178,4 +179,32 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValueForMissingStub: _i5.Future<void>.value(),
+           )
+           as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
++              <_i10.DataRequest>[],
++            ),
++          )
++          as _i5.Future<List<_i10.DataRequest>>);
++
++  @override
++  _i5.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+diff --git a/test/features/care/screens/privacy_screen_test.dart b/test/features/care/screens/privacy_screen_test.dart
+new file mode 100644
+index 0000000..f5bdede
+--- /dev/null
++++ b/test/features/care/screens/privacy_screen_test.dart
+@@ -0,0 +1,121 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/core/network/network_provider.dart';
++import 'package:wger/features/care/models/data_request.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/features/care/screens/privacy_screen.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++import 'privacy_screen_test.mocks.dart';
++
++final pending = DataRequest(
++  id: 'd2',
++  kind: 'deletion',
++  status: 'pending',
++  created: DateTime(2026, 11, 16, 10, 30),
++);
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++
++  setUp(() {
++    repository = MockCareRepository();
++    when(repository.fetchMyProfessionals()).thenAnswer((_) async => []);
++    when(repository.fetchInvitations()).thenAnswer((_) async => []);
++  });
++
++  Future<void> render(WidgetTester tester) async {
++    tester.view.physicalSize = const Size(1080, 3000);
++    tester.view.devicePixelRatio = 1;
++    addTearDown(tester.view.reset);
++    await tester.pumpWidget(
++      ProviderScope(
++        overrides: [
++          careRepositoryProvider.overrideWithValue(repository),
++          networkStatusProvider.overrideWithValue(true),
++        ],
++        child: const MaterialApp(
++          locale: Locale('pt', 'BR'),
++          localizationsDelegates: appLocalizationsDelegates,
++          supportedLocales: AppLocalizations.supportedLocales,
++          home: PrivacyScreen(),
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++  }
++
++  FilledButton requestButton(WidgetTester tester) =>
++      tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Pedir a exclusão da conta'));
++
++  testWidgets('asks for the deletion only after typing EXCLUIR', (tester) async {
++    var requests = <DataRequest>[];
++    when(repository.fetchDataRequests()).thenAnswer((_) async => requests);
++    when(repository.requestDeletion()).thenAnswer((_) async => requests = [pending]);
++    await render(tester);
++
++    expect(find.text('Excluir minha conta'), findsOneWidget);
++    expect(find.textContaining('todos os acompanhamentos são encerrados'), findsOneWidget);
++    expect(requestButton(tester).onPressed, isNull);
++
++    await tester.enterText(find.byType(TextField), 'excluir conta');
++    await tester.pump();
++    expect(requestButton(tester).onPressed, isNull);
++
++    await tester.enterText(find.byType(TextField), ' excluir ');
++    await tester.pump();
++    await tester.tap(find.text('Pedir a exclusão da conta'));
++    await tester.pumpAndSettle();
++
++    verify(repository.requestDeletion()).called(1);
++    expect(
++      find.text('Pedido de exclusão registrado. Seus acompanhamentos foram encerrados.'),
++      findsOneWidget,
++    );
++    expect(find.textContaining('está em análise'), findsOneWidget);
++    expect(find.text('Exclusão da conta · 16/11/2026 10:30'), findsOneWidget);
++    expect(find.text('Em análise'), findsOneWidget);
++  });
++
++  testWidgets('a pending deletion can be withdrawn', (tester) async {
++    var requests = [pending];
++    when(repository.fetchDataRequests()).thenAnswer((_) async => requests);
++    when(repository.cancelDataRequest('d2')).thenAnswer((_) async {
++      requests = [
++        DataRequest(id: 'd2', kind: 'deletion', status: 'cancelled', created: pending.created),
++      ];
++    });
++    await render(tester);
++
++    expect(find.byType(TextField), findsNothing);
++    await tester.tap(find.text('Desistir da exclusão'));
++    await tester.pumpAndSettle();
++
++    verify(repository.cancelDataRequest('d2')).called(1);
++    expect(find.text('Cancelado'), findsOneWidget);
++    expect(find.byType(TextField), findsOneWidget);
++  });
++}
+diff --git a/test/features/care/screens/privacy_screen_test.mocks.dart b/test/features/care/screens/privacy_screen_test.mocks.dart
+new file mode 100644
+index 0000000..b05a34d
+--- /dev/null
++++ b/test/features/care/screens/privacy_screen_test.mocks.dart
+@@ -0,0 +1,210 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/screens/privacy_screen_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i5;
++import 'dart:typed_data' as _i9;
++
++import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/appointment.dart' as _i7;
++import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/data_request.dart' as _i10;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
++              <_i6.CareRelationship>[],
++            ),
++          )
++          as _i5.Future<List<_i6.CareRelationship>>);
++
++  @override
++  _i5.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i5.Future<List<_i7.Appointment>>.value(
++              <_i7.Appointment>[],
++            ),
++          )
++          as _i5.Future<List<_i7.Appointment>>);
++
++  @override
++  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i5.Future<List<_i3.Message>>);
++
++  @override
++  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i8.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i5.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i5.Future<_i3.Message>);
++
++  @override
++  _i5.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++          )
++          as _i5.Future<_i9.Uint8List>);
++
++  @override
++  _i5.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
++              <_i10.DataRequest>[],
++            ),
++          )
++          as _i5.Future<List<_i10.DataRequest>>);
++
++  @override
++  _i5.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++}
+diff --git a/test/features/care/widgets/invitation_tile_test.mocks.dart b/test/features/care/widgets/invitation_tile_test.mocks.dart
+index 2ea2ff8..4baf1db 100644
+--- a/test/features/care/widgets/invitation_tile_test.mocks.dart
++++ b/test/features/care/widgets/invitation_tile_test.mocks.dart
+@@ -12,6 +12,7 @@ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+ import 'package:wger/features/care/models/appointment.dart' as _i7;
+ import 'package:wger/features/care/models/care_relationship.dart' as _i6;
++import 'package:wger/features/care/models/data_request.dart' as _i10;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+ import 'package:wger/features/care/providers/care_repository.dart' as _i4;
+ 
+@@ -178,4 +179,32 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+             returnValueForMissingStub: _i5.Future<void>.value(),
+           )
+           as _i5.Future<void>);
++
++  @override
++  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
++              <_i10.DataRequest>[],
++            ),
++          )
++          as _i5.Future<List<_i10.DataRequest>>);
++
++  @override
++  _i5.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
+ }
+-- 
+2.43.0
+

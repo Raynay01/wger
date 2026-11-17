@@ -1,7 +1,7 @@
 From 4c8933ee2888a5f5bd68b08fb7f9a28783e79e4e Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 16:47:24 +0000
-Subject: [PATCH 13/13] Provisional ALMOVA icon, logos and splash
+Subject: [PATCH 13/14] Provisional ALMOVA icon, logos and splash
 
 Until there is an official logo, the app uses the mark of the ALMOVA web
 app: a navy "A" on a neon rounded square. The adaptive launcher icon
