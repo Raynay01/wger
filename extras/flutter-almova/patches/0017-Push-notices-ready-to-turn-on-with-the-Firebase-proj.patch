@@ -1,0 +1,1741 @@
+From e284d53c6f2edd9ed949752b32e6720136336b1b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 03:30:59 +0000
+Subject: [PATCH 17/17] Push notices, ready to turn on with the Firebase
+ project
+
+After the login the app asks for the permission and registers the phone
+at care/push-devices; a renewed token is registered again. A tapped
+notice opens the conversation or the agenda (the paths of the web app),
+one that arrives with the app open shows at the bottom. At the logout
+the phone is removed while the login still works, so the next person
+on the phone does not get the notices. Off unless the build has the
+Firebase values (--dart-define FCM_API_KEY, FCM_APP_ID, FCM_SENDER_ID,
+FCM_PROJECT_ID); a failure never blocks the app.
+
+Notices that arrive with the app closed use the ALMOVA "A" as icon.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ android/app/src/main/AndroidManifest.xml      |   8 +
+ android/app/src/main/res/values/colors.xml    |   1 +
+ lib/core/home_tabs_screen.dart                |  15 +
+ lib/core/network/auth_notifier.dart           |   7 +
+ .../care/notifications/open_notice.dart       |  54 ++++
+ .../care/notifications/push_messaging.dart    | 111 ++++++++
+ .../notifications/push_notifications.dart     | 122 ++++++++
+ .../care/providers/care_repository.dart       |   8 +
+ macos/Flutter/GeneratedPluginRegistrant.swift |   4 +
+ pubspec.lock                                  |  56 ++++
+ pubspec.yaml                                  |   2 +
+ .../network/auth_notifier_powersync_test.dart |  28 +-
+ .../auth_notifier_powersync_test.mocks.dart   |  48 ++++
+ .../care/notifications/open_notice_test.dart  |  94 +++++++
+ .../notifications/open_notice_test.mocks.dart | 265 ++++++++++++++++++
+ .../push_notifications_test.dart              | 150 ++++++++++
+ .../push_notifications_test.mocks.dart        | 265 ++++++++++++++++++
+ .../providers/agenda_notifier_test.mocks.dart |  18 ++
+ .../providers/care_overview_test.mocks.dart   |  18 ++
+ .../conversation_notifier_test.mocks.dart     |  18 ++
+ .../screens/agenda_screen_test.mocks.dart     |  18 ++
+ .../conversation_screen_test.mocks.dart       |  18 ++
+ .../screens/privacy_screen_test.mocks.dart    |  18 ++
+ .../screens/sharing_screen_test.mocks.dart    |  18 ++
+ .../widgets/invitation_tile_test.mocks.dart   |  18 ++
+ .../flutter/generated_plugin_registrant.cc    |   3 +
+ windows/flutter/generated_plugins.cmake       |   1 +
+ 27 files changed, 1385 insertions(+), 1 deletion(-)
+ create mode 100644 lib/features/care/notifications/open_notice.dart
+ create mode 100644 lib/features/care/notifications/push_messaging.dart
+ create mode 100644 lib/features/care/notifications/push_notifications.dart
+ create mode 100644 test/features/care/notifications/open_notice_test.dart
+ create mode 100644 test/features/care/notifications/open_notice_test.mocks.dart
+ create mode 100644 test/features/care/notifications/push_notifications_test.dart
+ create mode 100644 test/features/care/notifications/push_notifications_test.mocks.dart
+
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index cbce31b..af3dcb3 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -57,6 +57,14 @@
+         android:networkSecurityConfig="@xml/network_security_config"
+         android:localeConfig="@xml/locales_config">
+ 
++        <!-- Notices that arrive with the app closed: the ALMOVA "A", not a white square -->
++        <meta-data
++            android:name="com.google.firebase.messaging.default_notification_icon"
++            android:resource="@drawable/ic_stat_wger" />
++        <meta-data
++            android:name="com.google.firebase.messaging.default_notification_color"
++            android:resource="@color/notification_color" />
++
+         <activity
+             android:name=".MainActivity"
+             android:exported="true"
+diff --git a/android/app/src/main/res/values/colors.xml b/android/app/src/main/res/values/colors.xml
+index e870474..7ebce20 100644
+--- a/android/app/src/main/res/values/colors.xml
++++ b/android/app/src/main/res/values/colors.xml
+@@ -1,4 +1,5 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+     <color name="ic_launcher_background">#39ff88</color>
++    <color name="notification_color">#0b1f3a</color>
+ </resources>
+\ No newline at end of file
+diff --git a/lib/core/home_tabs_screen.dart b/lib/core/home_tabs_screen.dart
+index a591307..b29b731 100644
+--- a/lib/core/home_tabs_screen.dart
++++ b/lib/core/home_tabs_screen.dart
+@@ -21,6 +21,9 @@ import 'package:material_ui/material_ui.dart';
+ import 'package:wger/core/dashboard.dart';
+ import 'package:wger/core/material.dart';
+ import 'package:wger/features/account/providers/timezone_sync.dart';
++import 'package:wger/features/care/notifications/open_notice.dart';
++import 'package:wger/features/care/notifications/push_notifications.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
+ import 'package:wger/features/gallery/screens/gallery_screen.dart';
+ import 'package:wger/features/health/providers/health_sync.dart';
+ import 'package:wger/features/measurements/screens/measurement_categories_screen.dart';
+@@ -58,6 +61,18 @@ class _HomeTabsScreenState extends ConsumerState<HomeTabsScreen>
+       // Report the device timezone to the profile, so the server calculates
+       // streaks and trophies in the user's own zone. A no-op when unchanged.
+       ref.read(timezoneSyncProvider).reportIfNeeded();
++
++      // Push notices of the professionals; a no-op without Firebase in the build
++      final navigator = Navigator.of(context);
++      final messenger = ScaffoldMessenger.of(context);
++      ref
++          .read(pushNotificationsProvider)
++          .start(
++            open: (path) => openNoticePath(navigator, ref.read(careRepositoryProvider), path),
++            show: (notice) => messenger.showSnackBar(
++              SnackBar(content: Text('${notice.title}\n${notice.body}')),
++            ),
++          );
+     });
+   }
+ 
+diff --git a/lib/core/network/auth_notifier.dart b/lib/core/network/auth_notifier.dart
+index dd89e2c..8a63004 100644
+--- a/lib/core/network/auth_notifier.dart
++++ b/lib/core/network/auth_notifier.dart
+@@ -44,6 +44,7 @@ import 'package:wger/core/shared_preferences.dart';
+ import 'package:wger/database/powersync/powersync.dart';
+ import 'package:wger/features/account/providers/account_notifier.dart';
+ import 'package:wger/features/account/providers/user_profile_notifier.dart';
++import 'package:wger/features/care/notifications/push_notifications.dart';
+ import 'package:wger/features/gallery/providers/gallery_notifier.dart';
+ import 'package:wger/features/nutrition/providers/nutrition_notifier.dart';
+ import 'package:wger/features/routines/providers/routines_notifier.dart';
+@@ -811,6 +812,12 @@ class AuthNotifier extends _$AuthNotifier {
+   /// [clearSessionOnly] instead, which always keeps the local DB so the user
+   /// can re-authenticate without losing queued writes or cached read data.
+   Future<void> logout() async {
++    // While the login still works: the next person on the phone must not get
++    // the notices of this user
++    await ref
++        .read(pushNotificationsProvider)
++        .stop()
++        .timeout(const Duration(seconds: 5), onTimeout: () {});
+     final keepData = await _storage.keepDataOnLogout();
+     await _resetSession(wipeLocalData: !keepData);
+   }
+diff --git a/lib/features/care/notifications/open_notice.dart b/lib/features/care/notifications/open_notice.dart
+new file mode 100644
+index 0000000..8528644
+--- /dev/null
++++ b/lib/features/care/notifications/open_notice.dart
+@@ -0,0 +1,54 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:async';
++
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/features/care/screens/agenda_screen.dart';
++import 'package:wger/features/care/screens/conversation_screen.dart';
++
++/// Opens the screen of a tapped notice. The paths are those of the web app:
++/// `/app/mensagens/{follow-up}` and `/app/agenda`; for the others (e.g. a new
++/// plan, /app) the dashboard the app opens on already shows what is new.
++/// Returns once the screen is pushed, not when it is closed.
++Future<void> openNoticePath(
++  NavigatorState navigator,
++  CareRepository repository,
++  String path,
++) async {
++  final segments = Uri.parse(path).pathSegments;
++  if (segments.length < 2 || segments.first != 'app') {
++    return;
++  }
++  switch (segments[1]) {
++    case 'agenda':
++      unawaited(navigator.push(MaterialPageRoute(builder: (_) => const AgendaScreen())));
++    case 'mensagens' when segments.length > 2:
++      final relationship = (await repository.fetchMyProfessionals())
++          .where((r) => r.id == segments[2])
++          .firstOrNull;
++      if (relationship != null) {
++        unawaited(
++          navigator.push(
++            MaterialPageRoute(builder: (_) => ConversationScreen(relationship: relationship)),
++          ),
++        );
++      }
++  }
++}
+diff --git a/lib/features/care/notifications/push_messaging.dart b/lib/features/care/notifications/push_messaging.dart
+new file mode 100644
+index 0000000..146fe31
+--- /dev/null
++++ b/lib/features/care/notifications/push_messaging.dart
+@@ -0,0 +1,111 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:firebase_core/firebase_core.dart';
++import 'package:firebase_messaging/firebase_messaging.dart';
++
++/// The Firebase project of the app, set when building it:
++/// `--dart-define=FCM_API_KEY=... --dart-define=FCM_APP_ID=...
++/// --dart-define=FCM_SENDER_ID=... --dart-define=FCM_PROJECT_ID=...`
++/// (Firebase console, project settings, the Android app). Empty: no push.
++const fcmApiKey = String.fromEnvironment('FCM_API_KEY');
++const fcmAppId = String.fromEnvironment('FCM_APP_ID');
++const fcmSenderId = String.fromEnvironment('FCM_SENDER_ID');
++const fcmProjectId = String.fromEnvironment('FCM_PROJECT_ID');
++
++bool get pushConfigured =>
++    fcmApiKey.isNotEmpty &&
++    fcmAppId.isNotEmpty &&
++    fcmSenderId.isNotEmpty &&
++    fcmProjectId.isNotEmpty;
++
++/// A notice shown while the app is open (the system shows the others)
++typedef ForegroundNotice = ({String title, String body});
++
++/// What the app needs from Firebase Cloud Messaging, replaceable in tests
++abstract class PushMessaging {
++  Future<void> initialize();
++
++  /// Asks the user (Android 13+, iOS); false when refused
++  Future<bool> requestPermission();
++
++  /// Tokens of this phone: the first after [register], then the renewed ones
++  Stream<String> get onRegistered;
++
++  Future<void> register();
++
++  /// Drops the token of this phone
++  Future<void> unregister();
++
++  /// The path of the notice that opened the app, if one did
++  Future<String?> initialPath();
++
++  /// Paths of notices tapped while the app runs in the background
++  Stream<String> get onOpenedPath;
++
++  Stream<ForegroundNotice> get onForeground;
++}
++
++class FirebasePushMessaging implements PushMessaging {
++  FirebaseMessaging get _messaging => FirebaseMessaging.instance;
++
++  @override
++  Future<void> initialize() async {
++    if (Firebase.apps.isEmpty) {
++      await Firebase.initializeApp(
++        options: const FirebaseOptions(
++          apiKey: fcmApiKey,
++          appId: fcmAppId,
++          messagingSenderId: fcmSenderId,
++          projectId: fcmProjectId,
++        ),
++      );
++    }
++  }
++
++  @override
++  Future<bool> requestPermission() async {
++    final settings = await _messaging.requestPermission();
++    return settings.authorizationStatus == AuthorizationStatus.authorized ||
++        settings.authorizationStatus == AuthorizationStatus.provisional;
++  }
++
++  @override
++  Stream<String> get onRegistered => _messaging.onRegistered;
++
++  @override
++  Future<void> register() => _messaging.register();
++
++  @override
++  Future<void> unregister() => _messaging.unregister();
++
++  @override
++  Future<String?> initialPath() async =>
++      (await _messaging.getInitialMessage())?.data['path'] as String?;
++
++  @override
++  Stream<String> get onOpenedPath => FirebaseMessaging.onMessageOpenedApp
++      .map((m) => m.data['path'] as String?)
++      .where((path) => path != null)
++      .cast<String>();
++
++  @override
++  Stream<ForegroundNotice> get onForeground => FirebaseMessaging.onMessage
++      .where((m) => m.notification != null)
++      .map((m) => (title: m.notification!.title ?? '', body: m.notification!.body ?? ''));
++}
+diff --git a/lib/features/care/notifications/push_notifications.dart b/lib/features/care/notifications/push_notifications.dart
+new file mode 100644
+index 0000000..2e2f778
+--- /dev/null
++++ b/lib/features/care/notifications/push_notifications.dart
+@@ -0,0 +1,122 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:async';
++import 'dart:io';
++
++import 'package:flutter/foundation.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:logging/logging.dart';
++import 'package:wger/features/care/notifications/push_messaging.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++final _logger = Logger('PushNotifications');
++
++/// Registers the phone for the notices of the server after the login and
++/// removes it at the logout, so the next person on the phone does not get
++/// them. Off unless the build has the Firebase project ([pushConfigured]).
++class PushNotifications {
++  final PushMessaging _messaging;
++  final CareRepository Function() _repository;
++  final bool enabled;
++  final String platform;
++
++  String? _token;
++  final _subscriptions = <StreamSubscription<Object?>>[];
++
++  PushNotifications(
++    this._messaging,
++    this._repository, {
++    required this.enabled,
++    required this.platform,
++  });
++
++  bool get started => _subscriptions.isNotEmpty;
++
++  /// [open] gets the path of a tapped notice (e.g. /app/agenda), [show] the
++  /// notices that arrive while the app is open
++  Future<void> start({
++    required void Function(String path) open,
++    required void Function(ForegroundNotice notice) show,
++  }) async {
++    if (!enabled || started) {
++      return;
++    }
++    try {
++      await _messaging.initialize();
++      if (!await _messaging.requestPermission()) {
++        _logger.info('Notices not allowed on this phone');
++        return;
++      }
++      _subscriptions
++        ..add(_messaging.onRegistered.listen(_register))
++        ..add(_messaging.onOpenedPath.listen(open))
++        ..add(_messaging.onForeground.listen(show));
++      await _messaging.register();
++      final initial = await _messaging.initialPath();
++      if (initial != null) {
++        open(initial);
++      }
++    } catch (e, s) {
++      // The app works without notices
++      _logger.warning('Could not start the notices', e, s);
++    }
++  }
++
++  Future<void> _register(String token) async {
++    _token = token;
++    try {
++      await _repository().registerPushDevice(token, platform);
++    } catch (e) {
++      _logger.warning('Could not register the phone for the notices', e);
++    }
++  }
++
++  /// At the logout, while the login still works
++  Future<void> stop() async {
++    for (final subscription in _subscriptions) {
++      await subscription.cancel();
++    }
++    _subscriptions.clear();
++    final token = _token;
++    _token = null;
++    if (token == null) {
++      return;
++    }
++    try {
++      await _repository().removePushDevice(token);
++    } catch (e) {
++      _logger.warning('Could not remove the phone from the notices', e);
++    }
++    try {
++      await _messaging.unregister();
++    } catch (e) {
++      _logger.warning('Could not delete the notice token', e);
++    }
++  }
++}
++
++final pushNotificationsProvider = Provider<PushNotifications>((ref) {
++  final mobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
++  return PushNotifications(
++    FirebasePushMessaging(),
++    () => ref.read(careRepositoryProvider),
++    enabled: mobile && pushConfigured,
++    platform: !kIsWeb && Platform.isIOS ? 'ios' : 'android',
++  );
++});
+diff --git a/lib/features/care/providers/care_repository.dart b/lib/features/care/providers/care_repository.dart
+index 79deaa7..212f103 100644
+--- a/lib/features/care/providers/care_repository.dart
++++ b/lib/features/care/providers/care_repository.dart
+@@ -221,4 +221,12 @@ class CareRepository {
+       throw WgerHttpException(response);
+     }
+   }
++
++  /// Registers this phone for the push notices of the user (android or ios);
++  /// a token known for another user moves to this one
++  Future<void> registerPushDevice(String token, String platform) =>
++      _postAction('care/push-devices', {'token': token, 'platform': platform});
++
++  Future<void> removePushDevice(String token) =>
++      _postAction('care/push-devices/remove', {'token': token});
+ }
+diff --git a/macos/Flutter/GeneratedPluginRegistrant.swift b/macos/Flutter/GeneratedPluginRegistrant.swift
+index fd9b51d..ae64703 100644
+--- a/macos/Flutter/GeneratedPluginRegistrant.swift
++++ b/macos/Flutter/GeneratedPluginRegistrant.swift
+@@ -10,6 +10,8 @@ import connectivity_plus
+ import device_info_plus
+ import dynamic_color
+ import file_selector_macos
++import firebase_core
++import firebase_messaging
+ import flutter_local_notifications
+ import flutter_secure_storage_darwin
+ import flutter_timezone
+@@ -24,6 +26,8 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
+   DeviceInfoPlusMacosPlugin.register(with: registry.registrar(forPlugin: "DeviceInfoPlusMacosPlugin"))
+   DynamicColorPlugin.register(with: registry.registrar(forPlugin: "DynamicColorPlugin"))
+   FileSelectorPlugin.register(with: registry.registrar(forPlugin: "FileSelectorPlugin"))
++  FLTFirebaseCorePlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseCorePlugin"))
++  FLTFirebaseMessagingPlugin.register(with: registry.registrar(forPlugin: "FLTFirebaseMessagingPlugin"))
+   FlutterLocalNotificationsPlugin.register(with: registry.registrar(forPlugin: "FlutterLocalNotificationsPlugin"))
+   FlutterSecureStorageDarwinPlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStorageDarwinPlugin"))
+   FlutterTimezonePlugin.register(with: registry.registrar(forPlugin: "FlutterTimezonePlugin"))
+diff --git a/pubspec.lock b/pubspec.lock
+index dbbce19..cf74f39 100644
+--- a/pubspec.lock
++++ b/pubspec.lock
+@@ -9,6 +9,14 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "111.0.0"
++  _flutterfire_internals:
++    dependency: transitive
++    description:
++      name: _flutterfire_internals
++      sha256: "8e61ea4a9d2cbbc7de085f660b11ccb2c65f38417bb3f313cfdcf9b62b7e53a3"
++      url: "https://pub.dev"
++    source: hosted
++    version: "1.4.0"
+   analyzer:
+     dependency: transitive
+     description:
+@@ -489,6 +497,54 @@ packages:
+       url: "https://pub.dev"
+     source: hosted
+     version: "0.9.3+6"
++  firebase_core:
++    dependency: "direct main"
++    description:
++      name: firebase_core
++      sha256: "1a3a65a71c5a21311a37f3e94fd4aef4c77801a66008a1859b30eb1a8fc1744b"
++      url: "https://pub.dev"
++    source: hosted
++    version: "5.2.0"
++  firebase_core_platform_interface:
++    dependency: transitive
++    description:
++      name: firebase_core_platform_interface
++      sha256: cc7da0faa34a02bbaa94d221810c7d0a6296c7c9ddd3a7cd2845c8352a00a5cc
++      url: "https://pub.dev"
++    source: hosted
++    version: "8.2.0"
++  firebase_core_web:
++    dependency: transitive
++    description:
++      name: firebase_core_web
++      sha256: a07d6f21a17472ac34e1013c0ad256eeeabc6efb420ac4ee9871d3cf082cf67c
++      url: "https://pub.dev"
++    source: hosted
++    version: "4.2.0"
++  firebase_messaging:
++    dependency: "direct main"
++    description:
++      name: firebase_messaging
++      sha256: b971abf6ca94426d4cfc7685d6f97a34d3e1c2fda8e21d0e923d61736a984774
++      url: "https://pub.dev"
++    source: hosted
++    version: "17.1.0"
++  firebase_messaging_platform_interface:
++    dependency: transitive
++    description:
++      name: firebase_messaging_platform_interface
++      sha256: d51e4d1d1b3f575b83d3eff908f567311792601caafb04e63aff2c6ba09b6079
++      url: "https://pub.dev"
++    source: hosted
++    version: "4.12.0"
++  firebase_messaging_web:
++    dependency: transitive
++    description:
++      name: firebase_messaging_web
++      sha256: d519ccbf71ca759c4817ee2894960f7bfeb6568d8adef9ec8dbc4bea848b9e74
++      url: "https://pub.dev"
++    source: hosted
++    version: "4.4.0"
+   fixnum:
+     dependency: transitive
+     description:
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 64ba4d1..cde475e 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -87,6 +87,8 @@ dependencies:
+   timezone: ^0.11.1
+   material_ui: ^1.6.0
+   flutter_local_notifications: ^23.0.0
++  firebase_core: ^5.2.0
++  firebase_messaging: ^17.1.0
+ 
+ dev_dependencies:
+   flutter_test:
+diff --git a/test/core/network/auth_notifier_powersync_test.dart b/test/core/network/auth_notifier_powersync_test.dart
+index ede1a12..bc5d5d6 100644
+--- a/test/core/network/auth_notifier_powersync_test.dart
++++ b/test/core/network/auth_notifier_powersync_test.dart
+@@ -39,6 +39,7 @@ import 'package:wger/core/network/network_provider.dart';
+ import 'package:wger/core/network/powersync_session.dart';
+ import 'package:wger/core/network/secure_token_storage.dart';
+ import 'package:wger/core/shared_preferences.dart';
++import 'package:wger/features/care/notifications/push_notifications.dart';
+ 
+ import '../../helpers/fake_auth_environment.dart';
+ import '../../helpers/fake_connectivity.dart';
+@@ -61,7 +62,7 @@ class _HangingPowerSyncSession extends PowerSyncSession {
+ const tokenNotValid =
+     '{"detail":"Given token not valid for any token type","code":"token_not_valid"}';
+ 
+-@GenerateMocks([http.Client, SecureTokenStorage])
++@GenerateMocks([http.Client, SecureTokenStorage, PushNotifications])
+ void main() {
+   // Required so showSessionExpiredSnackbar can look up the global keys via
+   // WidgetsBinding without throwing in unit tests.
+@@ -816,6 +817,31 @@ void main() {
+       verify(mockSecureStorage.deleteRefreshToken()).called(1);
+     });
+ 
++    test('removes the phone from the push notices while the login still works', () async {
++      final prefs = PreferenceHelper.asyncPref;
++      await prefs.setString(PREFS_ACCESS_TOKEN, 'jwt-access');
++      await prefs.setInt(
++        PREFS_ACCESS_EXPIRES_AT,
++        DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch,
++      );
++      await prefs.setString(PREFS_SERVER_URL, serverUrl);
++      final push = MockPushNotifications();
++      String? tokenWhenStopping;
++      when(push.stop()).thenAnswer((_) async {
++        tokenWhenStopping = await prefs.getString(PREFS_ACCESS_TOKEN);
++      });
++
++      final container = makeContainer(
++        overrides: [pushNotificationsProvider.overrideWithValue(push)],
++      );
++      await container.read(authProvider.future);
++      await container.read(authProvider.notifier).logout();
++
++      verify(push.stop()).called(1);
++      expect(tokenWhenStopping, 'jwt-access');
++      expect(await prefs.containsKey(PREFS_ACCESS_TOKEN), false);
++    });
++
+     test('deletes the on-disk DB even when PowerSync was never built', () async {
+       // Regression: in the cold-start case (instance not yet built, e.g. a
+       // logout from the PowerSync-unreachable screen) the wipe must remove the
+diff --git a/test/core/network/auth_notifier_powersync_test.mocks.dart b/test/core/network/auth_notifier_powersync_test.mocks.dart
+index ee143cc..b22b150 100644
+--- a/test/core/network/auth_notifier_powersync_test.mocks.dart
++++ b/test/core/network/auth_notifier_powersync_test.mocks.dart
+@@ -12,6 +12,7 @@ import 'package:http/http.dart' as _i2;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:mockito/src/dummies.dart' as _i5;
+ import 'package:wger/core/network/secure_token_storage.dart' as _i7;
++import 'package:wger/features/care/notifications/push_notifications.dart' as _i8;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -254,3 +255,50 @@ class MockSecureTokenStorage extends _i1.Mock implements _i7.SecureTokenStorage
+           )
+           as _i3.Future<void>);
+ }
++
++/// A class which mocks [PushNotifications].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockPushNotifications extends _i1.Mock implements _i8.PushNotifications {
++  MockPushNotifications() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  bool get enabled => (super.noSuchMethod(Invocation.getter(#enabled), returnValue: false) as bool);
++
++  @override
++  String get platform =>
++      (super.noSuchMethod(
++            Invocation.getter(#platform),
++            returnValue: _i5.dummyValue<String>(
++              this,
++              Invocation.getter(#platform),
++            ),
++          )
++          as String);
++
++  @override
++  bool get started => (super.noSuchMethod(Invocation.getter(#started), returnValue: false) as bool);
++
++  @override
++  _i3.Future<void> start({
++    required void Function(String)? open,
++    required void Function(({String body, String title}))? show,
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(#start, [], {#open: open, #show: show}),
++            returnValue: _i3.Future<void>.value(),
++            returnValueForMissingStub: _i3.Future<void>.value(),
++          )
++          as _i3.Future<void>);
++
++  @override
++  _i3.Future<void> stop() =>
++      (super.noSuchMethod(
++            Invocation.method(#stop, []),
++            returnValue: _i3.Future<void>.value(),
++            returnValueForMissingStub: _i3.Future<void>.value(),
++          )
++          as _i3.Future<void>);
++}
+diff --git a/test/features/care/notifications/open_notice_test.dart b/test/features/care/notifications/open_notice_test.dart
+new file mode 100644
+index 0000000..61b7c82
+--- /dev/null
++++ b/test/features/care/notifications/open_notice_test.dart
+@@ -0,0 +1,94 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/core/network/network_provider.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/notifications/open_notice.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/features/care/screens/agenda_screen.dart';
++import 'package:wger/features/care/screens/conversation_screen.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++import 'open_notice_test.mocks.dart';
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++  final navigatorKey = GlobalKey<NavigatorState>();
++
++  setUp(() {
++    repository = MockCareRepository();
++    when(repository.fetchMyProfessionals()).thenAnswer(
++      (_) async => [
++        const CareRelationship(
++          id: 'r1',
++          discipline: Discipline.physio,
++          status: 'active',
++          professionalName: 'Paula',
++        ),
++      ],
++    );
++    when(repository.fetchInvitations()).thenAnswer((_) async => []);
++    when(repository.fetchUpcomingAppointments(any)).thenAnswer((_) async => []);
++    when(repository.fetchMessages(any)).thenAnswer((_) async => []);
++  });
++
++  Future<void> open(WidgetTester tester, String path) async {
++    await tester.pumpWidget(
++      ProviderScope(
++        overrides: [
++          careRepositoryProvider.overrideWithValue(repository),
++          networkStatusProvider.overrideWithValue(true),
++        ],
++        child: MaterialApp(
++          navigatorKey: navigatorKey,
++          locale: const Locale('pt', 'BR'),
++          localizationsDelegates: appLocalizationsDelegates,
++          supportedLocales: AppLocalizations.supportedLocales,
++          home: const Scaffold(body: Text('Início')),
++        ),
++      ),
++    );
++    await openNoticePath(navigatorKey.currentState!, repository, path);
++    await tester.pumpAndSettle();
++  }
++
++  testWidgets('a notice about the agenda opens the agenda', (tester) async {
++    await open(tester, '/app/agenda');
++    expect(find.byType(AgendaScreen), findsOneWidget);
++  });
++
++  testWidgets('a notice about messages opens that conversation', (tester) async {
++    await open(tester, '/app/mensagens/r1');
++    expect(find.byType(ConversationScreen), findsOneWidget);
++    expect(find.text('Paula'), findsOneWidget);
++  });
++
++  testWidgets('other notices stay on the dashboard', (tester) async {
++    for (final path in ['/app', '/app/mensagens/desconhecido', '/pro/agenda']) {
++      await open(tester, path);
++      expect(find.text('Início'), findsOneWidget, reason: path);
++    }
++  });
++}
+diff --git a/test/features/care/notifications/open_notice_test.mocks.dart b/test/features/care/notifications/open_notice_test.mocks.dart
+new file mode 100644
+index 0000000..7a1a0b9
+--- /dev/null
++++ b/test/features/care/notifications/open_notice_test.mocks.dart
+@@ -0,0 +1,265 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/notifications/open_notice_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
++
++import 'package:image_picker/image_picker.dart' as _i9;
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
++            ),
++          )
++          as _i6.Future<List<_i7.CareRelationship>>);
++
++  @override
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
++            ),
++          )
++          as _i6.Future<List<_i7.CareRelationship>>);
++
++  @override
++  _i6.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
++            ),
++          )
++          as _i6.Future<List<_i8.Appointment>>);
++
++  @override
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i6.Future<List<_i3.Message>>);
++
++  @override
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i6.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i6.Future<_i3.Message>);
++
++  @override
++  _i6.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i9.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i6.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i6.Future<_i3.Message>);
++
++  @override
++  _i6.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
++          )
++          as _i6.Future<_i10.Uint8List>);
++
++  @override
++  _i6.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
++            ),
++          )
++          as _i6.Future<List<_i11.DataRequest>>);
++
++  @override
++  _i6.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++}
+diff --git a/test/features/care/notifications/push_notifications_test.dart b/test/features/care/notifications/push_notifications_test.dart
+new file mode 100644
+index 0000000..7119ee7
+--- /dev/null
++++ b/test/features/care/notifications/push_notifications_test.dart
+@@ -0,0 +1,150 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:async';
++
++import 'package:flutter_test/flutter_test.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/features/care/notifications/push_messaging.dart';
++import 'package:wger/features/care/notifications/push_notifications.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++import 'push_notifications_test.mocks.dart';
++
++/// Firebase Cloud Messaging as the app sees it, driven by the test
++class FakePushMessaging implements PushMessaging {
++  bool allowed = true;
++  String? initial;
++  final registered = StreamController<String>.broadcast();
++  final opened = StreamController<String>.broadcast();
++  final foreground = StreamController<ForegroundNotice>.broadcast();
++  int initializations = 0;
++  int unregistrations = 0;
++
++  @override
++  Future<void> initialize() async => initializations++;
++
++  @override
++  Future<bool> requestPermission() async => allowed;
++
++  @override
++  Stream<String> get onRegistered => registered.stream;
++
++  @override
++  Future<void> register() async => registered.add('token-1');
++
++  @override
++  Future<void> unregister() async => unregistrations++;
++
++  @override
++  Future<String?> initialPath() async => initial;
++
++  @override
++  Stream<String> get onOpenedPath => opened.stream;
++
++  @override
++  Stream<ForegroundNotice> get onForeground => foreground.stream;
++}
++
++@GenerateMocks([CareRepository])
++void main() {
++  late FakePushMessaging messaging;
++  late MockCareRepository repository;
++  late List<String> opened;
++  late List<ForegroundNotice> shown;
++
++  setUp(() {
++    messaging = FakePushMessaging();
++    repository = MockCareRepository();
++    when(repository.registerPushDevice(any, any)).thenAnswer((_) async {});
++    when(repository.removePushDevice(any)).thenAnswer((_) async {});
++    opened = [];
++    shown = [];
++  });
++
++  PushNotifications push({bool enabled = true}) =>
++      PushNotifications(messaging, () => repository, enabled: enabled, platform: 'android');
++
++  Future<void> start(PushNotifications notices) async {
++    await notices.start(open: opened.add, show: shown.add);
++    await pumpEventQueue();
++  }
++
++  test('off without the Firebase project in the build', () async {
++    await start(push(enabled: false));
++
++    expect(messaging.initializations, 0);
++    verifyZeroInteractions(repository);
++  });
++
++  test('nothing registered when the user refuses the notices', () async {
++    messaging.allowed = false;
++    await start(push());
++
++    verifyNever(repository.registerPushDevice(any, any));
++  });
++
++  test('registers the phone, also with a renewed token', () async {
++    await start(push());
++    messaging.registered.add('token-2');
++    await pumpEventQueue();
++
++    verifyInOrder([
++      repository.registerPushDevice('token-1', 'android'),
++      repository.registerPushDevice('token-2', 'android'),
++    ]);
++  });
++
++  test('a tapped notice opens its screen, one arriving in the app is shown', () async {
++    messaging.initial = '/app/agenda';
++    await start(push());
++    messaging.opened.add('/app/mensagens/r1');
++    messaging.foreground.add((title: 'ALMOVA: Mensagem nova', body: 'Abra o app'));
++    await pumpEventQueue();
++
++    expect(opened, ['/app/agenda', '/app/mensagens/r1']);
++    expect(shown.single.title, 'ALMOVA: Mensagem nova');
++  });
++
++  test('the logout removes the phone with its last token', () async {
++    final notices = push();
++    await start(notices);
++    messaging.registered.add('token-2');
++    await pumpEventQueue();
++
++    await notices.stop();
++    await notices.stop();
++
++    verify(repository.removePushDevice('token-2')).called(1);
++    expect(messaging.unregistrations, 1);
++    expect(notices.started, isFalse);
++  });
++
++  test('a failed registration does not break the app', () async {
++    when(repository.registerPushDevice('token-1', any)).thenThrow(Exception('offline'));
++    messaging.initial = '/app/agenda';
++    await start(push());
++
++    // The notices keep working and the next token is registered
++    messaging.registered.add('token-2');
++    await pumpEventQueue();
++    expect(opened, ['/app/agenda']);
++    verify(repository.registerPushDevice('token-2', 'android')).called(1);
++  });
++}
+diff --git a/test/features/care/notifications/push_notifications_test.mocks.dart b/test/features/care/notifications/push_notifications_test.mocks.dart
+new file mode 100644
+index 0000000..f8667e0
+--- /dev/null
++++ b/test/features/care/notifications/push_notifications_test.mocks.dart
+@@ -0,0 +1,265 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/notifications/push_notifications_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
++
++import 'package:image_picker/image_picker.dart' as _i9;
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
++            ),
++          )
++          as _i6.Future<List<_i7.CareRelationship>>);
++
++  @override
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
++            ),
++          )
++          as _i6.Future<List<_i7.CareRelationship>>);
++
++  @override
++  _i6.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
++            ),
++          )
++          as _i6.Future<List<_i8.Appointment>>);
++
++  @override
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i6.Future<List<_i3.Message>>);
++
++  @override
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i6.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i6.Future<_i3.Message>);
++
++  @override
++  _i6.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i9.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i6.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i6.Future<_i3.Message>);
++
++  @override
++  _i6.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
++          )
++          as _i6.Future<_i10.Uint8List>);
++
++  @override
++  _i6.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
++            ),
++          )
++          as _i6.Future<List<_i11.DataRequest>>);
++
++  @override
++  _i6.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++}
+diff --git a/test/features/care/providers/agenda_notifier_test.mocks.dart b/test/features/care/providers/agenda_notifier_test.mocks.dart
+index bd415ff..5dfdd57 100644
+--- a/test/features/care/providers/agenda_notifier_test.mocks.dart
++++ b/test/features/care/providers/agenda_notifier_test.mocks.dart
+@@ -244,4 +244,22 @@ class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+             returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+           as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/providers/care_overview_test.mocks.dart b/test/features/care/providers/care_overview_test.mocks.dart
+index 49fbf20..9db0c63 100644
+--- a/test/features/care/providers/care_overview_test.mocks.dart
++++ b/test/features/care/providers/care_overview_test.mocks.dart
+@@ -244,4 +244,22 @@ class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+             returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+           as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/providers/conversation_notifier_test.mocks.dart b/test/features/care/providers/conversation_notifier_test.mocks.dart
+index 1c8fa28..08054ae 100644
+--- a/test/features/care/providers/conversation_notifier_test.mocks.dart
++++ b/test/features/care/providers/conversation_notifier_test.mocks.dart
+@@ -244,4 +244,22 @@ class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+             returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+           as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/screens/agenda_screen_test.mocks.dart b/test/features/care/screens/agenda_screen_test.mocks.dart
+index 03ebb8c..3ec99e7 100644
+--- a/test/features/care/screens/agenda_screen_test.mocks.dart
++++ b/test/features/care/screens/agenda_screen_test.mocks.dart
+@@ -244,4 +244,22 @@ class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+             returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+           as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/screens/conversation_screen_test.mocks.dart b/test/features/care/screens/conversation_screen_test.mocks.dart
+index 3fdcfc7..88d94d8 100644
+--- a/test/features/care/screens/conversation_screen_test.mocks.dart
++++ b/test/features/care/screens/conversation_screen_test.mocks.dart
+@@ -244,4 +244,22 @@ class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+             returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+           as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/screens/privacy_screen_test.mocks.dart b/test/features/care/screens/privacy_screen_test.mocks.dart
+index e0c8281..9ad6471 100644
+--- a/test/features/care/screens/privacy_screen_test.mocks.dart
++++ b/test/features/care/screens/privacy_screen_test.mocks.dart
+@@ -244,4 +244,22 @@ class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+             returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+           as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/screens/sharing_screen_test.mocks.dart b/test/features/care/screens/sharing_screen_test.mocks.dart
+index 3785a72..4454635 100644
+--- a/test/features/care/screens/sharing_screen_test.mocks.dart
++++ b/test/features/care/screens/sharing_screen_test.mocks.dart
+@@ -244,4 +244,22 @@ class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+             returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+           as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/widgets/invitation_tile_test.mocks.dart b/test/features/care/widgets/invitation_tile_test.mocks.dart
+index d92c155..5447efd 100644
+--- a/test/features/care/widgets/invitation_tile_test.mocks.dart
++++ b/test/features/care/widgets/invitation_tile_test.mocks.dart
+@@ -244,4 +244,22 @@ class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+             returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+           as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> registerPushDevice(String? token, String? platform) =>
++      (super.noSuchMethod(
++            Invocation.method(#registerPushDevice, [token, platform]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> removePushDevice(String? token) =>
++      (super.noSuchMethod(
++            Invocation.method(#removePushDevice, [token]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
+ }
+diff --git a/windows/flutter/generated_plugin_registrant.cc b/windows/flutter/generated_plugin_registrant.cc
+index d51e818..8e6446a 100644
+--- a/windows/flutter/generated_plugin_registrant.cc
++++ b/windows/flutter/generated_plugin_registrant.cc
+@@ -10,6 +10,7 @@
+ #include <connectivity_plus/connectivity_plus_windows_plugin.h>
+ #include <dynamic_color/dynamic_color_plugin_c_api.h>
+ #include <file_selector_windows/file_selector_windows.h>
++#include <firebase_core/firebase_core_plugin_c_api.h>
+ #include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
+ #include <flutter_timezone/flutter_timezone_plugin_c_api.h>
+ #include <url_launcher_windows/url_launcher_windows.h>
+@@ -23,6 +24,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
+       registry->GetRegistrarForPlugin("DynamicColorPluginCApi"));
+   FileSelectorWindowsRegisterWithRegistrar(
+       registry->GetRegistrarForPlugin("FileSelectorWindows"));
++  FirebaseCorePluginCApiRegisterWithRegistrar(
++      registry->GetRegistrarForPlugin("FirebaseCorePluginCApi"));
+   FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
+       registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
+   FlutterTimezonePluginCApiRegisterWithRegistrar(
+diff --git a/windows/flutter/generated_plugins.cmake b/windows/flutter/generated_plugins.cmake
+index 1388064..c66cec5 100644
+--- a/windows/flutter/generated_plugins.cmake
++++ b/windows/flutter/generated_plugins.cmake
+@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
+   connectivity_plus
+   dynamic_color
+   file_selector_windows
++  firebase_core
+   flutter_secure_storage_windows
+   flutter_timezone
+   url_launcher_windows
+-- 
+2.43.0
+

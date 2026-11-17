@@ -108,7 +108,7 @@ ALMOVA, guardada fora do repositório.
 
 ## Verificação
 
-- `flutter analyze` sem problemas; os 2.212 testes do app passam (eram 2.187 no app oficial).
+- `flutter analyze` sem problemas; os testes do app passam (2.187 no app oficial, mais os do ALMOVA).
 - Contra o servidor local: o código do app entrou, enviou uma foto, baixou a
   mesma foto byte a byte; outra conta foi recusada; a foto ficou só na pasta
   privada.
