@@ -58,6 +58,10 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     azul-marinho sobre quadrado verde-neon) no ícone do Android, no ícone de
     notificação, no login, no "Sobre" e na abertura. Trocar pelo logotipo
     oficial quando existir (o ícone do iOS ainda é o do wger).
+12. **Privacidade e exclusão da conta:** nas configurações, "Privacidade e seus
+    dados" pede a exclusão da conta (digitando EXCLUIR), permite desistir e
+    lista os pedidos; "Baixar meus dados" abre a página do site. A Play Store
+    exige a exclusão dentro do app.
 
 ## Construir o APK
 
