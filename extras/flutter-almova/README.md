@@ -70,6 +70,13 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     dado (rotina de treino, diário, dor, peso e medidas, observações); a área
     do próprio profissional não aparece. Ligar e desligar fica registrado como
     consentimento no servidor.
+15. **Avisos no celular:** depois do login o app pede permissão e registra o
+    celular no servidor para os avisos (mensagem nova, consulta marcada,
+    mudada ou cancelada, plano publicado). Tocar no aviso abre a conversa ou a
+    agenda; um aviso com o app aberto aparece na parte de baixo da tela. Na
+    saída da conta o celular é removido antes, para a próxima pessoa no
+    aparelho não receber os avisos. Desligado até a construção receber os
+    dados do projeto Firebase (veja abaixo).
 
 ## Construir o APK
 
@@ -80,6 +87,20 @@ Flutter 3.47.9 e o SDK do Android (plataforma `android-37.0`, build-tools
 flutter build apk --release --split-per-abi \
   --dart-define=ALMOVA_SERVER=https://<endereço do servidor>
 ```
+
+Com os avisos no celular, acrescente os dados do app Android do projeto
+Firebase (no console: Configurações do projeto > Seus apps, app com o pacote
+`br.com.almova.app`; são identificadores públicos, não senhas):
+
+```bash
+  --dart-define=FCM_API_KEY=<apiKey> \
+  --dart-define=FCM_APP_ID=<mobilesdk_app_id> \
+  --dart-define=FCM_SENDER_ID=<project_number> \
+  --dart-define=FCM_PROJECT_ID=<project_id>
+```
+
+O servidor envia com a conta de serviço do mesmo projeto
+(`extras/docker/almova/README.md`, "Celular (push)").
 
 A chave de assinatura fica em `fastlane/metadata/envfiles/key.properties`
 (fora do Git). Para publicar na Play Store é preciso a chave definitiva do
