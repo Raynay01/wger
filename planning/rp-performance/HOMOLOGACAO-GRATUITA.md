@@ -101,6 +101,12 @@ cd almova && git pull && sudo bash extras/docker/almova/instalar.sh
   dele, coloque no `homolog.env` do servidor `ENABLE_EMAIL=True`,
   `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` e rode
   `sudo docker compose up -d` na pasta `almova/extras/docker/almova`.
+- Avisos no celular (mensagem nova, consulta marcada): gratuitos pelo
+  **Firebase**. Crie um projeto em console.firebase.google.com, adicione um app
+  Android com o pacote `br.com.almova.app` e me passe os quatro identificadores
+  do app (não são senhas): eu gero o APK com eles. A chave da conta de serviço
+  é secreta e vai só para o servidor (seção "Celular (push)" do `README.md` da
+  pilha), nunca para o chat.
 
 ## Limites do gratuito
 
