@@ -1,7 +1,7 @@
 From d6fd62d39b5339a0520974aa78392e05b335411e Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 16:33:34 +0000
-Subject: [PATCH 11/14] Accept or decline the invitations of professionals in
+Subject: [PATCH 11/15] Accept or decline the invitations of professionals in
  the app
 
 Open invitations to the user's email address show on the follow-up card,
