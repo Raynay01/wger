@@ -1,0 +1,1264 @@
+From 3c8bfde41dd7ee941b7cb5abc5470425d1c81427 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 02:47:55 +0000
+Subject: [PATCH 15/15] Today's food: water, the meals of the plan and how they
+ were followed
+
+Patients followed by a nutritionist get "Today's food" on the follow-up
+card, the nutrition part of the web app's day: calories and macronutrients
+logged against the goals of the plan with what is left, water with the
++200/+300/+500 ml buttons of the web app against the personal goal, and
+the meals of the plan with their items. Each meal is answered once a day:
+"Followed" writes the prescribed items to the food diary and marks the
+meal, as the web app does, then reloads the totals; "Partly followed" and
+"Didn't follow" only record the answer.
+
+The data comes from the server's day view, whose plans and meals have
+UUIDs and whose decimals arrive as numbers or strings.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/core/widgets/dashboard/widgets/care.dart  |  10 +
+ .../nutrition/models/nutrition_day.dart       | 176 ++++++++++++
+ .../providers/nutrition_day_repository.dart   |  75 +++++
+ .../providers/nutrition_day_repository.g.dart |  53 ++++
+ .../providers/nutrition_today_notifier.dart   |  58 ++++
+ .../providers/nutrition_today_notifier.g.dart |  54 ++++
+ .../screens/nutrition_today_screen.dart       | 257 ++++++++++++++++++
+ lib/l10n/app_en.arb                           |  32 ++-
+ lib/l10n/app_pt.arb                           |  17 +-
+ lib/l10n/app_pt_BR.arb                        |  17 +-
+ .../nutrition_day_repository_test.dart        | 148 ++++++++++
+ .../screens/nutrition_today_screen_test.dart  | 122 +++++++++
+ .../nutrition_today_screen_test.mocks.dart    |  98 +++++++
+ 13 files changed, 1114 insertions(+), 3 deletions(-)
+ create mode 100644 lib/features/nutrition/models/nutrition_day.dart
+ create mode 100644 lib/features/nutrition/providers/nutrition_day_repository.dart
+ create mode 100644 lib/features/nutrition/providers/nutrition_day_repository.g.dart
+ create mode 100644 lib/features/nutrition/providers/nutrition_today_notifier.dart
+ create mode 100644 lib/features/nutrition/providers/nutrition_today_notifier.g.dart
+ create mode 100644 lib/features/nutrition/screens/nutrition_today_screen.dart
+ create mode 100644 test/features/nutrition/providers/nutrition_day_repository_test.dart
+ create mode 100644 test/features/nutrition/screens/nutrition_today_screen_test.dart
+ create mode 100644 test/features/nutrition/screens/nutrition_today_screen_test.mocks.dart
+
+diff --git a/lib/core/widgets/dashboard/widgets/care.dart b/lib/core/widgets/dashboard/widgets/care.dart
+index 23e60ca..80c0a9e 100644
+--- a/lib/core/widgets/dashboard/widgets/care.dart
++++ b/lib/core/widgets/dashboard/widgets/care.dart
+@@ -26,6 +26,7 @@ import 'package:wger/features/care/providers/care_overview.dart';
+ import 'package:wger/features/care/screens/agenda_screen.dart';
+ import 'package:wger/features/care/screens/conversation_screen.dart';
+ import 'package:wger/features/care/widgets/invitation_tile.dart';
++import 'package:wger/features/nutrition/screens/nutrition_today_screen.dart';
+ import 'package:wger/features/physio/screens/physio_today_screen.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+ 
+@@ -74,6 +75,15 @@ class DashboardCareWidget extends ConsumerWidget {
+                 context,
+               ).push(MaterialPageRoute(builder: (_) => const PhysioTodayScreen())),
+             ),
++          if (overview.professionals.any((r) => r.discipline == Discipline.nutrition))
++            ListTile(
++              leading: const Icon(Icons.restaurant),
++              title: Text(i18n.nutritionToday),
++              trailing: const Icon(Icons.chevron_right),
++              onTap: () => Navigator.of(
++                context,
++              ).push(MaterialPageRoute(builder: (_) => const NutritionTodayScreen())),
++            ),
+           if (next != null) _NextAppointment(next),
+         ],
+       ),
+diff --git a/lib/features/nutrition/models/nutrition_day.dart b/lib/features/nutrition/models/nutrition_day.dart
+new file mode 100644
+index 0000000..a392b0f
+--- /dev/null
++++ b/lib/features/nutrition/models/nutrition_day.dart
+@@ -0,0 +1,176 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++/// The server sends decimals as numbers or strings
++double? _number(Object? value) => switch (value) {
++  final num v => v.toDouble(),
++  final String v => double.tryParse(v),
++  _ => null,
++};
++
++/// Energy (kcal) and macronutrients (g) of the day
++class DayValues {
++  final double? energy;
++  final double? protein;
++  final double? carbohydrates;
++  final double? fat;
++
++  const DayValues({this.energy, this.protein, this.carbohydrates, this.fat});
++
++  factory DayValues.fromJson(Map<String, dynamic>? json) => DayValues(
++    energy: _number(json?['energy']),
++    protein: _number(json?['protein']),
++    carbohydrates: _number(json?['carbohydrates']),
++    fat: _number(json?['fat']),
++  );
++}
++
++class PlannedItem {
++  final int ingredient;
++  final String name;
++  final double amount;
++  final int? weightUnit;
++  final String? unitName;
++  final double grams;
++  final String instructions;
++
++  const PlannedItem({
++    required this.ingredient,
++    required this.name,
++    required this.amount,
++    this.weightUnit,
++    this.unitName,
++    required this.grams,
++    this.instructions = '',
++  });
++
++  factory PlannedItem.fromJson(Map<String, dynamic> json) => PlannedItem(
++    ingredient: json['ingredient'] as int,
++    name: json['name'] as String? ?? '',
++    amount: _number(json['amount']) ?? 0,
++    weightUnit: json['weight_unit'] as int?,
++    unitName: json['unit_name'] as String?,
++    grams: _number(json['grams']) ?? 0,
++    instructions: json['instructions'] as String? ?? '',
++  );
++}
++
++class PlannedMeal {
++  final String id;
++  final String name;
++
++  /// "HH:MM" or null
++  final String? time;
++  final String instructions;
++  final DayValues planned;
++  final List<PlannedItem> items;
++
++  /// full, partial, skipped or null when not answered yet
++  final String? adherence;
++
++  const PlannedMeal({
++    required this.id,
++    required this.name,
++    this.time,
++    this.instructions = '',
++    this.planned = const DayValues(),
++    this.items = const [],
++    this.adherence,
++  });
++
++  PlannedMeal withAdherence(String status) => PlannedMeal(
++    id: id,
++    name: name,
++    time: time,
++    instructions: instructions,
++    planned: planned,
++    items: items,
++    adherence: status,
++  );
++
++  factory PlannedMeal.fromJson(Map<String, dynamic> json) {
++    final time = json['time'] as String?;
++    return PlannedMeal(
++      id: json['id'] as String,
++      name: json['name'] as String? ?? '',
++      time: time == null || time.length < 5 ? time : time.substring(0, 5),
++      instructions: json['instructions'] as String? ?? '',
++      planned: DayValues.fromJson(json['planned'] as Map<String, dynamic>?),
++      items: [
++        for (final item in json['items'] as List? ?? const [])
++          PlannedItem.fromJson(item as Map<String, dynamic>),
++      ],
++      adherence: json['adherence'] as String?,
++    );
++  }
++}
++
++/// The food of the user's day (care/my-day, section nutrition)
++class NutritionDay {
++  /// Calendar day in the user's time zone, YYYY-MM-DD
++  final String date;
++  final String? planId;
++  final String planDescription;
++  final DayValues goals;
++  final DayValues logged;
++  final int waterMl;
++  final int? waterGoalMl;
++  final List<PlannedMeal> meals;
++
++  const NutritionDay({
++    required this.date,
++    this.planId,
++    this.planDescription = '',
++    this.goals = const DayValues(),
++    this.logged = const DayValues(),
++    this.waterMl = 0,
++    this.waterGoalMl,
++    this.meals = const [],
++  });
++
++  NutritionDay copyWith({int? waterMl, List<PlannedMeal>? meals}) => NutritionDay(
++    date: date,
++    planId: planId,
++    planDescription: planDescription,
++    goals: goals,
++    logged: logged,
++    waterMl: waterMl ?? this.waterMl,
++    waterGoalMl: waterGoalMl,
++    meals: meals ?? this.meals,
++  );
++
++  /// From the whole day of care/my-day
++  factory NutritionDay.fromDayJson(Map<String, dynamic> day) {
++    final nutrition = day['nutrition'] as Map<String, dynamic>? ?? const {};
++    final plan = nutrition['plan'] as Map<String, dynamic>?;
++    final water = nutrition['water'] as Map<String, dynamic>? ?? const {};
++    return NutritionDay(
++      date: day['date'] as String,
++      planId: plan?['id'] as String?,
++      planDescription: plan?['description'] as String? ?? '',
++      goals: DayValues.fromJson(nutrition['goals'] as Map<String, dynamic>?),
++      logged: DayValues.fromJson(nutrition['logged'] as Map<String, dynamic>?),
++      waterMl: (_number(water['total_ml']) ?? 0).round(),
++      waterGoalMl: _number(water['goal_ml'])?.round(),
++      meals: [
++        for (final meal in nutrition['meals'] as List? ?? const [])
++          PlannedMeal.fromJson(meal as Map<String, dynamic>),
++      ],
++    );
++  }
++}
+diff --git a/lib/features/nutrition/providers/nutrition_day_repository.dart b/lib/features/nutrition/providers/nutrition_day_repository.dart
+new file mode 100644
+index 0000000..3c91680
+--- /dev/null
++++ b/lib/features/nutrition/providers/nutrition_day_repository.dart
+@@ -0,0 +1,75 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:convert';
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/core/exceptions/http_exception.dart';
++import 'package:wger/core/network/base_provider.dart';
++import 'package:wger/core/network/wger_base.dart';
++import 'package:wger/features/nutrition/models/nutrition_day.dart';
++
++part 'nutrition_day_repository.g.dart';
++
++@riverpod
++NutritionDayRepository nutritionDayRepository(Ref ref) =>
++    NutritionDayRepository(ref.read(wgerBaseProvider));
++
++/// REST access to the food of the day: water and how the meals were followed
++class NutritionDayRepository {
++  final WgerBaseProvider base;
++
++  NutritionDayRepository(this.base);
++
++  Future<NutritionDay> fetchToday() async {
++    final data = await base.fetch(base.makeUrl('care/my-day'));
++    return NutritionDay.fromDayJson(data as Map<String, dynamic>);
++  }
++
++  Future<void> addWater(int amountMl) => _post('water-log', {'amount_ml': amountMl});
++
++  /// One record per meal and day: posting again changes it
++  Future<void> setAdherence(String mealId, String date, String status) =>
++      _post('meal-adherence', {'meal': mealId, 'date': date, 'status': status});
++
++  /// "Followed": the prescribed items go to the food diary and the meal is
++  /// marked as followed, as in the web app
++  Future<void> followMeal(String planId, PlannedMeal meal, String date) async {
++    for (final item in meal.items) {
++      await _post('nutritiondiary', {
++        'plan': planId,
++        'meal': meal.id,
++        'ingredient': item.ingredient,
++        'amount': item.amount,
++        'weight_unit': item.weightUnit,
++      });
++    }
++    await setAdherence(meal.id, date, 'full');
++  }
++
++  Future<void> _post(String path, Map<String, dynamic> body) async {
++    final response = await base.client.post(
++      base.makeUrl(path),
++      headers: base.getDefaultHeaders(),
++      body: json.encode(body),
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++  }
++}
+diff --git a/lib/features/nutrition/providers/nutrition_day_repository.g.dart b/lib/features/nutrition/providers/nutrition_day_repository.g.dart
+new file mode 100644
+index 0000000..27f3879
+--- /dev/null
++++ b/lib/features/nutrition/providers/nutrition_day_repository.g.dart
+@@ -0,0 +1,53 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'nutrition_day_repository.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++
++@ProviderFor(nutritionDayRepository)
++final nutritionDayRepositoryProvider = NutritionDayRepositoryProvider._();
++
++final class NutritionDayRepositoryProvider
++    extends
++        $FunctionalProvider<NutritionDayRepository, NutritionDayRepository, NutritionDayRepository>
++    with $Provider<NutritionDayRepository> {
++  NutritionDayRepositoryProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'nutritionDayRepositoryProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$nutritionDayRepositoryHash();
++
++  @$internal
++  @override
++  $ProviderElement<NutritionDayRepository> $createElement(
++    $ProviderPointer pointer,
++  ) => $ProviderElement(pointer);
++
++  @override
++  NutritionDayRepository create(Ref ref) {
++    return nutritionDayRepository(ref);
++  }
++
++  /// {@macro riverpod.override_with_value}
++  Override overrideWithValue(NutritionDayRepository value) {
++    return $ProviderOverride(
++      origin: this,
++      providerOverride: $SyncValueProvider<NutritionDayRepository>(value),
++    );
++  }
++}
++
++String _$nutritionDayRepositoryHash() => r'17239b2cd7673a6e23bf85303edd4b55c65a4497';
+diff --git a/lib/features/nutrition/providers/nutrition_today_notifier.dart b/lib/features/nutrition/providers/nutrition_today_notifier.dart
+new file mode 100644
+index 0000000..7f42c72
+--- /dev/null
++++ b/lib/features/nutrition/providers/nutrition_today_notifier.dart
+@@ -0,0 +1,58 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/features/nutrition/models/nutrition_day.dart';
++import 'package:wger/features/nutrition/providers/nutrition_day_repository.dart';
++
++part 'nutrition_today_notifier.g.dart';
++
++@riverpod
++class NutritionTodayNotifier extends _$NutritionTodayNotifier {
++  @override
++  Future<NutritionDay> build() => ref.read(nutritionDayRepositoryProvider).fetchToday();
++
++  Future<void> addWater(int amountMl) async {
++    await ref.read(nutritionDayRepositoryProvider).addWater(amountMl);
++    final day = state.value;
++    if (day != null) {
++      state = AsyncData(day.copyWith(waterMl: day.waterMl + amountMl));
++    }
++  }
++
++  Future<void> setAdherence(PlannedMeal meal, String status) async {
++    final day = state.requireValue;
++    final repository = ref.read(nutritionDayRepositoryProvider);
++    if (status == 'full' && day.planId != null) {
++      await repository.followMeal(day.planId!, meal, day.date);
++      // The diary changed: reload the totals of the day
++      ref.invalidateSelf();
++      await future;
++      return;
++    }
++    await repository.setAdherence(meal.id, day.date, status);
++    state = AsyncData(
++      day.copyWith(
++        meals: [
++          for (final m in day.meals)
++            if (m.id == meal.id) m.withAdherence(status) else m,
++        ],
++      ),
++    );
++  }
++}
+diff --git a/lib/features/nutrition/providers/nutrition_today_notifier.g.dart b/lib/features/nutrition/providers/nutrition_today_notifier.g.dart
+new file mode 100644
+index 0000000..06f0852
+--- /dev/null
++++ b/lib/features/nutrition/providers/nutrition_today_notifier.g.dart
+@@ -0,0 +1,54 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'nutrition_today_notifier.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++
++@ProviderFor(NutritionTodayNotifier)
++final nutritionTodayProvider = NutritionTodayNotifierProvider._();
++
++final class NutritionTodayNotifierProvider
++    extends $AsyncNotifierProvider<NutritionTodayNotifier, NutritionDay> {
++  NutritionTodayNotifierProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'nutritionTodayProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$nutritionTodayNotifierHash();
++
++  @$internal
++  @override
++  NutritionTodayNotifier create() => NutritionTodayNotifier();
++}
++
++String _$nutritionTodayNotifierHash() => r'9bf1966ff9f986f2f3d25c088b83f5d6cbb0ac87';
++
++abstract class _$NutritionTodayNotifier extends $AsyncNotifier<NutritionDay> {
++  FutureOr<NutritionDay> build();
++  @$mustCallSuper
++  @override
++  WhenComplete runBuild() {
++    final ref = this.ref as $Ref<AsyncValue<NutritionDay>, NutritionDay>;
++    final element =
++        ref.element
++            as $ClassProviderElement<
++              AnyNotifier<AsyncValue<NutritionDay>, NutritionDay>,
++              AsyncValue<NutritionDay>,
++              Object?,
++              Object?
++            >;
++    return element.handleCreate(ref, build);
++  }
++}
+diff --git a/lib/features/nutrition/screens/nutrition_today_screen.dart b/lib/features/nutrition/screens/nutrition_today_screen.dart
+new file mode 100644
+index 0000000..1924a9f
+--- /dev/null
++++ b/lib/features/nutrition/screens/nutrition_today_screen.dart
+@@ -0,0 +1,257 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:intl/intl.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/widgets/progress_indicator.dart';
++import 'package:wger/features/nutrition/models/nutrition_day.dart';
++import 'package:wger/features/nutrition/providers/nutrition_today_notifier.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++/// Water amounts offered as buttons, as in the web app
++const waterAmountsMl = [200, 300, 500];
++
++String adherenceLabel(AppLocalizations i18n, String status) => switch (status) {
++  'full' => i18n.nutritionFollowed,
++  'partial' => i18n.nutritionPartlyFollowed,
++  _ => i18n.nutritionNotFollowed,
++};
++
++/// Today's food: totals against the goals, water and the meals of the plan
++class NutritionTodayScreen extends ConsumerWidget {
++  const NutritionTodayScreen({super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final today = ref.watch(nutritionTodayProvider);
++
++    return Scaffold(
++      appBar: AppBar(title: Text(i18n.nutritionToday)),
++      body: switch (today) {
++        AsyncValue(:final value?) => ListView(
++          padding: const EdgeInsets.all(8),
++          children: [
++            _Totals(value),
++            _Water(value),
++            if (value.planId == null)
++              Card(
++                child: ListTile(
++                  title: Text(i18n.nutritionNoPlan),
++                  subtitle: Text(i18n.nutritionNoPlanHint),
++                ),
++              )
++            else
++              for (final meal in value.meals) MealCard(meal),
++          ],
++        ),
++        AsyncValue(:final error?) => Center(child: Text(error.toString())),
++        _ => const CenteredProgressIndicator(),
++      },
++    );
++  }
++}
++
++String _number(BuildContext context, double value) =>
++    NumberFormat.decimalPattern(Localizations.localeOf(context).toString()).format(value.round());
++
++class _Meter extends StatelessWidget {
++  final String label;
++  final double value;
++  final double? goal;
++  final String unit;
++
++  const _Meter(this.label, this.value, this.goal, this.unit);
++
++  @override
++  Widget build(BuildContext context) {
++    final goal = this.goal;
++    return Padding(
++      padding: const EdgeInsets.symmetric(vertical: 4),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Text(
++            goal == null
++                ? '$label: ${_number(context, value)} $unit'
++                : '$label: ${_number(context, value)} / ${_number(context, goal)} $unit',
++          ),
++          if (goal != null && goal > 0)
++            LinearProgressIndicator(value: (value / goal).clamp(0, 1).toDouble()),
++        ],
++      ),
++    );
++  }
++}
++
++class _Totals extends StatelessWidget {
++  final NutritionDay day;
++
++  const _Totals(this.day);
++
++  @override
++  Widget build(BuildContext context) {
++    final i18n = AppLocalizations.of(context);
++    final remaining = day.goals.energy == null
++        ? null
++        : (day.goals.energy! - (day.logged.energy ?? 0)).clamp(0, double.infinity).toDouble();
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(16),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Text(i18n.nutritionToday, style: Theme.of(context).textTheme.titleLarge),
++            if (day.planDescription.isNotEmpty) Text(day.planDescription),
++            _Meter(i18n.nutritionCalories, day.logged.energy ?? 0, day.goals.energy, 'kcal'),
++            _Meter(i18n.nutritionProtein, day.logged.protein ?? 0, day.goals.protein, 'g'),
++            _Meter(
++              i18n.nutritionCarbohydrates,
++              day.logged.carbohydrates ?? 0,
++              day.goals.carbohydrates,
++              'g',
++            ),
++            _Meter(i18n.nutritionFat, day.logged.fat ?? 0, day.goals.fat, 'g'),
++            if (remaining != null)
++              Padding(
++                padding: const EdgeInsets.only(top: 8),
++                child: Text(i18n.nutritionRemaining(_number(context, remaining))),
++              ),
++          ],
++        ),
++      ),
++    );
++  }
++}
++
++class _Water extends ConsumerWidget {
++  final NutritionDay day;
++
++  const _Water(this.day);
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(16),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Text(i18n.nutritionWater, style: Theme.of(context).textTheme.titleLarge),
++            _Meter(
++              i18n.nutritionWaterToday,
++              day.waterMl.toDouble(),
++              day.waterGoalMl?.toDouble(),
++              'ml',
++            ),
++            if (day.waterGoalMl == null) Text(i18n.nutritionNoWaterGoal),
++            Wrap(
++              spacing: 8,
++              children: [
++                for (final amount in waterAmountsMl)
++                  OutlinedButton(
++                    onPressed: () => _add(context, ref, amount),
++                    child: Text('+ $amount ml'),
++                  ),
++              ],
++            ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  Future<void> _add(BuildContext context, WidgetRef ref, int amount) async {
++    final failed = AppLocalizations.of(context).careSendFailed;
++    try {
++      await ref.read(nutritionTodayProvider.notifier).addWater(amount);
++    } catch (_) {
++      if (context.mounted) {
++        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failed)));
++      }
++    }
++  }
++}
++
++class MealCard extends ConsumerWidget {
++  final PlannedMeal meal;
++
++  const MealCard(this.meal, {super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final adherence = meal.adherence;
++    final title = [
++      ?meal.time,
++      if (meal.name.isNotEmpty) meal.name else i18n.nutritionMeal,
++    ].join(' · ');
++
++    return Card(
++      child: Padding(
++        padding: const EdgeInsets.all(16),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Text(title, style: Theme.of(context).textTheme.titleMedium),
++            if (meal.planned.energy != null) Text('${_number(context, meal.planned.energy!)} kcal'),
++            for (final item in meal.items)
++              Text(
++                item.unitName == null
++                    ? '${_number(context, item.amount)} g · ${item.name}'
++                    : '${item.amount} × ${item.unitName} (${_number(context, item.grams)} g) · ${item.name}',
++              ),
++            if (meal.instructions.isNotEmpty)
++              Text(meal.instructions, style: Theme.of(context).textTheme.bodySmall),
++            const SizedBox(height: 8),
++            if (adherence != null)
++              Chip(label: Text(adherenceLabel(i18n, adherence)))
++            else
++              Wrap(
++                spacing: 8,
++                children: [
++                  FilledButton(
++                    onPressed: () => _answer(context, ref, 'full'),
++                    child: Text(i18n.nutritionFollowed),
++                  ),
++                  for (final status in ['partial', 'skipped'])
++                    OutlinedButton(
++                      onPressed: () => _answer(context, ref, status),
++                      child: Text(adherenceLabel(i18n, status)),
++                    ),
++                ],
++              ),
++          ],
++        ),
++      ),
++    );
++  }
++
++  Future<void> _answer(BuildContext context, WidgetRef ref, String status) async {
++    final failed = AppLocalizations.of(context).careSendFailed;
++    try {
++      await ref.read(nutritionTodayProvider.notifier).setAdherence(meal, status);
++    } catch (_) {
++      if (context.mounted) {
++        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failed)));
++      }
++    }
++  }
++}
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index b5fbd7a..bb7805b 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2234,5 +2234,35 @@
+   "privacyStatusCancelled": "Cancelled",
+   "@privacyStatusCancelled": {},
+   "privacyStatusRejected": "Refused",
+-  "@privacyStatusRejected": {}
++  "@privacyStatusRejected": {},
++  "nutritionToday": "Today's food",
++  "@nutritionToday": {},
++  "nutritionCalories": "Calories",
++  "@nutritionCalories": {},
++  "nutritionProtein": "Protein",
++  "@nutritionProtein": {},
++  "nutritionCarbohydrates": "Carbohydrates",
++  "@nutritionCarbohydrates": {},
++  "nutritionFat": "Fat",
++  "@nutritionFat": {},
++  "nutritionRemaining": "{kcal} kcal left for the goal of the day.",
++  "@nutritionRemaining": {"placeholders": {"kcal": {"type": "String"}}},
++  "nutritionWater": "Water",
++  "@nutritionWater": {},
++  "nutritionWaterToday": "Today",
++  "@nutritionWaterToday": {},
++  "nutritionNoWaterGoal": "No goal set. Your nutritionist can set a personal goal.",
++  "@nutritionNoWaterGoal": {},
++  "nutritionNoPlan": "No active food plan",
++  "@nutritionNoPlan": {},
++  "nutritionNoPlanHint": "Your nutritionist is still preparing your plan. You can already record water.",
++  "@nutritionNoPlanHint": {},
++  "nutritionMeal": "Meal",
++  "@nutritionMeal": {},
++  "nutritionFollowed": "Followed",
++  "@nutritionFollowed": {"description": "The patient followed the meal of the plan"},
++  "nutritionPartlyFollowed": "Partly followed",
++  "@nutritionPartlyFollowed": {},
++  "nutritionNotFollowed": "Didn't follow",
++  "@nutritionNotFollowed": {}
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index 52dffce..911631f 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1148,5 +1148,20 @@
+     "privacyStatusPending": "Em análise",
+     "privacyStatusDone": "Concluído",
+     "privacyStatusCancelled": "Cancelado",
+-    "privacyStatusRejected": "Recusado"
++    "privacyStatusRejected": "Recusado",
++    "nutritionToday": "Alimentação do dia",
++    "nutritionCalories": "Calorias",
++    "nutritionProtein": "Proteínas",
++    "nutritionCarbohydrates": "Carboidratos",
++    "nutritionFat": "Gorduras",
++    "nutritionRemaining": "Restam {kcal} kcal para a meta do dia.",
++    "nutritionWater": "Água",
++    "nutritionWaterToday": "Hoje",
++    "nutritionNoWaterGoal": "Sem meta definida. Seu nutricionista pode definir uma meta individual.",
++    "nutritionNoPlan": "Nenhum plano alimentar ativo",
++    "nutritionNoPlanHint": "Seu nutricionista ainda está preparando o seu plano. Você já pode registrar a água.",
++    "nutritionMeal": "Refeição",
++    "nutritionFollowed": "Segui",
++    "nutritionPartlyFollowed": "Segui parcialmente",
++    "nutritionNotFollowed": "Não segui"
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index a736c9b..98b8e34 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1333,5 +1333,20 @@
+     "privacyStatusPending": "Em análise",
+     "privacyStatusDone": "Concluído",
+     "privacyStatusCancelled": "Cancelado",
+-    "privacyStatusRejected": "Recusado"
++    "privacyStatusRejected": "Recusado",
++    "nutritionToday": "Alimentação do dia",
++    "nutritionCalories": "Calorias",
++    "nutritionProtein": "Proteínas",
++    "nutritionCarbohydrates": "Carboidratos",
++    "nutritionFat": "Gorduras",
++    "nutritionRemaining": "Restam {kcal} kcal para a meta do dia.",
++    "nutritionWater": "Água",
++    "nutritionWaterToday": "Hoje",
++    "nutritionNoWaterGoal": "Sem meta definida. Seu nutricionista pode definir uma meta individual.",
++    "nutritionNoPlan": "Nenhum plano alimentar ativo",
++    "nutritionNoPlanHint": "Seu nutricionista ainda está preparando o seu plano. Você já pode registrar a água.",
++    "nutritionMeal": "Refeição",
++    "nutritionFollowed": "Segui",
++    "nutritionPartlyFollowed": "Segui parcialmente",
++    "nutritionNotFollowed": "Não segui"
+ }
+diff --git a/test/features/nutrition/providers/nutrition_day_repository_test.dart b/test/features/nutrition/providers/nutrition_day_repository_test.dart
+new file mode 100644
+index 0000000..b855b07
+--- /dev/null
++++ b/test/features/nutrition/providers/nutrition_day_repository_test.dart
+@@ -0,0 +1,148 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'dart:convert';
++
++import 'package:flutter_test/flutter_test.dart';
++import 'package:http/http.dart' as http;
++import 'package:http/testing.dart';
++import 'package:wger/core/network/base_provider.dart';
++import 'package:wger/features/nutrition/models/nutrition_day.dart';
++import 'package:wger/features/nutrition/providers/nutrition_day_repository.dart';
++
++/// As the server answers care/my-day (shape taken from a real answer)
++final myDay = {
++  'date': '2026-11-17',
++  'nutrition': {
++    'plan': {'id': 'p1', 'description': 'Plano de emagrecimento', 'author': 214},
++    'goals': {'energy': 1800, 'protein': 110, 'carbohydrates': 200, 'fat': 60, 'fiber': null},
++    'logged': null,
++    'remaining': {'energy': 1800},
++    'water': {'total_ml': 400, 'goal_ml': 2500},
++    'meals': [
++      {
++        'id': 'm1',
++        'name': 'Café da manhã',
++        'time': '07:30:00',
++        'instructions': '',
++        'planned': {'energy': 354.0, 'protein': 46.134, 'carbohydrates': 0.225, 'fat': 14.985},
++        'items': [
++          {
++            'ingredient': 1,
++            'name': 'Ovo',
++            'amount': 150.0,
++            'weight_unit': null,
++            'unit_name': null,
++            'grams': 150.0,
++            'instructions': '',
++            'substitutions': 0,
++          },
++          {
++            'ingredient': 2,
++            'name': 'Pão',
++            'amount': '2.00',
++            'weight_unit': 7,
++            'unit_name': 'fatia',
++            'grams': 50.0,
++            'instructions': 'Integral',
++            'substitutions': 1,
++          },
++        ],
++        'adherence': null,
++      },
++    ],
++  },
++};
++
++void main() {
++  late List<http.Request> sent;
++
++  NutritionDayRepository answering(Object body) {
++    sent = [];
++    return NutritionDayRepository(
++      WgerBaseProvider(
++        serverUrl: 'https://almova.test',
++        client: MockClient((request) async {
++          sent.add(request);
++          return http.Response.bytes(
++            utf8.encode(json.encode(body)),
++            200,
++            headers: {'content-type': 'application/json'},
++          );
++        }),
++      ),
++    );
++  }
++
++  test('the food of the day from the day of the user', () async {
++    final day = await answering(myDay).fetchToday();
++
++    expect(sent.single.url.path, '/api/v2/care/my-day/');
++    expect(day.date, '2026-11-17');
++    expect(day.planId, 'p1');
++    expect(day.goals.energy, 1800);
++    expect(day.logged.energy, isNull);
++    expect((day.waterMl, day.waterGoalMl), (400, 2500));
++    final meal = day.meals.single;
++    expect((meal.id, meal.time), ('m1', '07:30'));
++    expect(meal.items[1].amount, 2);
++    expect(meal.items[1].unitName, 'fatia');
++    expect(meal.adherence, isNull);
++  });
++
++  test('without a plan only the water', () async {
++    final day = NutritionDay.fromDayJson({
++      'date': '2026-11-17',
++      'nutrition': {
++        'plan': null,
++        'goals': null,
++        'logged': null,
++        'meals': [],
++        'water': {'total_ml': 0, 'goal_ml': null},
++      },
++    });
++
++    expect(day.planId, isNull);
++    expect(day.waterGoalMl, isNull);
++    expect(day.meals, isEmpty);
++  });
++
++  test('water, the answer per meal and "followed" with the diary', () async {
++    final repository = answering({});
++    final meal = NutritionDay.fromDayJson(myDay).meals.single;
++
++    await repository.addWater(300);
++    await repository.setAdherence('m1', '2026-11-17', 'partial');
++    sent.clear();
++    await repository.followMeal('p1', meal, '2026-11-17');
++
++    expect(sent.map((r) => r.url.path), [
++      '/api/v2/nutritiondiary/',
++      '/api/v2/nutritiondiary/',
++      '/api/v2/meal-adherence/',
++    ]);
++    expect(json.decode(sent[1].body), {
++      'plan': 'p1',
++      'meal': 'm1',
++      'ingredient': 2,
++      'amount': 2.0,
++      'weight_unit': 7,
++    });
++    expect(json.decode(sent[2].body), {'meal': 'm1', 'date': '2026-11-17', 'status': 'full'});
++  });
++}
+diff --git a/test/features/nutrition/screens/nutrition_today_screen_test.dart b/test/features/nutrition/screens/nutrition_today_screen_test.dart
+new file mode 100644
+index 0000000..740043b
+--- /dev/null
++++ b/test/features/nutrition/screens/nutrition_today_screen_test.dart
+@@ -0,0 +1,122 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/features/nutrition/models/nutrition_day.dart';
++import 'package:wger/features/nutrition/providers/nutrition_day_repository.dart';
++import 'package:wger/features/nutrition/screens/nutrition_today_screen.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++import '../providers/nutrition_day_repository_test.dart' show myDay;
++import 'nutrition_today_screen_test.mocks.dart';
++
++@GenerateMocks([NutritionDayRepository])
++void main() {
++  late MockNutritionDayRepository repository;
++  late NutritionDay day;
++
++  setUp(() {
++    repository = MockNutritionDayRepository();
++    day = NutritionDay.fromDayJson(myDay);
++    when(repository.fetchToday()).thenAnswer((_) async => day);
++  });
++
++  Future<void> render(WidgetTester tester) async {
++    tester.view.physicalSize = const Size(1080, 3000);
++    tester.view.devicePixelRatio = 1;
++    addTearDown(tester.view.reset);
++    await tester.pumpWidget(
++      ProviderScope(
++        overrides: [nutritionDayRepositoryProvider.overrideWithValue(repository)],
++        child: const MaterialApp(
++          locale: Locale('pt', 'BR'),
++          localizationsDelegates: appLocalizationsDelegates,
++          supportedLocales: AppLocalizations.supportedLocales,
++          home: NutritionTodayScreen(),
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++  }
++
++  testWidgets('shows goals, water and the meal of the plan', (tester) async {
++    await render(tester);
++
++    expect(find.text('Calorias: 0 / 1.800 kcal'), findsOneWidget);
++    expect(find.text('Restam 1.800 kcal para a meta do dia.'), findsOneWidget);
++    expect(find.text('Hoje: 400 / 2.500 ml'), findsOneWidget);
++    expect(find.text('07:30 · Café da manhã'), findsOneWidget);
++    expect(find.text('150 g · Ovo'), findsOneWidget);
++    expect(find.text('2.0 × fatia (50 g) · Pão'), findsOneWidget);
++  });
++
++  testWidgets('water adds up', (tester) async {
++    when(repository.addWater(300)).thenAnswer((_) async {});
++    await render(tester);
++
++    await tester.tap(find.text('+ 300 ml'));
++    await tester.pumpAndSettle();
++
++    verify(repository.addWater(300)).called(1);
++    expect(find.text('Hoje: 700 / 2.500 ml'), findsOneWidget);
++  });
++
++  testWidgets('"Partly followed" is recorded for the day', (tester) async {
++    when(repository.setAdherence('m1', '2026-11-17', 'partial')).thenAnswer((_) async {});
++    await render(tester);
++
++    await tester.tap(find.text('Segui parcialmente'));
++    await tester.pumpAndSettle();
++
++    verify(repository.setAdherence('m1', '2026-11-17', 'partial')).called(1);
++    expect(find.widgetWithText(Chip, 'Segui parcialmente'), findsOneWidget);
++    expect(find.text('Não segui'), findsNothing);
++  });
++
++  testWidgets('"Followed" goes to the diary and reloads the totals', (tester) async {
++    when(repository.followMeal('p1', any, '2026-11-17')).thenAnswer((_) async {
++      day = NutritionDay.fromDayJson({
++        ...myDay,
++        'nutrition': {
++          ...(myDay['nutrition']! as Map<String, dynamic>),
++          'logged': {'energy': 354.0, 'protein': 46.1, 'carbohydrates': 0.2, 'fat': 15.0},
++          'meals': [
++            {
++              ...((myDay['nutrition']! as Map<String, dynamic>)['meals'] as List).first
++                  as Map<String, dynamic>,
++              'adherence': 'full',
++            },
++          ],
++        },
++      });
++    });
++    await render(tester);
++
++    await tester.tap(find.widgetWithText(FilledButton, 'Segui'));
++    await tester.pumpAndSettle();
++
++    verify(repository.followMeal('p1', any, '2026-11-17')).called(1);
++    expect(find.text('Calorias: 354 / 1.800 kcal'), findsOneWidget);
++    expect(find.widgetWithText(Chip, 'Segui'), findsOneWidget);
++  });
++}
+diff --git a/test/features/nutrition/screens/nutrition_today_screen_test.mocks.dart b/test/features/nutrition/screens/nutrition_today_screen_test.mocks.dart
+new file mode 100644
+index 0000000..a157cae
+--- /dev/null
++++ b/test/features/nutrition/screens/nutrition_today_screen_test.mocks.dart
+@@ -0,0 +1,98 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/nutrition/screens/nutrition_today_screen_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i5;
++
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/nutrition/models/nutrition_day.dart' as _i3;
++import 'package:wger/features/nutrition/providers/nutrition_day_repository.dart' as _i4;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeNutritionDay_1 extends _i1.SmartFake implements _i3.NutritionDay {
++  _FakeNutritionDay_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [NutritionDayRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockNutritionDayRepository extends _i1.Mock implements _i4.NutritionDayRepository {
++  MockNutritionDayRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i5.Future<_i3.NutritionDay> fetchToday() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchToday, []),
++            returnValue: _i5.Future<_i3.NutritionDay>.value(
++              _FakeNutritionDay_1(this, Invocation.method(#fetchToday, [])),
++            ),
++          )
++          as _i5.Future<_i3.NutritionDay>);
++
++  @override
++  _i5.Future<void> addWater(int? amountMl) =>
++      (super.noSuchMethod(
++            Invocation.method(#addWater, [amountMl]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> setAdherence(String? mealId, String? date, String? status) =>
++      (super.noSuchMethod(
++            Invocation.method(#setAdherence, [mealId, date, status]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++
++  @override
++  _i5.Future<void> followMeal(
++    String? planId,
++    _i3.PlannedMeal? meal,
++    String? date,
++  ) =>
++      (super.noSuchMethod(
++            Invocation.method(#followMeal, [planId, meal, date]),
++            returnValue: _i5.Future<void>.value(),
++            returnValueForMissingStub: _i5.Future<void>.value(),
++          )
++          as _i5.Future<void>);
++}
+-- 
+2.43.0
+

@@ -62,6 +62,10 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     dados" pede a exclusão da conta (digitando EXCLUIR), permite desistir e
     lista os pedidos; "Baixar meus dados" abre a página do site. A Play Store
     exige a exclusão dentro do app.
+13. **Alimentação do dia:** para quem tem nutricionista, o cartão abre as
+    calorias e os macronutrientes contra as metas, a água (+200/+300/+500 ml)
+    e as refeições do plano com "Segui" (lança os itens no diário),
+    "Segui parcialmente" e "Não segui".
 
 ## Construir o APK
 

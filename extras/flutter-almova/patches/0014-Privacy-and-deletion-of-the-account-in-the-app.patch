@@ -1,7 +1,7 @@
 From 9f64c4624c27b2b8817535be3cd4dfd8d3cb74b7 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 17 Nov 2026 02:42:58 +0000
-Subject: [PATCH 14/14] Privacy and deletion of the account in the app
+Subject: [PATCH 14/15] Privacy and deletion of the account in the app
 
 Stores require apps with accounts to let users ask for the deletion of
 their account from within the app. "Privacy and your data" in the
