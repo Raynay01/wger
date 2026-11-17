@@ -66,6 +66,10 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     calorias e os macronutrientes contra as metas, a água (+200/+300/+500 ml)
     e as refeições do plano com "Segui" (lança os itens no diário),
     "Segui parcialmente" e "Não segui".
+14. **Compartilhamento:** no cartão, um interruptor por profissional e por
+    dado (rotina de treino, diário, dor, peso e medidas, observações); a área
+    do próprio profissional não aparece. Ligar e desligar fica registrado como
+    consentimento no servidor.
 
 ## Construir o APK
 

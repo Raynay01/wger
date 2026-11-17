@@ -1,0 +1,2934 @@
+From 975be671a0dc81a8cad6b6984ae8165861510d15 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 17 Nov 2026 02:53:11 +0000
+Subject: [PATCH 16/16] Sharing between the professionals in the app
+
+"Sharing" on the follow-up card lists each professional with a switch per
+kind of data the user can share with them, with the texts of the web app;
+their own area is not offered (a physiotherapist already sees the pain
+records). Turning a switch on creates the grant, for which the server
+records the consent; turning it off revokes the grant and the consent,
+both kept as evidence. A failed change says so and leaves the switch.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ lib/core/widgets/dashboard/widgets/care.dart  |  10 +
+ lib/features/care/models/access_grant.dart    |  50 ++++
+ lib/features/care/models/access_grant.g.dart  |  16 ++
+ .../care/providers/care_repository.dart       |  30 +++
+ .../care/providers/sharing_notifier.dart      |  78 ++++++
+ .../care/providers/sharing_notifier.g.dart    |  53 ++++
+ lib/features/care/screens/sharing_screen.dart |  99 +++++++
+ lib/l10n/app_en.arb                           |  34 ++-
+ lib/l10n/app_pt.arb                           |  18 +-
+ lib/l10n/app_pt_BR.arb                        |  18 +-
+ .../providers/agenda_notifier_test.mocks.dart | 159 ++++++-----
+ .../providers/care_overview_test.mocks.dart   | 159 ++++++-----
+ .../care/providers/care_repository_test.dart  |  36 +++
+ .../conversation_notifier_test.mocks.dart     | 159 ++++++-----
+ .../screens/agenda_screen_test.mocks.dart     | 159 ++++++-----
+ .../conversation_screen_test.mocks.dart       | 159 ++++++-----
+ .../screens/privacy_screen_test.mocks.dart    | 159 ++++++-----
+ .../care/screens/sharing_screen_test.dart     | 133 ++++++++++
+ .../screens/sharing_screen_test.mocks.dart    | 247 ++++++++++++++++++
+ .../widgets/invitation_tile_test.mocks.dart   | 159 ++++++-----
+ 20 files changed, 1505 insertions(+), 430 deletions(-)
+ create mode 100644 lib/features/care/models/access_grant.dart
+ create mode 100644 lib/features/care/models/access_grant.g.dart
+ create mode 100644 lib/features/care/providers/sharing_notifier.dart
+ create mode 100644 lib/features/care/providers/sharing_notifier.g.dart
+ create mode 100644 lib/features/care/screens/sharing_screen.dart
+ create mode 100644 test/features/care/screens/sharing_screen_test.dart
+ create mode 100644 test/features/care/screens/sharing_screen_test.mocks.dart
+
+diff --git a/lib/core/widgets/dashboard/widgets/care.dart b/lib/core/widgets/dashboard/widgets/care.dart
+index 80c0a9e..b87669a 100644
+--- a/lib/core/widgets/dashboard/widgets/care.dart
++++ b/lib/core/widgets/dashboard/widgets/care.dart
+@@ -25,6 +25,7 @@ import 'package:wger/features/care/models/care_relationship.dart';
+ import 'package:wger/features/care/providers/care_overview.dart';
+ import 'package:wger/features/care/screens/agenda_screen.dart';
+ import 'package:wger/features/care/screens/conversation_screen.dart';
++import 'package:wger/features/care/screens/sharing_screen.dart';
+ import 'package:wger/features/care/widgets/invitation_tile.dart';
+ import 'package:wger/features/nutrition/screens/nutrition_today_screen.dart';
+ import 'package:wger/features/physio/screens/physio_today_screen.dart';
+@@ -85,6 +86,15 @@ class DashboardCareWidget extends ConsumerWidget {
+               ).push(MaterialPageRoute(builder: (_) => const NutritionTodayScreen())),
+             ),
+           if (next != null) _NextAppointment(next),
++          if (overview.professionals.isNotEmpty)
++            ListTile(
++              leading: const Icon(Icons.share),
++              title: Text(i18n.sharingTitle),
++              trailing: const Icon(Icons.chevron_right),
++              onTap: () => Navigator.of(
++                context,
++              ).push(MaterialPageRoute(builder: (_) => const SharingScreen())),
++            ),
+         ],
+       ),
+     );
+diff --git a/lib/features/care/models/access_grant.dart b/lib/features/care/models/access_grant.dart
+new file mode 100644
+index 0000000..6370c0a
+--- /dev/null
++++ b/lib/features/care/models/access_grant.dart
+@@ -0,0 +1,50 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:json_annotation/json_annotation.dart';
++
++part 'access_grant.g.dart';
++
++/// Data the user shares with one professional (Django `care.AccessGrant`)
++@JsonSerializable(createToJson: false)
++class AccessGrant {
++  @JsonKey(required: true)
++  final String id;
++
++  @JsonKey(required: true)
++  final String relationship;
++
++  /// E.g. training.schedule, see [sharingScopes]
++  @JsonKey(required: true)
++  final String scope;
++
++  const AccessGrant({required this.id, required this.relationship, required this.scope});
++
++  factory AccessGrant.fromJson(Map<String, dynamic> json) => _$AccessGrantFromJson(json);
++}
++
++/// What can be shared, in the order of the web app
++const sharingScopes = [
++  'training.schedule',
++  'training.adherence',
++  'nutrition.goals',
++  'nutrition.adherence',
++  'physio.pain',
++  'body.measurements',
++  'notes.multidisciplinary',
++];
+diff --git a/lib/features/care/models/access_grant.g.dart b/lib/features/care/models/access_grant.g.dart
+new file mode 100644
+index 0000000..fd780ff
+--- /dev/null
++++ b/lib/features/care/models/access_grant.g.dart
+@@ -0,0 +1,16 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'access_grant.dart';
++
++// **************************************************************************
++// JsonSerializableGenerator
++// **************************************************************************
++
++AccessGrant _$AccessGrantFromJson(Map<String, dynamic> json) {
++  $checkKeys(json, requiredKeys: const ['id', 'relationship', 'scope']);
++  return AccessGrant(
++    id: json['id'] as String,
++    relationship: json['relationship'] as String,
++    scope: json['scope'] as String,
++  );
++}
+diff --git a/lib/features/care/providers/care_repository.dart b/lib/features/care/providers/care_repository.dart
+index 2e6e180..79deaa7 100644
+--- a/lib/features/care/providers/care_repository.dart
++++ b/lib/features/care/providers/care_repository.dart
+@@ -28,6 +28,7 @@ import 'package:wger/core/exceptions/http_exception.dart';
+ import 'package:wger/core/json.dart';
+ import 'package:wger/core/network/base_provider.dart';
+ import 'package:wger/core/network/wger_base.dart';
++import 'package:wger/features/care/models/access_grant.dart';
+ import 'package:wger/features/care/models/appointment.dart';
+ import 'package:wger/features/care/models/care_relationship.dart';
+ import 'package:wger/features/care/models/data_request.dart';
+@@ -44,6 +45,7 @@ class CareRepository {
+   static const appointmentPath = 'appointment';
+   static const messagePath = 'care-message';
+   static const dataRequestPath = 'data-request';
++  static const grantPath = 'access-grant';
+ 
+   final WgerBaseProvider base;
+ 
+@@ -191,4 +193,32 @@ class CareRepository {
+   Future<void> requestDeletion() => _postAction(dataRequestPath, {'confirm': true});
+ 
+   Future<void> cancelDataRequest(String id) => _postAction('$dataRequestPath/$id/cancel', {});
++
++  /// What the user shares now (revoked grants are left out by the server)
++  Future<List<AccessGrant>> fetchGrants() async {
++    final data = await base.fetchPaginated(
++      base.makeUrl(grantPath, query: {'limit': API_MAX_PAGE_SIZE}),
++    );
++    return data.map((e) => AccessGrant.fromJson(e as Map<String, dynamic>)).toList();
++  }
++
++  /// Shares [scope] with the professional; the server records the consent
++  Future<AccessGrant> share(String relationshipId, String scope) async {
++    final data = await base.post(
++      {'relationship': relationshipId, 'scope': scope},
++      base.makeUrl(grantPath),
++    );
++    return AccessGrant.fromJson(data);
++  }
++
++  /// Stops sharing: the grant is revoked and kept as evidence
++  Future<void> stopSharing(String grantId) async {
++    final response = await base.client.delete(
++      base.makeUrl('$grantPath/$grantId'),
++      headers: base.getDefaultHeaders(),
++    );
++    if (response.statusCode >= 400) {
++      throw WgerHttpException(response);
++    }
++  }
+ }
+diff --git a/lib/features/care/providers/sharing_notifier.dart b/lib/features/care/providers/sharing_notifier.dart
+new file mode 100644
+index 0000000..ad7c02d
+--- /dev/null
++++ b/lib/features/care/providers/sharing_notifier.dart
+@@ -0,0 +1,78 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:riverpod_annotation/riverpod_annotation.dart';
++import 'package:wger/features/care/models/access_grant.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++
++part 'sharing_notifier.g.dart';
++
++/// A professional already sees their own area, offering it again is noise
++const ownScopes = {
++  Discipline.training: ['training.schedule', 'training.adherence'],
++  Discipline.nutrition: ['nutrition.goals', 'nutrition.adherence'],
++  Discipline.physio: ['physio.pain'],
++};
++
++/// The scopes the user can share with a professional of [discipline]
++List<String> scopesFor(Discipline? discipline) =>
++    sharingScopes.where((s) => !(ownScopes[discipline]?.contains(s) ?? false)).toList();
++
++class SharingState {
++  final List<CareRelationship> professionals;
++  final List<AccessGrant> grants;
++
++  const SharingState({required this.professionals, required this.grants});
++
++  AccessGrant? grantFor(String relationshipId, String scope) =>
++      grants.where((g) => g.relationship == relationshipId && g.scope == scope).firstOrNull;
++}
++
++@riverpod
++class SharingNotifier extends _$SharingNotifier {
++  @override
++  Future<SharingState> build() async {
++    final repository = ref.read(careRepositoryProvider);
++    final (professionals, grants) = await (
++      repository.fetchMyProfessionals(),
++      repository.fetchGrants(),
++    ).wait;
++    return SharingState(professionals: professionals, grants: grants);
++  }
++
++  Future<void> setShared(String relationshipId, String scope, bool shared) async {
++    final current = state.requireValue;
++    final repository = ref.read(careRepositoryProvider);
++    final existing = current.grantFor(relationshipId, scope);
++    if (shared && existing == null) {
++      final grant = await repository.share(relationshipId, scope);
++      state = AsyncData(
++        SharingState(professionals: current.professionals, grants: [...current.grants, grant]),
++      );
++    } else if (!shared && existing != null) {
++      await repository.stopSharing(existing.id);
++      state = AsyncData(
++        SharingState(
++          professionals: current.professionals,
++          grants: [...current.grants.where((g) => g.id != existing.id)],
++        ),
++      );
++    }
++  }
++}
+diff --git a/lib/features/care/providers/sharing_notifier.g.dart b/lib/features/care/providers/sharing_notifier.g.dart
+new file mode 100644
+index 0000000..3f0576a
+--- /dev/null
++++ b/lib/features/care/providers/sharing_notifier.g.dart
+@@ -0,0 +1,53 @@
++// GENERATED CODE - DO NOT MODIFY BY HAND
++
++part of 'sharing_notifier.dart';
++
++// **************************************************************************
++// RiverpodGenerator
++// **************************************************************************
++
++// GENERATED CODE - DO NOT MODIFY BY HAND
++// ignore_for_file: type=lint, type=warning
++
++@ProviderFor(SharingNotifier)
++final sharingProvider = SharingNotifierProvider._();
++
++final class SharingNotifierProvider extends $AsyncNotifierProvider<SharingNotifier, SharingState> {
++  SharingNotifierProvider._()
++    : super(
++        from: null,
++        argument: null,
++        retry: null,
++        name: r'sharingProvider',
++        isAutoDispose: true,
++        dependencies: null,
++        $allTransitiveDependencies: null,
++      );
++
++  @override
++  String debugGetCreateSourceHash() => _$sharingNotifierHash();
++
++  @$internal
++  @override
++  SharingNotifier create() => SharingNotifier();
++}
++
++String _$sharingNotifierHash() => r'eb3f86c6ae1ce92eb2e8f33c7b8d10c48503ec26';
++
++abstract class _$SharingNotifier extends $AsyncNotifier<SharingState> {
++  FutureOr<SharingState> build();
++  @$mustCallSuper
++  @override
++  WhenComplete runBuild() {
++    final ref = this.ref as $Ref<AsyncValue<SharingState>, SharingState>;
++    final element =
++        ref.element
++            as $ClassProviderElement<
++              AnyNotifier<AsyncValue<SharingState>, SharingState>,
++              AsyncValue<SharingState>,
++              Object?,
++              Object?
++            >;
++    return element.handleCreate(ref, build);
++  }
++}
+diff --git a/lib/features/care/screens/sharing_screen.dart b/lib/features/care/screens/sharing_screen.dart
+new file mode 100644
+index 0000000..6714285
+--- /dev/null
++++ b/lib/features/care/screens/sharing_screen.dart
+@@ -0,0 +1,99 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/widgets/progress_indicator.dart';
++import 'package:wger/features/care/care.dart';
++import 'package:wger/features/care/providers/sharing_notifier.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++
++(String, String) scopeLabel(AppLocalizations i18n, String scope) => switch (scope) {
++  'training.schedule' => (i18n.sharingTrainingSchedule, i18n.sharingTrainingScheduleText),
++  'training.adherence' => (i18n.sharingTrainingAdherence, i18n.sharingTrainingAdherenceText),
++  'nutrition.goals' => (i18n.sharingNutritionGoals, i18n.sharingNutritionGoalsText),
++  'nutrition.adherence' => (i18n.sharingNutritionAdherence, i18n.sharingNutritionAdherenceText),
++  'physio.pain' => (i18n.sharingPhysioPain, i18n.sharingPhysioPainText),
++  'body.measurements' => (i18n.sharingBodyMeasurements, i18n.sharingBodyMeasurementsText),
++  _ => (i18n.sharingNotes, i18n.sharingNotesText),
++};
++
++/// What else each professional may see, besides their own area
++class SharingScreen extends ConsumerWidget {
++  const SharingScreen({super.key});
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final i18n = AppLocalizations.of(context);
++    final sharing = ref.watch(sharingProvider);
++
++    return Scaffold(
++      appBar: AppBar(title: Text(i18n.sharingTitle)),
++      body: switch (sharing) {
++        AsyncValue(:final value?) => ListView(
++          padding: const EdgeInsets.all(8),
++          children: [
++            Padding(padding: const EdgeInsets.all(8), child: Text(i18n.sharingIntro)),
++            for (final professional in value.professionals)
++              Card(
++                child: Column(
++                  children: [
++                    ListTile(
++                      leading: Icon(disciplineIcon(professional.discipline)),
++                      title: Text(
++                        professional.professionalName,
++                        style: Theme.of(context).textTheme.titleLarge,
++                      ),
++                      subtitle: Text(professionLabel(i18n, professional.discipline)),
++                    ),
++                    for (final scope in scopesFor(professional.discipline))
++                      SwitchListTile(
++                        title: Text(scopeLabel(i18n, scope).$1),
++                        subtitle: Text(scopeLabel(i18n, scope).$2),
++                        value: value.grantFor(professional.id, scope) != null,
++                        onChanged: (shared) =>
++                            _toggle(context, ref, professional.id, scope, shared),
++                      ),
++                  ],
++                ),
++              ),
++          ],
++        ),
++        AsyncValue(:final error?) => Center(child: Text(error.toString())),
++        _ => const CenteredProgressIndicator(),
++      },
++    );
++  }
++
++  Future<void> _toggle(
++    BuildContext context,
++    WidgetRef ref,
++    String relationshipId,
++    String scope,
++    bool shared,
++  ) async {
++    final failed = AppLocalizations.of(context).careSendFailed;
++    try {
++      await ref.read(sharingProvider.notifier).setShared(relationshipId, scope, shared);
++    } catch (_) {
++      if (context.mounted) {
++        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(failed)));
++      }
++    }
++  }
++}
+diff --git a/lib/l10n/app_en.arb b/lib/l10n/app_en.arb
+index bb7805b..c0f2ed3 100644
+--- a/lib/l10n/app_en.arb
++++ b/lib/l10n/app_en.arb
+@@ -2264,5 +2264,37 @@
+   "nutritionPartlyFollowed": "Partly followed",
+   "@nutritionPartlyFollowed": {},
+   "nutritionNotFollowed": "Didn't follow",
+-  "@nutritionNotFollowed": {}
++  "@nutritionNotFollowed": {},
++  "sharingTitle": "Sharing",
++  "@sharingTitle": {},
++  "sharingIntro": "Each professional sees their own area. Here you choose what else each one may see to follow you better. You can turn it off at any time, and every access is recorded.",
++  "@sharingIntro": {},
++  "sharingTrainingSchedule": "Training routine",
++  "@sharingTrainingSchedule": {},
++  "sharingTrainingScheduleText": "Days, times and frequency of the workouts.",
++  "@sharingTrainingScheduleText": {},
++  "sharingTrainingAdherence": "Completed workouts",
++  "@sharingTrainingAdherence": {},
++  "sharingTrainingAdherenceText": "How many workouts you did in the last weeks.",
++  "@sharingTrainingAdherenceText": {},
++  "sharingNutritionGoals": "Nutrition goals",
++  "@sharingNutritionGoals": {},
++  "sharingNutritionGoalsText": "Calories, macros and meal times.",
++  "@sharingNutritionGoalsText": {},
++  "sharingNutritionAdherence": "Food diary summary",
++  "@sharingNutritionAdherence": {},
++  "sharingNutritionAdherenceText": "Days with records and meals followed.",
++  "@sharingNutritionAdherenceText": {},
++  "sharingPhysioPain": "Pain records",
++  "@sharingPhysioPain": {},
++  "sharingPhysioPainText": "Average and latest pain records.",
++  "@sharingPhysioPainText": {},
++  "sharingBodyMeasurements": "Weight and measurements",
++  "@sharingBodyMeasurements": {},
++  "sharingBodyMeasurementsText": "Your latest weight records and the measurements of the nutrition assessments (without the nutritionist's notes and goals).",
++  "@sharingBodyMeasurementsText": {},
++  "sharingNotes": "Professionals' notes",
++  "@sharingNotes": {},
++  "sharingNotesText": "What your other professionals noted.",
++  "@sharingNotesText": {}
+ }
+diff --git a/lib/l10n/app_pt.arb b/lib/l10n/app_pt.arb
+index 911631f..aeb1a0e 100644
+--- a/lib/l10n/app_pt.arb
++++ b/lib/l10n/app_pt.arb
+@@ -1163,5 +1163,21 @@
+     "nutritionMeal": "Refeição",
+     "nutritionFollowed": "Segui",
+     "nutritionPartlyFollowed": "Segui parcialmente",
+-    "nutritionNotFollowed": "Não segui"
++    "nutritionNotFollowed": "Não segui",
++    "sharingTitle": "Compartilhamento",
++    "sharingIntro": "Cada profissional vê a própria área. Aqui você escolhe o que mais cada um pode ver para acompanhar você melhor. Você pode desligar a qualquer momento, e cada acesso fica registrado.",
++    "sharingTrainingSchedule": "Rotina de treino",
++    "sharingTrainingScheduleText": "Dias, horários e frequência dos treinos.",
++    "sharingTrainingAdherence": "Treinos realizados",
++    "sharingTrainingAdherenceText": "Quantos treinos você fez nas últimas semanas.",
++    "sharingNutritionGoals": "Metas nutricionais",
++    "sharingNutritionGoalsText": "Calorias, macros e horários das refeições.",
++    "sharingNutritionAdherence": "Resumo do diário alimentar",
++    "sharingNutritionAdherenceText": "Dias com registro e refeições seguidas.",
++    "sharingPhysioPain": "Registros de dor",
++    "sharingPhysioPainText": "Média e últimos registros de dor.",
++    "sharingBodyMeasurements": "Peso e medidas",
++    "sharingBodyMeasurementsText": "Seus últimos registros de peso e as medidas das avaliações nutricionais (sem as anotações e metas do nutricionista).",
++    "sharingNotes": "Observações dos profissionais",
++    "sharingNotesText": "O que os seus outros profissionais anotaram."
+ }
+diff --git a/lib/l10n/app_pt_BR.arb b/lib/l10n/app_pt_BR.arb
+index 98b8e34..c2315e7 100644
+--- a/lib/l10n/app_pt_BR.arb
++++ b/lib/l10n/app_pt_BR.arb
+@@ -1348,5 +1348,21 @@
+     "nutritionMeal": "Refeição",
+     "nutritionFollowed": "Segui",
+     "nutritionPartlyFollowed": "Segui parcialmente",
+-    "nutritionNotFollowed": "Não segui"
++    "nutritionNotFollowed": "Não segui",
++    "sharingTitle": "Compartilhamento",
++    "sharingIntro": "Cada profissional vê a própria área. Aqui você escolhe o que mais cada um pode ver para acompanhar você melhor. Você pode desligar a qualquer momento, e cada acesso fica registrado.",
++    "sharingTrainingSchedule": "Rotina de treino",
++    "sharingTrainingScheduleText": "Dias, horários e frequência dos treinos.",
++    "sharingTrainingAdherence": "Treinos realizados",
++    "sharingTrainingAdherenceText": "Quantos treinos você fez nas últimas semanas.",
++    "sharingNutritionGoals": "Metas nutricionais",
++    "sharingNutritionGoalsText": "Calorias, macros e horários das refeições.",
++    "sharingNutritionAdherence": "Resumo do diário alimentar",
++    "sharingNutritionAdherenceText": "Dias com registro e refeições seguidas.",
++    "sharingPhysioPain": "Registros de dor",
++    "sharingPhysioPainText": "Média e últimos registros de dor.",
++    "sharingBodyMeasurements": "Peso e medidas",
++    "sharingBodyMeasurementsText": "Seus últimos registros de peso e as medidas das avaliações nutricionais (sem as anotações e metas do nutricionista).",
++    "sharingNotes": "Observações dos profissionais",
++    "sharingNotesText": "O que os seus outros profissionais anotaram."
+ }
+diff --git a/test/features/care/providers/agenda_notifier_test.mocks.dart b/test/features/care/providers/agenda_notifier_test.mocks.dart
+index abd079c..bd415ff 100644
+--- a/test/features/care/providers/agenda_notifier_test.mocks.dart
++++ b/test/features/care/providers/agenda_notifier_test.mocks.dart
+@@ -4,17 +4,18 @@
+ 
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+-import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i9;
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
+ 
+-import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:image_picker/image_picker.dart' as _i9;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+-import 'package:wger/features/care/models/appointment.dart' as _i7;
+-import 'package:wger/features/care/models/care_relationship.dart' as _i6;
+-import 'package:wger/features/care/models/data_request.dart' as _i10;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+-import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -41,10 +42,14 @@ class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
+   _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
+ }
+ 
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
+ /// A class which mocks [CareRepository].
+ ///
+ /// See the documentation for Mockito's code generation for more information.
+-class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+   MockCareRepository() {
+     _i1.throwOnMissingStub(this);
+   }
+@@ -61,78 +66,78 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i2.WgerBaseProvider);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMyProfessionals, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchInvitations, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<void> acceptInvitation(String? id) =>
++  _i6.Future<void> acceptInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#acceptInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> declineInvitation(String? id) =>
++  _i6.Future<void> declineInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#declineInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchUpcomingAppointments, [from]),
+-            returnValue: _i5.Future<List<_i7.Appointment>>.value(
+-              <_i7.Appointment>[],
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
+             ),
+           )
+-          as _i5.Future<List<_i7.Appointment>>);
++          as _i6.Future<List<_i8.Appointment>>);
+ 
+   @override
+-  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMessages, [relationshipId]),
+-            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
+           )
+-          as _i5.Future<List<_i3.Message>>);
++          as _i6.Future<List<_i3.Message>>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
+       (super.noSuchMethod(
+             Invocation.method(#sendText, [relationshipId, text]),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(#sendText, [relationshipId, text]),
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendAttachment(
++  _i6.Future<_i3.Message> sendAttachment(
+     String? relationshipId,
+-    _i8.XFile? file, {
++    _i9.XFile? file, {
+     String? text = '',
+   }) =>
+       (super.noSuchMethod(
+@@ -141,7 +146,7 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               [relationshipId, file],
+               {#text: text},
+             ),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(
+@@ -152,59 +157,91 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<void> markRead(String? relationshipId) =>
++  _i6.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#markRead, [relationshipId]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
+           )
+-          as _i5.Future<_i9.Uint8List>);
++          as _i6.Future<_i10.Uint8List>);
+ 
+   @override
+-  _i5.Future<void> cancelAppointment(String? id) =>
++  _i6.Future<void> cancelAppointment(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelAppointment, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchDataRequests, []),
+-            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
+-              <_i10.DataRequest>[],
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
+             ),
+           )
+-          as _i5.Future<List<_i10.DataRequest>>);
++          as _i6.Future<List<_i11.DataRequest>>);
+ 
+   @override
+-  _i5.Future<void> requestDeletion() =>
++  _i6.Future<void> requestDeletion() =>
+       (super.noSuchMethod(
+             Invocation.method(#requestDeletion, []),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> cancelDataRequest(String? id) =>
++  _i6.Future<void> cancelDataRequest(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelDataRequest, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/providers/care_overview_test.mocks.dart b/test/features/care/providers/care_overview_test.mocks.dart
+index 9db496c..49fbf20 100644
+--- a/test/features/care/providers/care_overview_test.mocks.dart
++++ b/test/features/care/providers/care_overview_test.mocks.dart
+@@ -4,17 +4,18 @@
+ 
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+-import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i9;
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
+ 
+-import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:image_picker/image_picker.dart' as _i9;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+-import 'package:wger/features/care/models/appointment.dart' as _i7;
+-import 'package:wger/features/care/models/care_relationship.dart' as _i6;
+-import 'package:wger/features/care/models/data_request.dart' as _i10;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+-import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -41,10 +42,14 @@ class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
+   _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
+ }
+ 
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
+ /// A class which mocks [CareRepository].
+ ///
+ /// See the documentation for Mockito's code generation for more information.
+-class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+   MockCareRepository() {
+     _i1.throwOnMissingStub(this);
+   }
+@@ -61,78 +66,78 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i2.WgerBaseProvider);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMyProfessionals, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchInvitations, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<void> acceptInvitation(String? id) =>
++  _i6.Future<void> acceptInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#acceptInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> declineInvitation(String? id) =>
++  _i6.Future<void> declineInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#declineInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchUpcomingAppointments, [from]),
+-            returnValue: _i5.Future<List<_i7.Appointment>>.value(
+-              <_i7.Appointment>[],
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
+             ),
+           )
+-          as _i5.Future<List<_i7.Appointment>>);
++          as _i6.Future<List<_i8.Appointment>>);
+ 
+   @override
+-  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMessages, [relationshipId]),
+-            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
+           )
+-          as _i5.Future<List<_i3.Message>>);
++          as _i6.Future<List<_i3.Message>>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
+       (super.noSuchMethod(
+             Invocation.method(#sendText, [relationshipId, text]),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(#sendText, [relationshipId, text]),
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendAttachment(
++  _i6.Future<_i3.Message> sendAttachment(
+     String? relationshipId,
+-    _i8.XFile? file, {
++    _i9.XFile? file, {
+     String? text = '',
+   }) =>
+       (super.noSuchMethod(
+@@ -141,7 +146,7 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               [relationshipId, file],
+               {#text: text},
+             ),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(
+@@ -152,59 +157,91 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<void> markRead(String? relationshipId) =>
++  _i6.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#markRead, [relationshipId]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
+           )
+-          as _i5.Future<_i9.Uint8List>);
++          as _i6.Future<_i10.Uint8List>);
+ 
+   @override
+-  _i5.Future<void> cancelAppointment(String? id) =>
++  _i6.Future<void> cancelAppointment(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelAppointment, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchDataRequests, []),
+-            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
+-              <_i10.DataRequest>[],
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
+             ),
+           )
+-          as _i5.Future<List<_i10.DataRequest>>);
++          as _i6.Future<List<_i11.DataRequest>>);
+ 
+   @override
+-  _i5.Future<void> requestDeletion() =>
++  _i6.Future<void> requestDeletion() =>
+       (super.noSuchMethod(
+             Invocation.method(#requestDeletion, []),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> cancelDataRequest(String? id) =>
++  _i6.Future<void> cancelDataRequest(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelDataRequest, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/providers/care_repository_test.dart b/test/features/care/providers/care_repository_test.dart
+index 69a94b1..4ad8c4d 100644
+--- a/test/features/care/providers/care_repository_test.dart
++++ b/test/features/care/providers/care_repository_test.dart
+@@ -357,4 +357,40 @@ void main() {
+       expect(sent[1].url.path, '/api/v2/data-request/d2/cancel/');
+     });
+   });
++
++  test('sharing: list, share and stop sharing', () async {
++    final sent = <http.Request>[];
++    final repository = CareRepository(
++      WgerBaseProvider(
++        serverUrl: 'https://almova.test',
++        client: MockClient((request) async {
++          sent.add(request);
++          final body = request.method == 'GET'
++              ? {
++                  'count': 1,
++                  'next': null,
++                  'results': [
++                    {'id': 'g1', 'relationship': 'r1', 'scope': 'physio.pain'},
++                  ],
++                }
++              : {'id': 'g2', 'relationship': 'r1', 'scope': 'body.measurements'};
++          return http.Response.bytes(
++            utf8.encode(json.encode(body)),
++            request.method == 'DELETE' ? 204 : 200,
++            headers: {'content-type': 'application/json'},
++          );
++        }),
++      ),
++    );
++
++    expect((await repository.fetchGrants()).single.scope, 'physio.pain');
++    expect((await repository.share('r1', 'body.measurements')).id, 'g2');
++    await repository.stopSharing('g1');
++
++    expect(sent[0].url.path, '/api/v2/access-grant/');
++    expect(sent[1].method, 'POST');
++    expect(json.decode(sent[1].body), {'relationship': 'r1', 'scope': 'body.measurements'});
++    expect(sent[2].method, 'DELETE');
++    expect(sent[2].url.path, '/api/v2/access-grant/g1/');
++  });
+ }
+diff --git a/test/features/care/providers/conversation_notifier_test.mocks.dart b/test/features/care/providers/conversation_notifier_test.mocks.dart
+index 7c5680e..1c8fa28 100644
+--- a/test/features/care/providers/conversation_notifier_test.mocks.dart
++++ b/test/features/care/providers/conversation_notifier_test.mocks.dart
+@@ -4,17 +4,18 @@
+ 
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+-import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i9;
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
+ 
+-import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:image_picker/image_picker.dart' as _i9;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+-import 'package:wger/features/care/models/appointment.dart' as _i7;
+-import 'package:wger/features/care/models/care_relationship.dart' as _i6;
+-import 'package:wger/features/care/models/data_request.dart' as _i10;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+-import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -41,10 +42,14 @@ class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
+   _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
+ }
+ 
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
+ /// A class which mocks [CareRepository].
+ ///
+ /// See the documentation for Mockito's code generation for more information.
+-class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+   MockCareRepository() {
+     _i1.throwOnMissingStub(this);
+   }
+@@ -61,78 +66,78 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i2.WgerBaseProvider);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMyProfessionals, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchInvitations, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<void> acceptInvitation(String? id) =>
++  _i6.Future<void> acceptInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#acceptInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> declineInvitation(String? id) =>
++  _i6.Future<void> declineInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#declineInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchUpcomingAppointments, [from]),
+-            returnValue: _i5.Future<List<_i7.Appointment>>.value(
+-              <_i7.Appointment>[],
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
+             ),
+           )
+-          as _i5.Future<List<_i7.Appointment>>);
++          as _i6.Future<List<_i8.Appointment>>);
+ 
+   @override
+-  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMessages, [relationshipId]),
+-            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
+           )
+-          as _i5.Future<List<_i3.Message>>);
++          as _i6.Future<List<_i3.Message>>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
+       (super.noSuchMethod(
+             Invocation.method(#sendText, [relationshipId, text]),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(#sendText, [relationshipId, text]),
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendAttachment(
++  _i6.Future<_i3.Message> sendAttachment(
+     String? relationshipId,
+-    _i8.XFile? file, {
++    _i9.XFile? file, {
+     String? text = '',
+   }) =>
+       (super.noSuchMethod(
+@@ -141,7 +146,7 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               [relationshipId, file],
+               {#text: text},
+             ),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(
+@@ -152,59 +157,91 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<void> markRead(String? relationshipId) =>
++  _i6.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#markRead, [relationshipId]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
+           )
+-          as _i5.Future<_i9.Uint8List>);
++          as _i6.Future<_i10.Uint8List>);
+ 
+   @override
+-  _i5.Future<void> cancelAppointment(String? id) =>
++  _i6.Future<void> cancelAppointment(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelAppointment, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchDataRequests, []),
+-            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
+-              <_i10.DataRequest>[],
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
+             ),
+           )
+-          as _i5.Future<List<_i10.DataRequest>>);
++          as _i6.Future<List<_i11.DataRequest>>);
+ 
+   @override
+-  _i5.Future<void> requestDeletion() =>
++  _i6.Future<void> requestDeletion() =>
+       (super.noSuchMethod(
+             Invocation.method(#requestDeletion, []),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> cancelDataRequest(String? id) =>
++  _i6.Future<void> cancelDataRequest(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelDataRequest, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/screens/agenda_screen_test.mocks.dart b/test/features/care/screens/agenda_screen_test.mocks.dart
+index e1a26d5..03ebb8c 100644
+--- a/test/features/care/screens/agenda_screen_test.mocks.dart
++++ b/test/features/care/screens/agenda_screen_test.mocks.dart
+@@ -4,17 +4,18 @@
+ 
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+-import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i9;
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
+ 
+-import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:image_picker/image_picker.dart' as _i9;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+-import 'package:wger/features/care/models/appointment.dart' as _i7;
+-import 'package:wger/features/care/models/care_relationship.dart' as _i6;
+-import 'package:wger/features/care/models/data_request.dart' as _i10;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+-import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -41,10 +42,14 @@ class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
+   _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
+ }
+ 
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
+ /// A class which mocks [CareRepository].
+ ///
+ /// See the documentation for Mockito's code generation for more information.
+-class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+   MockCareRepository() {
+     _i1.throwOnMissingStub(this);
+   }
+@@ -61,78 +66,78 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i2.WgerBaseProvider);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMyProfessionals, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchInvitations, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<void> acceptInvitation(String? id) =>
++  _i6.Future<void> acceptInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#acceptInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> declineInvitation(String? id) =>
++  _i6.Future<void> declineInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#declineInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchUpcomingAppointments, [from]),
+-            returnValue: _i5.Future<List<_i7.Appointment>>.value(
+-              <_i7.Appointment>[],
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
+             ),
+           )
+-          as _i5.Future<List<_i7.Appointment>>);
++          as _i6.Future<List<_i8.Appointment>>);
+ 
+   @override
+-  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMessages, [relationshipId]),
+-            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
+           )
+-          as _i5.Future<List<_i3.Message>>);
++          as _i6.Future<List<_i3.Message>>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
+       (super.noSuchMethod(
+             Invocation.method(#sendText, [relationshipId, text]),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(#sendText, [relationshipId, text]),
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendAttachment(
++  _i6.Future<_i3.Message> sendAttachment(
+     String? relationshipId,
+-    _i8.XFile? file, {
++    _i9.XFile? file, {
+     String? text = '',
+   }) =>
+       (super.noSuchMethod(
+@@ -141,7 +146,7 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               [relationshipId, file],
+               {#text: text},
+             ),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(
+@@ -152,59 +157,91 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<void> markRead(String? relationshipId) =>
++  _i6.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#markRead, [relationshipId]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
+           )
+-          as _i5.Future<_i9.Uint8List>);
++          as _i6.Future<_i10.Uint8List>);
+ 
+   @override
+-  _i5.Future<void> cancelAppointment(String? id) =>
++  _i6.Future<void> cancelAppointment(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelAppointment, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchDataRequests, []),
+-            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
+-              <_i10.DataRequest>[],
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
+             ),
+           )
+-          as _i5.Future<List<_i10.DataRequest>>);
++          as _i6.Future<List<_i11.DataRequest>>);
+ 
+   @override
+-  _i5.Future<void> requestDeletion() =>
++  _i6.Future<void> requestDeletion() =>
+       (super.noSuchMethod(
+             Invocation.method(#requestDeletion, []),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> cancelDataRequest(String? id) =>
++  _i6.Future<void> cancelDataRequest(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelDataRequest, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/screens/conversation_screen_test.mocks.dart b/test/features/care/screens/conversation_screen_test.mocks.dart
+index e382d79..3fdcfc7 100644
+--- a/test/features/care/screens/conversation_screen_test.mocks.dart
++++ b/test/features/care/screens/conversation_screen_test.mocks.dart
+@@ -4,17 +4,18 @@
+ 
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+-import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i9;
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
+ 
+-import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:image_picker/image_picker.dart' as _i9;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+-import 'package:wger/features/care/models/appointment.dart' as _i7;
+-import 'package:wger/features/care/models/care_relationship.dart' as _i6;
+-import 'package:wger/features/care/models/data_request.dart' as _i10;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+-import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -41,10 +42,14 @@ class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
+   _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
+ }
+ 
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
+ /// A class which mocks [CareRepository].
+ ///
+ /// See the documentation for Mockito's code generation for more information.
+-class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+   MockCareRepository() {
+     _i1.throwOnMissingStub(this);
+   }
+@@ -61,78 +66,78 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i2.WgerBaseProvider);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMyProfessionals, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchInvitations, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<void> acceptInvitation(String? id) =>
++  _i6.Future<void> acceptInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#acceptInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> declineInvitation(String? id) =>
++  _i6.Future<void> declineInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#declineInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchUpcomingAppointments, [from]),
+-            returnValue: _i5.Future<List<_i7.Appointment>>.value(
+-              <_i7.Appointment>[],
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
+             ),
+           )
+-          as _i5.Future<List<_i7.Appointment>>);
++          as _i6.Future<List<_i8.Appointment>>);
+ 
+   @override
+-  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMessages, [relationshipId]),
+-            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
+           )
+-          as _i5.Future<List<_i3.Message>>);
++          as _i6.Future<List<_i3.Message>>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
+       (super.noSuchMethod(
+             Invocation.method(#sendText, [relationshipId, text]),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(#sendText, [relationshipId, text]),
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendAttachment(
++  _i6.Future<_i3.Message> sendAttachment(
+     String? relationshipId,
+-    _i8.XFile? file, {
++    _i9.XFile? file, {
+     String? text = '',
+   }) =>
+       (super.noSuchMethod(
+@@ -141,7 +146,7 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               [relationshipId, file],
+               {#text: text},
+             ),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(
+@@ -152,59 +157,91 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<void> markRead(String? relationshipId) =>
++  _i6.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#markRead, [relationshipId]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
+           )
+-          as _i5.Future<_i9.Uint8List>);
++          as _i6.Future<_i10.Uint8List>);
+ 
+   @override
+-  _i5.Future<void> cancelAppointment(String? id) =>
++  _i6.Future<void> cancelAppointment(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelAppointment, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchDataRequests, []),
+-            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
+-              <_i10.DataRequest>[],
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
+             ),
+           )
+-          as _i5.Future<List<_i10.DataRequest>>);
++          as _i6.Future<List<_i11.DataRequest>>);
+ 
+   @override
+-  _i5.Future<void> requestDeletion() =>
++  _i6.Future<void> requestDeletion() =>
+       (super.noSuchMethod(
+             Invocation.method(#requestDeletion, []),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> cancelDataRequest(String? id) =>
++  _i6.Future<void> cancelDataRequest(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelDataRequest, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/screens/privacy_screen_test.mocks.dart b/test/features/care/screens/privacy_screen_test.mocks.dart
+index b05a34d..e0c8281 100644
+--- a/test/features/care/screens/privacy_screen_test.mocks.dart
++++ b/test/features/care/screens/privacy_screen_test.mocks.dart
+@@ -4,17 +4,18 @@
+ 
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+-import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i9;
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
+ 
+-import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:image_picker/image_picker.dart' as _i9;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+-import 'package:wger/features/care/models/appointment.dart' as _i7;
+-import 'package:wger/features/care/models/care_relationship.dart' as _i6;
+-import 'package:wger/features/care/models/data_request.dart' as _i10;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+-import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -41,10 +42,14 @@ class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
+   _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
+ }
+ 
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
+ /// A class which mocks [CareRepository].
+ ///
+ /// See the documentation for Mockito's code generation for more information.
+-class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+   MockCareRepository() {
+     _i1.throwOnMissingStub(this);
+   }
+@@ -61,78 +66,78 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i2.WgerBaseProvider);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMyProfessionals, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchInvitations, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<void> acceptInvitation(String? id) =>
++  _i6.Future<void> acceptInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#acceptInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> declineInvitation(String? id) =>
++  _i6.Future<void> declineInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#declineInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchUpcomingAppointments, [from]),
+-            returnValue: _i5.Future<List<_i7.Appointment>>.value(
+-              <_i7.Appointment>[],
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
+             ),
+           )
+-          as _i5.Future<List<_i7.Appointment>>);
++          as _i6.Future<List<_i8.Appointment>>);
+ 
+   @override
+-  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMessages, [relationshipId]),
+-            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
+           )
+-          as _i5.Future<List<_i3.Message>>);
++          as _i6.Future<List<_i3.Message>>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
+       (super.noSuchMethod(
+             Invocation.method(#sendText, [relationshipId, text]),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(#sendText, [relationshipId, text]),
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendAttachment(
++  _i6.Future<_i3.Message> sendAttachment(
+     String? relationshipId,
+-    _i8.XFile? file, {
++    _i9.XFile? file, {
+     String? text = '',
+   }) =>
+       (super.noSuchMethod(
+@@ -141,7 +146,7 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               [relationshipId, file],
+               {#text: text},
+             ),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(
+@@ -152,59 +157,91 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<void> markRead(String? relationshipId) =>
++  _i6.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#markRead, [relationshipId]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
+           )
+-          as _i5.Future<_i9.Uint8List>);
++          as _i6.Future<_i10.Uint8List>);
+ 
+   @override
+-  _i5.Future<void> cancelAppointment(String? id) =>
++  _i6.Future<void> cancelAppointment(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelAppointment, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchDataRequests, []),
+-            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
+-              <_i10.DataRequest>[],
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
+             ),
+           )
+-          as _i5.Future<List<_i10.DataRequest>>);
++          as _i6.Future<List<_i11.DataRequest>>);
+ 
+   @override
+-  _i5.Future<void> requestDeletion() =>
++  _i6.Future<void> requestDeletion() =>
+       (super.noSuchMethod(
+             Invocation.method(#requestDeletion, []),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> cancelDataRequest(String? id) =>
++  _i6.Future<void> cancelDataRequest(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelDataRequest, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ }
+diff --git a/test/features/care/screens/sharing_screen_test.dart b/test/features/care/screens/sharing_screen_test.dart
+new file mode 100644
+index 0000000..a56a869
+--- /dev/null
++++ b/test/features/care/screens/sharing_screen_test.dart
+@@ -0,0 +1,133 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/annotations.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/features/care/models/access_grant.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/features/care/screens/sharing_screen.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++
++import 'sharing_screen_test.mocks.dart';
++
++const physio = CareRelationship(
++  id: 'r1',
++  discipline: Discipline.physio,
++  status: 'active',
++  professionalName: 'Paula',
++);
++
++@GenerateMocks([CareRepository])
++void main() {
++  late MockCareRepository repository;
++
++  setUp(() {
++    repository = MockCareRepository();
++    when(repository.fetchMyProfessionals()).thenAnswer((_) async => [physio]);
++    when(repository.fetchGrants()).thenAnswer(
++      (_) async => [const AccessGrant(id: 'g1', relationship: 'r1', scope: 'training.schedule')],
++    );
++  });
++
++  Future<void> render(WidgetTester tester) async {
++    tester.view.physicalSize = const Size(1080, 3000);
++    tester.view.devicePixelRatio = 1;
++    addTearDown(tester.view.reset);
++    await tester.pumpWidget(
++      ProviderScope(
++        overrides: [careRepositoryProvider.overrideWithValue(repository)],
++        child: const MaterialApp(
++          locale: Locale('pt', 'BR'),
++          localizationsDelegates: appLocalizationsDelegates,
++          supportedLocales: AppLocalizations.supportedLocales,
++          home: SharingScreen(),
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++  }
++
++  SwitchListTile tile(WidgetTester tester, String title) =>
++      tester.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, title));
++
++  testWidgets("the physiotherapist's own area is not offered", (tester) async {
++    await render(tester);
++
++    expect(find.text('Paula'), findsOneWidget);
++    expect(find.text('Fisioterapeuta'), findsOneWidget);
++    expect(find.text('Registros de dor'), findsNothing);
++    expect(find.byType(SwitchListTile), findsNWidgets(6));
++    expect(tile(tester, 'Rotina de treino').value, isTrue);
++    expect(tile(tester, 'Peso e medidas').value, isFalse);
++  });
++
++  testWidgets('turning on shares, turning off stops sharing', (tester) async {
++    when(repository.share('r1', 'body.measurements')).thenAnswer(
++      (_) async => const AccessGrant(id: 'g2', relationship: 'r1', scope: 'body.measurements'),
++    );
++    when(repository.stopSharing('g1')).thenAnswer((_) async {});
++    await render(tester);
++
++    await tester.tap(find.text('Peso e medidas'));
++    await tester.pumpAndSettle();
++    await tester.tap(find.text('Rotina de treino'));
++    await tester.pumpAndSettle();
++
++    verify(repository.share('r1', 'body.measurements')).called(1);
++    verify(repository.stopSharing('g1')).called(1);
++    expect(tile(tester, 'Peso e medidas').value, isTrue);
++    expect(tile(tester, 'Rotina de treino').value, isFalse);
++  });
++
++  testWidgets('a failed change says so and keeps the switch', (tester) async {
++    when(repository.share(any, any)).thenThrow(Exception('offline'));
++    await render(tester);
++
++    await tester.tap(find.text('Peso e medidas'));
++    await tester.pumpAndSettle();
++
++    expect(find.text('Não foi possível enviar. Tente de novo.'), findsOneWidget);
++    expect(tile(tester, 'Peso e medidas').value, isFalse);
++  });
++
++  testWidgets('what is shared with one professional is not shared with another', (tester) async {
++    when(repository.fetchMyProfessionals()).thenAnswer(
++      (_) async => [
++        physio,
++        const CareRelationship(
++          id: 'r2',
++          discipline: Discipline.nutrition,
++          status: 'active',
++          professionalName: 'Nina',
++        ),
++      ],
++    );
++    await render(tester);
++
++    final schedules = tester
++        .widgetList<SwitchListTile>(find.widgetWithText(SwitchListTile, 'Rotina de treino'))
++        .map((t) => t.value)
++        .toList();
++    expect(schedules, [true, false]);
++  });
++}
+diff --git a/test/features/care/screens/sharing_screen_test.mocks.dart b/test/features/care/screens/sharing_screen_test.mocks.dart
+new file mode 100644
+index 0000000..3785a72
+--- /dev/null
++++ b/test/features/care/screens/sharing_screen_test.mocks.dart
+@@ -0,0 +1,247 @@
++// Mocks generated by Mockito from annotations
++// in wger/test/features/care/screens/sharing_screen_test.dart.
++// Do not manually edit this file.
++
++// ignore_for_file: no_leading_underscores_for_library_prefixes
++
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
++
++import 'package:image_picker/image_picker.dart' as _i9;
++import 'package:mockito/mockito.dart' as _i1;
++import 'package:wger/core/network/base_provider.dart' as _i2;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
++import 'package:wger/features/care/models/message.dart' as _i3;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
++
++// ignore_for_file: type=lint
++// ignore_for_file: avoid_redundant_argument_values
++// ignore_for_file: avoid_setters_without_getters
++// ignore_for_file: comment_references
++// ignore_for_file: deprecated_member_use
++// ignore_for_file: deprecated_member_use_from_same_package
++// ignore_for_file: experimental_member_use
++// ignore_for_file: implementation_imports
++// ignore_for_file: invalid_use_of_visible_for_testing_member
++// ignore_for_file: must_be_immutable
++// ignore_for_file: prefer_const_constructors
++// ignore_for_file: unnecessary_parenthesis
++// ignore_for_file: camel_case_types
++// ignore_for_file: subtype_of_sealed_class
++// ignore_for_file: invalid_use_of_internal_member
++
++class _FakeWgerBaseProvider_0 extends _i1.SmartFake implements _i2.WgerBaseProvider {
++  _FakeWgerBaseProvider_0(Object parent, Invocation parentInvocation)
++    : super(parent, parentInvocation);
++}
++
++class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
++  _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
++/// A class which mocks [CareRepository].
++///
++/// See the documentation for Mockito's code generation for more information.
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
++  MockCareRepository() {
++    _i1.throwOnMissingStub(this);
++  }
++
++  @override
++  _i2.WgerBaseProvider get base =>
++      (super.noSuchMethod(
++            Invocation.getter(#base),
++            returnValue: _FakeWgerBaseProvider_0(
++              this,
++              Invocation.getter(#base),
++            ),
++          )
++          as _i2.WgerBaseProvider);
++
++  @override
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMyProfessionals, []),
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
++            ),
++          )
++          as _i6.Future<List<_i7.CareRelationship>>);
++
++  @override
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchInvitations, []),
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
++            ),
++          )
++          as _i6.Future<List<_i7.CareRelationship>>);
++
++  @override
++  _i6.Future<void> acceptInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#acceptInvitation, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> declineInvitation(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#declineInvitation, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchUpcomingAppointments, [from]),
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
++            ),
++          )
++          as _i6.Future<List<_i8.Appointment>>);
++
++  @override
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchMessages, [relationshipId]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++          )
++          as _i6.Future<List<_i3.Message>>);
++
++  @override
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++      (super.noSuchMethod(
++            Invocation.method(#sendText, [relationshipId, text]),
++            returnValue: _i6.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(#sendText, [relationshipId, text]),
++              ),
++            ),
++          )
++          as _i6.Future<_i3.Message>);
++
++  @override
++  _i6.Future<_i3.Message> sendAttachment(
++    String? relationshipId,
++    _i9.XFile? file, {
++    String? text = '',
++  }) =>
++      (super.noSuchMethod(
++            Invocation.method(
++              #sendAttachment,
++              [relationshipId, file],
++              {#text: text},
++            ),
++            returnValue: _i6.Future<_i3.Message>.value(
++              _FakeMessage_1(
++                this,
++                Invocation.method(
++                  #sendAttachment,
++                  [relationshipId, file],
++                  {#text: text},
++                ),
++              ),
++            ),
++          )
++          as _i6.Future<_i3.Message>);
++
++  @override
++  _i6.Future<void> markRead(String? relationshipId) =>
++      (super.noSuchMethod(
++            Invocation.method(#markRead, [relationshipId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchAttachment, [messageId]),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
++          )
++          as _i6.Future<_i10.Uint8List>);
++
++  @override
++  _i6.Future<void> cancelAppointment(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelAppointment, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchDataRequests, []),
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
++            ),
++          )
++          as _i6.Future<List<_i11.DataRequest>>);
++
++  @override
++  _i6.Future<void> requestDeletion() =>
++      (super.noSuchMethod(
++            Invocation.method(#requestDeletion, []),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<void> cancelDataRequest(String? id) =>
++      (super.noSuchMethod(
++            Invocation.method(#cancelDataRequest, [id]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++}
+diff --git a/test/features/care/widgets/invitation_tile_test.mocks.dart b/test/features/care/widgets/invitation_tile_test.mocks.dart
+index 4baf1db..d92c155 100644
+--- a/test/features/care/widgets/invitation_tile_test.mocks.dart
++++ b/test/features/care/widgets/invitation_tile_test.mocks.dart
+@@ -4,17 +4,18 @@
+ 
+ // ignore_for_file: no_leading_underscores_for_library_prefixes
+ 
+-import 'dart:async' as _i5;
+-import 'dart:typed_data' as _i9;
++import 'dart:async' as _i6;
++import 'dart:typed_data' as _i10;
+ 
+-import 'package:image_picker/image_picker.dart' as _i8;
++import 'package:image_picker/image_picker.dart' as _i9;
+ import 'package:mockito/mockito.dart' as _i1;
+ import 'package:wger/core/network/base_provider.dart' as _i2;
+-import 'package:wger/features/care/models/appointment.dart' as _i7;
+-import 'package:wger/features/care/models/care_relationship.dart' as _i6;
+-import 'package:wger/features/care/models/data_request.dart' as _i10;
++import 'package:wger/features/care/models/access_grant.dart' as _i4;
++import 'package:wger/features/care/models/appointment.dart' as _i8;
++import 'package:wger/features/care/models/care_relationship.dart' as _i7;
++import 'package:wger/features/care/models/data_request.dart' as _i11;
+ import 'package:wger/features/care/models/message.dart' as _i3;
+-import 'package:wger/features/care/providers/care_repository.dart' as _i4;
++import 'package:wger/features/care/providers/care_repository.dart' as _i5;
+ 
+ // ignore_for_file: type=lint
+ // ignore_for_file: avoid_redundant_argument_values
+@@ -41,10 +42,14 @@ class _FakeMessage_1 extends _i1.SmartFake implements _i3.Message {
+   _FakeMessage_1(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
+ }
+ 
++class _FakeAccessGrant_2 extends _i1.SmartFake implements _i4.AccessGrant {
++  _FakeAccessGrant_2(Object parent, Invocation parentInvocation) : super(parent, parentInvocation);
++}
++
+ /// A class which mocks [CareRepository].
+ ///
+ /// See the documentation for Mockito's code generation for more information.
+-class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
++class MockCareRepository extends _i1.Mock implements _i5.CareRepository {
+   MockCareRepository() {
+     _i1.throwOnMissingStub(this);
+   }
+@@ -61,78 +66,78 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+           as _i2.WgerBaseProvider);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchMyProfessionals() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchMyProfessionals() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMyProfessionals, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<List<_i6.CareRelationship>> fetchInvitations() =>
++  _i6.Future<List<_i7.CareRelationship>> fetchInvitations() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchInvitations, []),
+-            returnValue: _i5.Future<List<_i6.CareRelationship>>.value(
+-              <_i6.CareRelationship>[],
++            returnValue: _i6.Future<List<_i7.CareRelationship>>.value(
++              <_i7.CareRelationship>[],
+             ),
+           )
+-          as _i5.Future<List<_i6.CareRelationship>>);
++          as _i6.Future<List<_i7.CareRelationship>>);
+ 
+   @override
+-  _i5.Future<void> acceptInvitation(String? id) =>
++  _i6.Future<void> acceptInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#acceptInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> declineInvitation(String? id) =>
++  _i6.Future<void> declineInvitation(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#declineInvitation, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i7.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
++  _i6.Future<List<_i8.Appointment>> fetchUpcomingAppointments(DateTime? from) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchUpcomingAppointments, [from]),
+-            returnValue: _i5.Future<List<_i7.Appointment>>.value(
+-              <_i7.Appointment>[],
++            returnValue: _i6.Future<List<_i8.Appointment>>.value(
++              <_i8.Appointment>[],
+             ),
+           )
+-          as _i5.Future<List<_i7.Appointment>>);
++          as _i6.Future<List<_i8.Appointment>>);
+ 
+   @override
+-  _i5.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
++  _i6.Future<List<_i3.Message>> fetchMessages(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchMessages, [relationshipId]),
+-            returnValue: _i5.Future<List<_i3.Message>>.value(<_i3.Message>[]),
++            returnValue: _i6.Future<List<_i3.Message>>.value(<_i3.Message>[]),
+           )
+-          as _i5.Future<List<_i3.Message>>);
++          as _i6.Future<List<_i3.Message>>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
++  _i6.Future<_i3.Message> sendText(String? relationshipId, String? text) =>
+       (super.noSuchMethod(
+             Invocation.method(#sendText, [relationshipId, text]),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(#sendText, [relationshipId, text]),
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<_i3.Message> sendAttachment(
++  _i6.Future<_i3.Message> sendAttachment(
+     String? relationshipId,
+-    _i8.XFile? file, {
++    _i9.XFile? file, {
+     String? text = '',
+   }) =>
+       (super.noSuchMethod(
+@@ -141,7 +146,7 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               [relationshipId, file],
+               {#text: text},
+             ),
+-            returnValue: _i5.Future<_i3.Message>.value(
++            returnValue: _i6.Future<_i3.Message>.value(
+               _FakeMessage_1(
+                 this,
+                 Invocation.method(
+@@ -152,59 +157,91 @@ class MockCareRepository extends _i1.Mock implements _i4.CareRepository {
+               ),
+             ),
+           )
+-          as _i5.Future<_i3.Message>);
++          as _i6.Future<_i3.Message>);
+ 
+   @override
+-  _i5.Future<void> markRead(String? relationshipId) =>
++  _i6.Future<void> markRead(String? relationshipId) =>
+       (super.noSuchMethod(
+             Invocation.method(#markRead, [relationshipId]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<_i9.Uint8List> fetchAttachment(String? messageId) =>
++  _i6.Future<_i10.Uint8List> fetchAttachment(String? messageId) =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchAttachment, [messageId]),
+-            returnValue: _i5.Future<_i9.Uint8List>.value(_i9.Uint8List(0)),
++            returnValue: _i6.Future<_i10.Uint8List>.value(_i10.Uint8List(0)),
+           )
+-          as _i5.Future<_i9.Uint8List>);
++          as _i6.Future<_i10.Uint8List>);
+ 
+   @override
+-  _i5.Future<void> cancelAppointment(String? id) =>
++  _i6.Future<void> cancelAppointment(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelAppointment, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<List<_i10.DataRequest>> fetchDataRequests() =>
++  _i6.Future<List<_i11.DataRequest>> fetchDataRequests() =>
+       (super.noSuchMethod(
+             Invocation.method(#fetchDataRequests, []),
+-            returnValue: _i5.Future<List<_i10.DataRequest>>.value(
+-              <_i10.DataRequest>[],
++            returnValue: _i6.Future<List<_i11.DataRequest>>.value(
++              <_i11.DataRequest>[],
+             ),
+           )
+-          as _i5.Future<List<_i10.DataRequest>>);
++          as _i6.Future<List<_i11.DataRequest>>);
+ 
+   @override
+-  _i5.Future<void> requestDeletion() =>
++  _i6.Future<void> requestDeletion() =>
+       (super.noSuchMethod(
+             Invocation.method(#requestDeletion, []),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ 
+   @override
+-  _i5.Future<void> cancelDataRequest(String? id) =>
++  _i6.Future<void> cancelDataRequest(String? id) =>
+       (super.noSuchMethod(
+             Invocation.method(#cancelDataRequest, [id]),
+-            returnValue: _i5.Future<void>.value(),
+-            returnValueForMissingStub: _i5.Future<void>.value(),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
++          )
++          as _i6.Future<void>);
++
++  @override
++  _i6.Future<List<_i4.AccessGrant>> fetchGrants() =>
++      (super.noSuchMethod(
++            Invocation.method(#fetchGrants, []),
++            returnValue: _i6.Future<List<_i4.AccessGrant>>.value(
++              <_i4.AccessGrant>[],
++            ),
++          )
++          as _i6.Future<List<_i4.AccessGrant>>);
++
++  @override
++  _i6.Future<_i4.AccessGrant> share(String? relationshipId, String? scope) =>
++      (super.noSuchMethod(
++            Invocation.method(#share, [relationshipId, scope]),
++            returnValue: _i6.Future<_i4.AccessGrant>.value(
++              _FakeAccessGrant_2(
++                this,
++                Invocation.method(#share, [relationshipId, scope]),
++              ),
++            ),
++          )
++          as _i6.Future<_i4.AccessGrant>);
++
++  @override
++  _i6.Future<void> stopSharing(String? grantId) =>
++      (super.noSuchMethod(
++            Invocation.method(#stopSharing, [grantId]),
++            returnValue: _i6.Future<void>.value(),
++            returnValueForMissingStub: _i6.Future<void>.value(),
+           )
+-          as _i5.Future<void>);
++          as _i6.Future<void>);
+ }
+-- 
+2.43.0
+
