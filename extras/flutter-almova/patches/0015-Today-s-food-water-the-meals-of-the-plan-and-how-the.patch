@@ -1,7 +1,7 @@
 From 3c8bfde41dd7ee941b7cb5abc5470425d1c81427 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Tue, 17 Nov 2026 02:47:55 +0000
-Subject: [PATCH 15/15] Today's food: water, the meals of the plan and how they
+Subject: [PATCH 15/16] Today's food: water, the meals of the plan and how they
  were followed
 
 Patients followed by a nutritionist get "Today's food" on the follow-up

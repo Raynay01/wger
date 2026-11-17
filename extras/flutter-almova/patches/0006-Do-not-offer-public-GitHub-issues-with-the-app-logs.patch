@@ -1,7 +1,7 @@
 From 5a2e339c3f2b907de8d8fdb809cbeb348697a831 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Mon, 16 Nov 2026 15:38:54 +0000
-Subject: [PATCH 06/15] Do not offer public GitHub issues with the app logs
+Subject: [PATCH 06/16] Do not offer public GitHub issues with the app logs
 
 The error dialog, the sync status dialog and the log screen offered to
 open a pre-filled issue on wger's public GitHub tracker with the app logs
