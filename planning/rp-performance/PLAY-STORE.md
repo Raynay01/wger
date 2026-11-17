@@ -125,7 +125,9 @@ ferramenta de análise; os registros só saem quando o usuário os copia).
 
 ## 7. Antes do envio, do meu lado
 
-- Versão própria do ALMOVA (`1.0.0`) no lugar da numeração do wger (`2.1.2`).
+- A versão segue a numeração do wger (`2.1.2`): o servidor confere a versão
+  mínima do app (`MIN_APP_VERSION`, hoje 2.1.0) e bloquearia um `1.0.0`. Para a
+  loja só importa que o código da versão aumente a cada envio.
 - Chave de assinatura definitiva (o Google guarda uma cópia com o "Play App
   Signing"; a chave de envio fica com você, fora do repositório).
 - Construir o pacote `.aab` com o endereço definitivo do servidor e os dados
