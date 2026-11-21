@@ -22,7 +22,7 @@ outros dados do **Health Connect** (relógios e balanças). A Play Store revisa
 essas permissões à parte, com um formulário por permissão. Por isso a
 primeira versão sai sem a importação: o APK não declara nenhuma permissão de
 saúde (conferido no pacote gerado). Ela volta numa versão seguinte, com a
-política de privacidade já citando cada dado (patch 16 do app em
+política de privacidade já citando cada dado (item 16 do README do app em
 `extras/flutter-almova`).
 
 ## 3. Textos da loja (pt-BR)
