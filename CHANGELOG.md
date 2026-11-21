@@ -193,6 +193,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   request (scripts and Next's inline styles need it; Google's sign-in is the
   only outside source) and, in production, HSTS for two years. Every page now
   renders per request, so it gets the nonce.
+* The ALMOVA web app publishes its privacy policy, terms of use and account
+  deletion steps without a login (`/privacidade`, `/termos`, `/excluir-conta`),
+  linked from the home and login pages. The company details come from
+  `ALMOVA_LEGAL_NAME`, `ALMOVA_LEGAL_DOCUMENT`, `ALMOVA_PRIVACY_EMAIL` and
+  `ALMOVA_LEGAL_COURT`; the texts show as a draft until `ALMOVA_LEGAL_APPROVED=1`.
 * Brazilian Portuguese (`pt-BR`) catalog with the trophy names and
   descriptions; every other string falls back to Portuguese (`pt`).
 * `/api/v2/measurement/` accepts a `metric_type` instead of a `category` id when

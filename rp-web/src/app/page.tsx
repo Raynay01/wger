@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { LinkButton, Logo } from '@/components/ui';
@@ -59,8 +60,17 @@ export default async function Home() {
           ))}
         </section>
 
-        <footer className="text-xs text-navy-100/70">
-          Código-fonte disponível sob a licença AGPL-3.0, baseado no projeto wger.
+        <footer className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-navy-100/70">
+          <span>Código-fonte disponível sob a licença AGPL-3.0, baseado no projeto wger.</span>
+          <Link className="underline" href="/privacidade">
+            Política de privacidade
+          </Link>
+          <Link className="underline" href="/termos">
+            Termos de uso
+          </Link>
+          <Link className="underline" href="/excluir-conta">
+            Excluir a conta
+          </Link>
         </footer>
       </div>
     </main>

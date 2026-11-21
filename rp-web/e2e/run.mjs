@@ -156,6 +156,26 @@ async function shot(page, name) {
 }
 
 try {
+  // The legal pages the stores link to open without a login
+  {
+    const visitor = await browser.newPage({ locale: 'pt-BR' });
+    watch(visitor, 'visitante');
+    for (const [url, heading] of [
+      ['/privacidade', 'Política de privacidade'],
+      ['/termos', 'Termos de uso'],
+      ['/excluir-conta', 'Como excluir a sua conta'],
+    ]) {
+      const response = await visitor.goto(`${WEB}${url}`);
+      assert(response.status() === 200 && new URL(visitor.url()).pathname === url, `${url} sem login`);
+      await visitor.getByRole('heading', { level: 1, name: heading }).waitFor();
+    }
+    await visitor.goto(`${WEB}/entrar`);
+    await visitor.getByRole('link', { name: 'política de privacidade' }).click();
+    await visitor.waitForURL(`${WEB}/privacidade`);
+    await visitor.close();
+    log('Política de privacidade, termos de uso e exclusão da conta abrem sem login, com link na entrada');
+  }
+
   // Professionals set up their organization and council registrations
   const bruno = await session('bruno');
   await bruno.goto(`${WEB}/pro/configurar`);

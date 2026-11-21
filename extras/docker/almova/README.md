@@ -131,6 +131,24 @@ do Django ficam só na rede interna (acesse por SSH ou VPN).
   `FCM_SERVICE_ACCOUNT_FILE=/run/secrets/firebase.json`. Os avisos passam pelos
   servidores do Google, por isso só levam o texto genérico, sem dados de saúde.
 
+## Política de privacidade e termos de uso
+
+O site publica `/privacidade`, `/termos` e `/excluir-conta`, sem login (a Play
+Store pede os endereços). Os dados da empresa vêm do `homolog.env`, lidos a cada
+acesso, então mudar não exige construir de novo (só `docker compose up -d`):
+
+| Variável | Exemplo |
+|---|---|
+| `ALMOVA_LEGAL_NAME` | `ALMOVA Saúde Ltda` |
+| `ALMOVA_LEGAL_DOCUMENT` | o CNPJ |
+| `ALMOVA_PRIVACY_EMAIL` | `privacidade@almova.com.br` (pedidos de dados e encarregado) |
+| `ALMOVA_LEGAL_COURT` | `São Paulo/SP` (foro dos termos) |
+| `ALMOVA_LEGAL_APPROVED` | `1` depois que o advogado aprovar os textos |
+
+Vazios aparecem como "[a definir]", e até `ALMOVA_LEGAL_APPROVED=1` as páginas
+mostram o aviso de minuta. Os textos ficam em `rp-web/src/app/privacidade`,
+`termos` e `excluir-conta`; as mudanças do advogado entram ali.
+
 ## 3. Backup
 
 ```bash

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Logo, Notice } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
 import { safeNext } from '@/lib/redirect';
@@ -36,8 +37,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
 
         <p className="mt-6 text-xs text-gray-500">
-          Ao entrar, você concorda com os termos de uso e a política de privacidade. Dados de saúde só são compartilhados
-          com os profissionais que você autorizar.
+          Ao entrar, você concorda com os{' '}
+          <Link className="underline" href="/termos">
+            termos de uso
+          </Link>{' '}
+          e a{' '}
+          <Link className="underline" href="/privacidade">
+            política de privacidade
+          </Link>
+          . Dados de saúde só são compartilhados com os profissionais que você autorizar.
         </p>
       </div>
     </main>
