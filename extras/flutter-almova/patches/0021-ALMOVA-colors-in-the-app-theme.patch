@@ -1,0 +1,162 @@
+From 3b1877aba3c2271b246c9942dc947aadad59fc14 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 19:09:44 +0000
+Subject: [PATCH] ALMOVA colors in the app theme
+
+The navy and the neon green of the site and the app icon replace the
+wger blue and red. The green is only the seed of the accent: as is, the
+neon has a contrast of 1.3 on white, and the app writes some labels in
+the accent color, so the scheme picks a readable tone of it. The theme
+test checks the brand navy and a contrast of at least 4.5 for the
+primary and accent colors in light and dark mode. The store screenshots
+are rendered again with the new colors.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ .../phoneScreenshots/01 - fisioterapia.png    |  4 +--
+ .../phoneScreenshots/02 - alimentacao.png     |  4 +--
+ .../images/phoneScreenshots/03 - conversa.png |  4 +--
+ .../images/phoneScreenshots/04 - agenda.png   |  4 +--
+ .../05 - compartilhamento.png                 |  4 +--
+ lib/theme/theme.dart                          | 14 ++++----
+ test/theme/theme_test.dart                    | 32 +++++++++++++++++++
+ 7 files changed, 49 insertions(+), 17 deletions(-)
+
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - fisioterapia.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - fisioterapia.png
+index 8cb9a3c..d89db6d 100644
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - fisioterapia.png	
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - fisioterapia.png	
+@@ -1,3 +1,3 @@
+ version https://git-lfs.github.com/spec/v1
+-oid sha256:9b5eba65f956a5c8a454216a5220a7b075af2ab1378051a83c8c9d6fc5153bf7
+-size 230105
++oid sha256:3dd74f764c16dc4500370ea1d9512997898827ad7af98404dd528054c1daf0b9
++size 230322
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - alimentacao.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - alimentacao.png
+index 2861e32..c89ecee 100644
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - alimentacao.png	
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - alimentacao.png	
+@@ -1,3 +1,3 @@
+ version https://git-lfs.github.com/spec/v1
+-oid sha256:34f6d14fab94ba20dc4ae5d42b2dc01365c54161bb23d0f9e29d0d8ea855baad
+-size 235501
++oid sha256:2530fd5cd2511aa732de9a607f68e1478cfabaf98f3adad4e8d226cf7342b0e8
++size 235809
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - conversa.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - conversa.png
+index 9c33ebd..387948f 100644
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - conversa.png	
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - conversa.png	
+@@ -1,3 +1,3 @@
+ version https://git-lfs.github.com/spec/v1
+-oid sha256:ab2eeba29567751cb592643d34a0da40cb1195214c29dc4ca2e29b506ad5228c
+-size 134604
++oid sha256:ea8190e36f8c7d2eb8af548a1552197b3bec08ad08e475a638084f61ba832bd0
++size 135630
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - agenda.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - agenda.png
+index ff1349e..b8c11a7 100644
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - agenda.png	
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - agenda.png	
+@@ -1,3 +1,3 @@
+ version https://git-lfs.github.com/spec/v1
+-oid sha256:0507281119b4bfa5078a5cfa6b6a6dc6776c7bfca2e4c3e8a6a75669c5180d15
+-size 155499
++oid sha256:ea9079eb19c49d45dd53c0254b0d85af8e289fb111cc838e9d96491e95725e3a
++size 155877
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - compartilhamento.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - compartilhamento.png
+index 786e179..809411d 100644
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - compartilhamento.png	
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - compartilhamento.png	
+@@ -1,3 +1,3 @@
+ version https://git-lfs.github.com/spec/v1
+-oid sha256:21333bd0810eb2620199d585540e63764e3a9f1e95eb777fc7f49f7a90992938
+-size 323397
++oid sha256:493226a0e069c6acad4d53194b7ad8918fd66d2f5f5b2a3015b7cf6f2aca2cee
++size 323711
+diff --git a/lib/theme/theme.dart b/lib/theme/theme.dart
+index 66bb078..b70dd23 100644
+--- a/lib/theme/theme.dart
++++ b/lib/theme/theme.dart
+@@ -24,11 +24,12 @@ import 'package:table_calendar/table_calendar.dart';
+ // * https://pub.dev/packages/flex_color_scheme
+ // * https://rydmike.com/flexseedscheme/demo-v1/#/
+ 
+-const Color wgerPrimaryColor = Color(0xff2a4c7d);
+-const Color wgerPrimaryButtonColor = Color(0xff266dd3);
+-const Color wgerPrimaryColorLight = Color(0xff94B2DB);
+-const Color wgerSecondaryColor = Color(0xffe63946);
+-const Color wgerSecondaryColorLight = Color(0xffF6B4BA);
++// ALMOVA: the navy and the neon green of the site and the app icon
++const Color wgerPrimaryColor = Color(0xff0b1f3a);
++const Color wgerPrimaryButtonColor = Color(0xff16365f);
++const Color wgerPrimaryColorLight = Color(0xffe6ecf5);
++const Color wgerSecondaryColor = Color(0xff39ff88);
++const Color wgerSecondaryColorLight = Color(0xffddfde9);
+ const Color wgerTertiaryColor = Color(0xFF6CA450);
+ 
+ const FlexSubThemesData wgerSubThemeData = FlexSubThemesData(
+@@ -49,8 +50,8 @@ const List<FontVariation> displayFontHeavyWeight = [FontVariation('wght', 800)];
+ final ColorScheme schemeLight = SeedColorScheme.fromSeeds(
+   primary: wgerPrimaryColor,
+   primaryKey: wgerPrimaryColor,
++  // Only the hue of the neon: as is it cannot be read as text on white
+   secondaryKey: wgerSecondaryColor,
+-  secondary: wgerSecondaryColor,
+   tertiaryKey: wgerTertiaryColor,
+   brightness: Brightness.light,
+   tones: FlexTones.vivid(Brightness.light),
+@@ -61,7 +62,6 @@ final ColorScheme schemeDark = SeedColorScheme.fromSeeds(
+   // primary: wgerPrimaryColor,
+   primaryKey: wgerPrimaryColor,
+   secondaryKey: wgerSecondaryColor,
+-  secondary: wgerSecondaryColor,
+   brightness: Brightness.dark,
+   tones: FlexTones.vivid(Brightness.dark),
+ );
+diff --git a/test/theme/theme_test.dart b/test/theme/theme_test.dart
+index 72ef4b8..f8c80b4 100644
+--- a/test/theme/theme_test.dart
++++ b/test/theme/theme_test.dart
+@@ -21,7 +21,39 @@ import 'package:flutter_test/flutter_test.dart';
+ import 'package:material_ui/material_ui.dart';
+ import 'package:wger/theme/theme.dart';
+ 
++double _contrast(Color a, Color b) {
++  final values = [a.computeLuminance(), b.computeLuminance()]..sort();
++
++  return (values.last + 0.05) / (values.first + 0.05);
++}
++
+ void main() {
++  group('ALMOVA colors', () {
++    test('the navy of the brand is the primary color of the light theme', () {
++      expect(wgerLightTheme.colorScheme.primary, const Color(0xff0b1f3a));
++    });
++
++    test('the green accent stays green, and readable as text on the background', () {
++      // The app writes some labels in the secondary color: the pure neon of
++      // the brand would be barely visible on white
++      for (final theme in [wgerLightTheme, wgerDarkTheme]) {
++        final scheme = theme.colorScheme;
++
++        expect(
++          Hct.fromInt(scheme.secondary.toARGB32()).hue,
++          closeTo(Hct.fromInt(wgerSecondaryColor.toARGB32()).hue, 15),
++        );
++        for (final color in [scheme.primary, scheme.secondary]) {
++          expect(
++            _contrast(color, scheme.surface),
++            greaterThanOrEqualTo(4.5),
++            reason: '$color on ${scheme.surface} in ${scheme.brightness}',
++          );
++        }
++      }
++    });
++  });
++
+   group('wgerThemeFromSeed', () {
+     const seed = Color(0xFF6750A4);
+ 
+-- 
+2.43.0
+

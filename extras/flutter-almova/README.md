@@ -93,6 +93,10 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     `git am`, copie as de `play-store/` desta pasta por cima dos arquivos de
     `phoneScreenshots/` (ou gere de novo) e faça o commit com o `git lfs`
     instalado.
+19. **Cores do ALMOVA:** o azul-marinho e o verde-neon do site e do ícone no
+    lugar do azul e do vermelho do wger. O verde entra como tom de base: puro,
+    não dá para ler como texto sobre o branco, então o app usa uma variação
+    legível dele (contraste conferido em teste, no tema claro e no escuro).
 
 ## Construir o APK
 
