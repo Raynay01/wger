@@ -1,0 +1,106 @@
+From 476a7caff16e914ed78c0e7b503a8e9c03c81bba Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 23:12:42 +0000
+Subject: [PATCH] GitHub workflow that builds the signed ALMOVA bundle and APKs
+
+Run by hand with the server address. The upload key and its password
+come from the repository secrets and are deleted again after the build;
+the Firebase identifiers of the Android app from the repository
+variables. The address is checked to be https with a lowercase host
+before it goes into the build.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ .github/workflows/build-almova.yml | 79 ++++++++++++++++++++++++++++++
+ 1 file changed, 79 insertions(+)
+ create mode 100644 .github/workflows/build-almova.yml
+
+diff --git a/.github/workflows/build-almova.yml b/.github/workflows/build-almova.yml
+new file mode 100644
+index 0000000..f35c429
+--- /dev/null
++++ b/.github/workflows/build-almova.yml
+@@ -0,0 +1,79 @@
++name: ALMOVA Android
++# Builds the Play Store bundle and the test APKs of ALMOVA, signed with the
++# upload key from the repository secrets:
++#   ALMOVA_UPLOAD_KEYSTORE   the keystore (.jks), base64-encoded
++#   ALMOVA_UPLOAD_PASSWORD   its password (keytool's PKCS12 uses one for store and key)
++# and the Firebase values of the Android app as repository variables (public
++# identifiers): FCM_API_KEY, FCM_APP_ID, FCM_SENDER_ID, FCM_PROJECT_ID.
++on:
++  workflow_dispatch:
++    inputs:
++      server:
++        description: 'Server address, e.g. https://almova.com.br'
++        required: true
++
++permissions:
++  contents: read
++
++jobs:
++  build:
++    name: Bundle and APKs
++    runs-on: ubuntu-latest
++    steps:
++      - name: Checkout application
++        uses: actions/checkout@v7
++        with:
++          persist-credentials: false
++
++      - name: Common flutter setup
++        uses: ./.github/actions/flutter-common
++
++      - name: Upload key
++        env:
++          KEYSTORE: ${{ secrets.ALMOVA_UPLOAD_KEYSTORE }}
++          PASSWORD: ${{ secrets.ALMOVA_UPLOAD_PASSWORD }}
++        run: |
++          if [ -z "$KEYSTORE" ] || [ -z "$PASSWORD" ]; then
++            echo "::error::Missing the secrets ALMOVA_UPLOAD_KEYSTORE and ALMOVA_UPLOAD_PASSWORD"
++            exit 1
++          fi
++          printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/upload.jks"
++          printf 'storeFile=%s\nstorePassword=%s\nkeyAlias=upload\nkeyPassword=%s\n' \
++            "$RUNNER_TEMP/upload.jks" "$PASSWORD" "$PASSWORD" \
++            > fastlane/metadata/envfiles/key.properties
++
++      - name: Build
++        env:
++          SERVER: ${{ inputs.server }}
++          FCM_API_KEY: ${{ vars.FCM_API_KEY }}
++          FCM_APP_ID: ${{ vars.FCM_APP_ID }}
++          FCM_SENDER_ID: ${{ vars.FCM_SENDER_ID }}
++          FCM_PROJECT_ID: ${{ vars.FCM_PROJECT_ID }}
++        run: |
++          if ! [[ "$SERVER" =~ ^https://[a-z0-9.-]+(:[0-9]+)?$ ]]; then
++            echo "::error::The server address must look like https://almova.com.br"
++            exit 1
++          fi
++          defines=(
++            "--dart-define=ALMOVA_SERVER=$SERVER"
++            "--dart-define=FCM_API_KEY=$FCM_API_KEY"
++            "--dart-define=FCM_APP_ID=$FCM_APP_ID"
++            "--dart-define=FCM_SENDER_ID=$FCM_SENDER_ID"
++            "--dart-define=FCM_PROJECT_ID=$FCM_PROJECT_ID"
++          )
++          flutter build appbundle --release "${defines[@]}"
++          flutter build apk --release --split-per-abi "${defines[@]}"
++
++      - name: Remove the key
++        if: always()
++        run: rm -f "$RUNNER_TEMP/upload.jks" fastlane/metadata/envfiles/key.properties
++
++      - uses: actions/upload-artifact@v7
++        with:
++          name: almova-play-store
++          path: build/app/outputs/bundle/release/app-release.aab
++
++      - uses: actions/upload-artifact@v7
++        with:
++          name: almova-apk
++          path: build/app/outputs/flutter-apk/app-*-release.apk
+-- 
+2.43.0
+

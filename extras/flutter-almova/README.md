@@ -97,6 +97,15 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     lugar do azul e do vermelho do wger. O verde entra como tom de base: puro,
     não dá para ler como texto sobre o branco, então o app usa uma variação
     legível dele (contraste conferido em teste, no tema claro e no escuro).
+20. **Construção assinada no GitHub:** a ação "ALMOVA Android" do fork gera o
+    `.aab` da Play Store e os APKs, assinados com a chave de envio guardada nos
+    *Secrets* do repositório (passo a passo em
+    `planning/rp-performance/O-QUE-FALTA.md`, passos 14 e 15).
+
+Imagens da loja em `play-store/`: as capturas de tela, o ícone de 512 × 512 e a
+imagem de destaque de 1024 × 500. O ícone e o destaque são provisórios, feitos
+com o "A" do ícone do app; com o logotipo oficial, rode de novo
+`node extras/flutter-almova/play-store/gerar-imagens.mjs`.
 
 ## Construir o APK
 

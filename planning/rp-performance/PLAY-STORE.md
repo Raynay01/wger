@@ -70,8 +70,9 @@ menos duas capturas de tela do celular.
   (fisioterapia, alimentação, conversa, agenda e compartilhamento), em
   `extras/flutter-almova/play-store/`. Os textos desta seção já estão no app
   (`fastlane/metadata/android/pt-BR`).
-- **Ícone e imagem de destaque:** dependem do logotipo oficial. Com ele, eu
-  gero os dois e refaço as capturas com as cores da marca.
+- **Ícone (512 × 512) e imagem de destaque (1024 × 500): prontos, provisórios**,
+  com o "A" do ícone do app, na mesma pasta. Com o logotipo oficial, eu gero os
+  dois de novo.
 
 Só a página em pt-BR é do ALMOVA: as pastas dos outros idiomas em
 `fastlane/metadata/android` ainda têm os textos do wger e não devem ser
@@ -81,8 +82,8 @@ enviadas.
 
 | Campo do Play Console | Endereço |
 |---|---|
-| Política de privacidade | página pública do site, por exemplo `https://<domínio>/privacidade` (texto do advogado) |
-| Exclusão da conta pela web | `https://<domínio>/app/privacidade` (entra e pede a exclusão, como no app) |
+| Política de privacidade | `https://<domínio>/privacidade` (pública; minuta pronta, a revisar com o advogado) |
+| Exclusão da conta pela web | `https://<domínio>/excluir-conta` (pública: explica o pedido pelo app e pelo site e o que é apagado) |
 | E-mail de contato | um e-mail de suporte do ALMOVA (aparece na loja) |
 
 ## 5. Formulário "Segurança dos dados"
