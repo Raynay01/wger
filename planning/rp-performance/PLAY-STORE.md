@@ -15,17 +15,15 @@ Play Console, conferidas com o que o app faz de fato.
 
 Em ambos os casos o Google confirma a identidade (documento) e um telefone.
 
-## 2. Decisão antes do envio: Saúde (Health Connect)
+## 2. Saúde (Health Connect): fora da primeira versão
 
 O app herdou do wger a importação de peso, gordura corporal, passos, sono e
-outros dados do **Health Connect** (relógios e balanças). A Play Store trata
-essas permissões com uma revisão própria: um formulário por permissão,
-explicando o uso, e a política de privacidade precisa citar cada uma.
-
-- **Recomendo tirar na primeira versão** e devolver depois, com a revisão já
-  aprovada: a publicação fica mais rápida e o formulário de dados, mais curto.
-  Eu faço a mudança no app quando você decidir.
-- Se ficar: as respostas da seção 5 já incluem esses dados.
+outros dados do **Health Connect** (relógios e balanças). A Play Store revisa
+essas permissões à parte, com um formulário por permissão. Por isso a
+primeira versão sai sem a importação: o APK não declara nenhuma permissão de
+saúde (conferido no pacote gerado). Ela volta numa versão seguinte, com a
+política de privacidade já citando cada dado (patch 16 do app em
+`extras/flutter-almova`).
 
 ## 3. Textos da loja (pt-BR)
 
@@ -102,7 +100,6 @@ publicidade ou análise, nenhum vendido):
 | Mensagens: outras mensagens no app | conversa com o profissional | Funcionalidade |
 | Fotos e vídeos | fotos de progresso, anexos da conversa | Funcionalidade |
 | IDs do dispositivo ou outros IDs | token dos avisos do Firebase | Funcionalidade (avisos) |
-| Saúde e fitness (Health Connect) | só se a importação ficar (seção 2) | Funcionalidade |
 
 Não coletados: localização, contatos, dados financeiros, histórico de
 navegação, registros de falhas e diagnósticos automáticos (o app não tem

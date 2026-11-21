@@ -1,0 +1,226 @@
+From 9cef76c93e7fedcbd97d5c06d40a7664c42a5430 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 18:38:44 +0000
+Subject: [PATCH] No Health Connect import in the first release
+
+Google Play reviews every declared health permission with a form of
+its own, so the first ALMOVA release leaves the import of readings from
+Health Connect / Apple Health out: the manifest no longer declares its
+permissions, queries, rationale filter and permission usage alias, the
+settings hide its tile and the app does not start its sync.
+HEALTH_CONNECT in consts.dart brings the Dart side back; the manifest
+test checks it against the manifest in both states.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ android/app/src/main/AndroidManifest.xml      | 42 ++-----------------
+ lib/core/consts.dart                          |  6 +++
+ lib/core/home_tabs_screen.dart                |  5 ++-
+ lib/features/account/widgets/settings.dart    |  3 +-
+ .../account/widgets/settings_test.dart        |  8 ++++
+ .../features/health/health_manifest_test.dart | 12 +++++-
+ 6 files changed, 33 insertions(+), 43 deletions(-)
+
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index af3dcb3..1b0d5ac 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -11,34 +11,15 @@
+     <!-- Rest alarms on time; user-granted on Android 14+, inexact without it -->
+     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+ 
+-    <!-- Health Connect permissions for the imported measurement types. Must
+-         list every type in enabledHealthMetrics: Health Connect cannot grant
+-         what is not declared here, so a missing entry silently costs that
+-         metric its import. Guarded by health_manifest_test.dart -->
+-    <uses-permission android:name="android.permission.health.READ_WEIGHT"/>
+-    <uses-permission android:name="android.permission.health.READ_BODY_FAT"/>
+-    <uses-permission android:name="android.permission.health.READ_LEAN_BODY_MASS"/>
+-    <uses-permission android:name="android.permission.health.READ_HEIGHT"/>
+-    <uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE"/>
+-    <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
+-    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE"/>
+-    <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION"/>
+-    <uses-permission android:name="android.permission.health.READ_SLEEP"/>
+-    <uses-permission android:name="android.permission.health.READ_STEPS"/>
+-    <uses-permission android:name="android.permission.health.READ_DISTANCE"/>
+-    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
+-    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY"/>
++    <!-- No Health Connect in the first ALMOVA release (HEALTH_CONNECT in
++         lib/core/consts.dart): its permissions, queries, rationale filter and
++         permission usage alias come back together with the import -->
+ 
+     <queries>
+         <intent>
+             <action android:name="android.intent.action.VIEW" />
+             <data android:scheme="https" />
+         </intent>
+-        <!-- Health Connect -->
+-        <package android:name="com.google.android.apps.healthdata" />
+-        <intent>
+-            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+-        </intent>
+     </queries>
+ 
+     <supports-screens
+@@ -101,25 +82,8 @@
+                 <category android:name="android.intent.category.BROWSABLE" />
+                 <data android:scheme="almova" android:host="app-auth" />
+             </intent-filter>
+-
+-            <!-- Health Connect permissions rationale -->
+-            <intent-filter>
+-                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+-            </intent-filter>
+         </activity>
+ 
+-        <!-- Required for Health Connect on Google Play -->
+-        <activity-alias
+-            android:name="ViewPermissionUsageActivity"
+-            android:exported="true"
+-            android:targetActivity=".MainActivity"
+-            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+-            <intent-filter>
+-                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+-                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+-            </intent-filter>
+-        </activity-alias>
+-
+         <!-- flutter_local_notifications: notification actions and scheduled
+              notifications. No boot receiver, a rest alarm across a reboot is moot -->
+         <receiver
+diff --git a/lib/core/consts.dart b/lib/core/consts.dart
+index 8191ccb..28655e5 100644
+--- a/lib/core/consts.dart
++++ b/lib/core/consts.dart
+@@ -207,6 +207,12 @@ const GITHUB_SPONSORS_URL = 'https://github.com/sponsors/wger-project';
+ /// public. The logs can still be copied for a private report.
+ const PUBLIC_ISSUE_REPORTS = bool.fromEnvironment('ALMOVA_PUBLIC_ISSUE_REPORTS');
+ 
++/// Whether the app imports readings from Health Connect / Apple Health. Off
++/// in the first ALMOVA release: Google Play reviews each health permission
++/// separately. Turning it on also needs the Health Connect entries of the
++/// Android manifest back (health_manifest_test.dart checks both together).
++const HEALTH_CONNECT = false;
++
+ /// Maximum length for a pre-filled GitHub issue URL. GitHub starts answering
+ /// issues/new with an error page at roughly 7050 characters (measured 2026-07),
+ /// so stay well below that.
+diff --git a/lib/core/home_tabs_screen.dart b/lib/core/home_tabs_screen.dart
+index b29b731..80e3049 100644
+--- a/lib/core/home_tabs_screen.dart
++++ b/lib/core/home_tabs_screen.dart
+@@ -18,6 +18,7 @@
+ 
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/consts.dart';
+ import 'package:wger/core/dashboard.dart';
+ import 'package:wger/core/material.dart';
+ import 'package:wger/features/account/providers/timezone_sync.dart';
+@@ -56,7 +57,9 @@ class _HomeTabsScreenState extends ConsumerState<HomeTabsScreen>
+       if (!mounted) {
+         return;
+       }
+-      ref.read(healthSyncProvider.notifier).syncIfDue();
++      if (HEALTH_CONNECT) {
++        ref.read(healthSyncProvider.notifier).syncIfDue();
++      }
+ 
+       // Report the device timezone to the profile, so the server calculates
+       // streaks and trophies in the user's own zone. A no-op when unchanged.
+diff --git a/lib/features/account/widgets/settings.dart b/lib/features/account/widgets/settings.dart
+index 7c1a5ea..4a5f669 100644
+--- a/lib/features/account/widgets/settings.dart
++++ b/lib/features/account/widgets/settings.dart
+@@ -17,6 +17,7 @@
+  */
+ 
+ import 'package:material_ui/material_ui.dart';
++import 'package:wger/core/consts.dart';
+ import 'package:wger/core/wide_screen_wrapper.dart';
+ import 'package:wger/features/account/widgets/settings/certs_not_verified.dart';
+ import 'package:wger/features/account/widgets/settings/data_privacy.dart';
+@@ -68,7 +69,7 @@ class SettingsPage extends StatelessWidget {
+               ).push(MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+             ),
+             const SettingsDataPrivacy(),
+-            const HealthSyncSettingsTile(),
++            if (HEALTH_CONNECT) const HealthSyncSettingsTile(),
+             ListTile(title: Text(i18n.others, style: Theme.of(context).textTheme.headlineSmall)),
+             const SettingsLanguage(),
+             const SettingsTheme(),
+diff --git a/test/features/account/widgets/settings_test.dart b/test/features/account/widgets/settings_test.dart
+index 70573a3..1b3cbce 100644
+--- a/test/features/account/widgets/settings_test.dart
++++ b/test/features/account/widgets/settings_test.dart
+@@ -25,6 +25,7 @@ import 'package:shared_preferences/shared_preferences.dart';
+ import 'package:wger/core/app_settings_notifier.dart';
+ import 'package:wger/core/consts.dart';
+ import 'package:wger/features/account/widgets/settings.dart';
++import 'package:wger/features/account/widgets/settings/health_sync.dart';
+ import 'package:wger/features/health/providers/health_repository.dart';
+ import 'package:wger/features/health/providers/health_sync.dart';
+ import 'package:wger/l10n/generated/app_localizations.dart';
+@@ -131,6 +132,13 @@ void main() {
+     });
+   });
+ 
++  testWidgets('no Health Connect import while it is off in the build', (tester) async {
++    await tester.pumpWidget(createSettingsScreen());
++    await tester.pumpAndSettle();
++
++    expect(find.byType(HealthSyncSettingsTile), findsNothing);
++  }, skip: HEALTH_CONNECT);
++
+   group('Language switcher', () {
+     testWidgets('shows system option when no override set', (WidgetTester tester) async {
+       await tester.pumpWidget(createSettingsScreen());
+diff --git a/test/features/health/health_manifest_test.dart b/test/features/health/health_manifest_test.dart
+index 062cd54..e03380c 100644
+--- a/test/features/health/health_manifest_test.dart
++++ b/test/features/health/health_manifest_test.dart
+@@ -20,6 +20,7 @@ import 'dart:io';
+ 
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:health_bridge/health.dart';
++import 'package:wger/core/consts.dart';
+ import 'package:wger/database/powersync/powersync.dart';
+ import 'package:wger/features/health/models/health_metric.dart';
+ 
+@@ -56,6 +57,13 @@ void main() {
+       manifest = File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
+     });
+ 
++    test('declares no health permission while the import is off', () {
++      // Google Play reviews every declared health permission, used or not
++      expect(manifest, isNot(contains('android.permission.health.')));
++      expect(manifest, isNot(contains('androidx.health.')));
++      expect(manifest, isNot(contains('HEALTH_PERMISSIONS')));
++    }, skip: HEALTH_CONNECT);
++
+     test('declares a read permission for every imported type', () {
+       // Health Connect can only grant what the manifest declares, and it
+       // reports an undeclared type as not granted rather than as an error, so
+@@ -77,7 +85,7 @@ void main() {
+           );
+         }
+       }
+-    });
++    }, skip: !HEALTH_CONNECT);
+ 
+     test('declares the history permission', () {
+       // Without it Health Connect silently caps every read at 30 days, which
+@@ -86,7 +94,7 @@ void main() {
+         manifest,
+         contains('android:name="android.permission.health.READ_HEALTH_DATA_HISTORY"'),
+       );
+-    });
++    }, skip: !HEALTH_CONNECT);
+   });
+ 
+   group('Android backup rules', () {
+-- 
+2.43.0
+

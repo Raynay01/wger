@@ -77,6 +77,12 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     saída da conta o celular é removido antes, para a próxima pessoa no
     aparelho não receber os avisos. Desligado até a construção receber os
     dados do projeto Firebase (veja abaixo).
+16. **Sem importação do Health Connect na primeira versão:** a Play Store
+    revisa cada permissão de dados de saúde com um formulário próprio. O app
+    não declara mais essas permissões e as configurações não mostram a
+    importação de balança e relógio. Para devolver: reverter este patch (ou
+    ligar `HEALTH_CONNECT` em `lib/core/consts.dart` e recolocar as entradas
+    do manifesto).
 
 ## Construir o APK
 
