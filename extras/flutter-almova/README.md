@@ -83,6 +83,16 @@ git am /caminho/do/wger/extras/flutter-almova/patches/*.patch
     importação de balança e relógio. Para devolver: reverter este patch (ou
     ligar `HEALTH_CONNECT` em `lib/core/consts.dart` e recolocar as entradas
     do manifesto).
+17. **Agenda mais legível:** o botão "Cancelar atendimento" fica abaixo dos
+    dados da consulta; ao lado deles, ocupava metade da largura do celular.
+18. **Página da Play Store em português:** nome, descrições e cinco capturas
+    de tela do ALMOVA (fisioterapia, alimentação, conversa, agenda e
+    compartilhamento) em `fastlane/metadata/android/pt-BR`. Para gerar de
+    novo, sem emulador: `flutter test test/screenshots/almova_store_screenshots.dart`.
+    O app guarda essas imagens no Git LFS, que o patch não carrega: depois do
+    `git am`, copie as de `play-store/` desta pasta por cima dos arquivos de
+    `phoneScreenshots/` (ou gere de novo) e faça o commit com o `git lfs`
+    instalado.
 
 ## Construir o APK
 
@@ -107,6 +117,13 @@ Firebase (no console: Configurações do projeto > Seus apps, app com o pacote
 
 O servidor envia com a conta de serviço do mesmo projeto
 (`extras/docker/almova/README.md`, "Celular (push)").
+
+Para a Play Store, o pacote é o `.aab` (cerca de 104 MB com todos os
+processadores; a loja entrega a cada celular só a parte dele):
+
+```bash
+flutter build appbundle --release --dart-define=ALMOVA_SERVER=https://<endereço do servidor>
+```
 
 A chave de assinatura fica em `fastlane/metadata/envfiles/key.properties`
 (fora do Git). Para publicar na Play Store é preciso a chave definitiva do

@@ -1,0 +1,562 @@
+From d70177fdbd5bee401a26bf26916f93abbb0edfd9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 18:58:30 +0000
+Subject: [PATCH 20/20] Play Store listing in Portuguese with ALMOVA
+ screenshots
+
+Title, short and full description of the ALMOVA listing, and phone
+screenshots of the physiotherapy, food, conversation, agenda and sharing
+screens. test/screenshots/almova_store_screenshots.dart renders them
+with the real fonts and sample data, no emulator needed, and is not
+part of the suite. The tablet screenshots of the wger app are gone from
+this listing.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ .../android/pt-BR/full_description.txt        |  47 +--
+ .../phoneScreenshots/01 - dashboard.png       |   3 -
+ .../phoneScreenshots/01 - fisioterapia.png    |   3 +
+ .../phoneScreenshots/02 - alimentacao.png     |   3 +
+ .../phoneScreenshots/02 - workout detail.png  |   3 -
+ .../images/phoneScreenshots/03 - conversa.png |   3 +
+ .../images/phoneScreenshots/03 - gym mode.png |   3 -
+ .../images/phoneScreenshots/04 - agenda.png   |   3 +
+ .../phoneScreenshots/04 - measurements.png    |   3 -
+ .../05 - compartilhamento.png                 |   3 +
+ .../05 - nutritional plan.png                 |   3 -
+ .../android/pt-BR/short_description.txt       |   2 +-
+ fastlane/metadata/android/pt-BR/title.txt     |   2 +-
+ .../screenshots/almova_store_screenshots.dart | 350 ++++++++++++++++++
+ 14 files changed, 379 insertions(+), 52 deletions(-)
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - dashboard.png
+ create mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - fisioterapia.png
+ create mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - alimentacao.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - workout detail.png
+ create mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - conversa.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - gym mode.png
+ create mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - agenda.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - measurements.png
+ create mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - compartilhamento.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - nutritional plan.png
+ create mode 100644 test/screenshots/almova_store_screenshots.dart
+
+diff --git a/fastlane/metadata/android/pt-BR/full_description.txt b/fastlane/metadata/android/pt-BR/full_description.txt
+index d9260a1..7ce9f6d 100644
+--- a/fastlane/metadata/android/pt-BR/full_description.txt
++++ b/fastlane/metadata/android/pt-BR/full_description.txt
+@@ -1,39 +1,16 @@
+-De amantes de fitness a amantes de fitness - organize sua saúde com WGER, seu Workout Manager!
++O ALMOVA reúne o acompanhamento do seu personal trainer, do seu fisioterapeuta e do seu nutricionista num só lugar.
+ 
+-Você já encontrou seu aplicativo de fitness n.º 1 e adora criar suas próprias rotinas esportivas? Não importa que tipo de animal esportivo você seja - todos nós temos algo em comum: adoramos acompanhar nossos dados de saúde <3
++<b>Com seus profissionais</b>
++• Receba o treino, os exercícios de fisioterapia e o plano alimentar que eles prescreverem.
++• Converse com cada profissional, com texto, fotos e vídeos.
++• Veja e cancele seus atendimentos na agenda.
++• Registre a dor dos exercícios: seu fisioterapeuta é avisado quando ela passa do limite combinado.
++• Marque as refeições que seguiu e a água do dia.
+ 
+-Portanto, não o julgamos por você ainda gerenciar sua jornada de condicionamento físico com seu pequeno livro de registro de treino, mas bem-vindo a 2026!
++<b>Você decide o que cada um vê</b>
++Cada profissional vê só a área dele. Para que o nutricionista veja seu treino, por exemplo, você liga o compartilhamento, e pode desligar quando quiser. Seus dados podem ser baixados ou excluídos pelo próprio app.
+ 
+-Desenvolvemos um aplicativo rastreador digital de saúde e condicionamento físico 100% gratuito para você, dimensionado para os recursos mais relevantes para facilitar sua vida. Comece, continue treinando, e comemore seu progresso!
++<b>Também sem profissional</b>
++Monte seus treinos, registre cargas e repetições, acompanhe peso, medidas e fotos de progresso. Funciona sem internet e sincroniza depois.
+ 
+-wger é um projeto de código aberto é sobre:
+-* Seu corpo
+-* Seus treinos
+-* Seu progresso
+-* Seus dados
+-
+-Seu corpo:
+-Não há necessidade de pesquisar no Google os ingredientes de suas guloseimas favoritas - escolha suas refeições diárias entre mais de 78.000 produtos e veja os valores nutricionais. Adicione refeições ao plano nutricional e mantenha uma visão geral de sua dieta no calendário.
+-
+-Seus treinos:
+-Você sabe o que é melhor para o seu corpo. Crie seus próprios treinos a partir de uma variedade crescente de 200 exercícios diferentes. Em seguida, use o Modo Academia para guiá-lo pelo treinamento enquanto registra seus pesos com um toque.
+-
+-Seu progresso:
+-Nunca perca de vista seus objetivos. Acompanhe seu peso e mantenha suas estatísticas.
+-
+-Seus dados:
+-wger é o seu diário de fitness personalizado - mas você possui seus dados. Use a API REST para acessar e fazer coisas incríveis com ela.
+-
+-Observação: este aplicativo gratuito não se baseia em financiamentos adicionais e não solicitamos que você doe dinheiro. Mais do que isso, é um projeto comunitário em constante crescimento. Portanto, esteja preparado para novos recursos a qualquer momento!
+-
+-#OpenSource – o que isso significa?
+-
+-Open Source significa que todo o código-fonte para este aplicativo e o servidor com o qual ele se comunica é gratuito e disponível para qualquer pessoa:
+-* Você deseja executar o wger em seu próprio servidor para você ou em sua academia local? Vá em frente!
+-* Você sente falta de um recurso e quer implementá-lo? Comece agora!
+-* Deseja verificar se nada está sendo enviado para lugar algum? Você pode!
+-
+-Junte-se à nossa comunidade e torne-se parte dos entusiastas do esporte e geeks de TI de todo o mundo. Continuamos trabalhando para ajustar e otimizar o aplicativo personalizado às nossas necessidades. Adoramos sua opinião, então sinta-se à vontade para participar a qualquer momento e contribuir com seus desejos e ideias!
+-
+--> encontre o código-fonte em https://github.com/wger-project
+--> tire suas dúvidas ou apenas dê um alô em nosso servidor do discord https://discord.gg/rPWFv6W
++O ALMOVA não substitui consulta: siga as orientações dos seus profissionais.
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - dashboard.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - dashboard.png
+deleted file mode 100644
+index 38c0eff..0000000
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - dashboard.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:185bf368392b3155aba9f620ff442525de7a44cd831d71a1dff5b9f6816d235c
+-size 212627
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - fisioterapia.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - fisioterapia.png
+new file mode 100644
+index 0000000..8cb9a3c
+--- /dev/null
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/01 - fisioterapia.png	
+@@ -0,0 +1,3 @@
++version https://git-lfs.github.com/spec/v1
++oid sha256:9b5eba65f956a5c8a454216a5220a7b075af2ab1378051a83c8c9d6fc5153bf7
++size 230105
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - alimentacao.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - alimentacao.png
+new file mode 100644
+index 0000000..2861e32
+--- /dev/null
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - alimentacao.png	
+@@ -0,0 +1,3 @@
++version https://git-lfs.github.com/spec/v1
++oid sha256:34f6d14fab94ba20dc4ae5d42b2dc01365c54161bb23d0f9e29d0d8ea855baad
++size 235501
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - workout detail.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - workout detail.png
+deleted file mode 100644
+index d6b75b0..0000000
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/02 - workout detail.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:132586276d4b9350a31726b302171d594e9e50b7371eb8a29cad8675070e34ee
+-size 278822
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - conversa.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - conversa.png
+new file mode 100644
+index 0000000..9c33ebd
+--- /dev/null
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - conversa.png	
+@@ -0,0 +1,3 @@
++version https://git-lfs.github.com/spec/v1
++oid sha256:ab2eeba29567751cb592643d34a0da40cb1195214c29dc4ca2e29b506ad5228c
++size 134604
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - gym mode.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - gym mode.png
+deleted file mode 100644
+index 96a62b4..0000000
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/03 - gym mode.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:5db9072ef8e1011ebf933a808a4ff5bd81fc2c116975f98cec010c161a690001
+-size 124512
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - agenda.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - agenda.png
+new file mode 100644
+index 0000000..ff1349e
+--- /dev/null
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - agenda.png	
+@@ -0,0 +1,3 @@
++version https://git-lfs.github.com/spec/v1
++oid sha256:0507281119b4bfa5078a5cfa6b6a6dc6776c7bfca2e4c3e8a6a75669c5180d15
++size 155499
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - measurements.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - measurements.png
+deleted file mode 100644
+index cd54696..0000000
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/04 - measurements.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:08b08876088c1c63ff12804530a23d68217e96365233e11acf24fc47382c969c
+-size 177473
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - compartilhamento.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - compartilhamento.png
+new file mode 100644
+index 0000000..786e179
+--- /dev/null
++++ b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - compartilhamento.png	
+@@ -0,0 +1,3 @@
++version https://git-lfs.github.com/spec/v1
++oid sha256:21333bd0810eb2620199d585540e63764e3a9f1e95eb777fc7f49f7a90992938
++size 323397
+diff --git a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - nutritional plan.png b/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - nutritional plan.png
+deleted file mode 100644
+index a2ea940..0000000
+--- a/fastlane/metadata/android/pt-BR/images/phoneScreenshots/05 - nutritional plan.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:75dde3c40549309a638e1c9ab1e7c5e15c42a61f36f768828d79d26df9bc5dbd
+-size 163824
+diff --git a/fastlane/metadata/android/pt-BR/short_description.txt b/fastlane/metadata/android/pt-BR/short_description.txt
+index 0fdcc28..dba5744 100644
+--- a/fastlane/metadata/android/pt-BR/short_description.txt
++++ b/fastlane/metadata/android/pt-BR/short_description.txt
+@@ -1 +1 @@
+-Fitness/treino, nutrição e controle de peso
++Treino, fisioterapia e nutrição com seus profissionais, num só app.
+diff --git a/fastlane/metadata/android/pt-BR/title.txt b/fastlane/metadata/android/pt-BR/title.txt
+index d35e408..99a88ba 100644
+--- a/fastlane/metadata/android/pt-BR/title.txt
++++ b/fastlane/metadata/android/pt-BR/title.txt
+@@ -1 +1 @@
+-wger Workout Manager
++ALMOVA
+diff --git a/test/screenshots/almova_store_screenshots.dart b/test/screenshots/almova_store_screenshots.dart
+new file mode 100644
+index 0000000..c54553c
+--- /dev/null
++++ b/test/screenshots/almova_store_screenshots.dart
+@@ -0,0 +1,350 @@
++/*
++ * This file is part of wger Workout Manager <https://github.com/wger-project>.
++ * Copyright (c) 2020 - 2026 wger Team
++ *
++ * wger Workout Manager is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU Affero General Public License as published by
++ * the Free Software Foundation, either version 3 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU Affero General Public License for more details.
++ *
++ * You should have received a copy of the GNU Affero General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++// Play Store screenshots of the ALMOVA screens, in Portuguese, without an
++// emulator. Not part of the test suite (no _test suffix); run it on its own:
++//
++//   flutter test test/screenshots/almova_store_screenshots.dart
++//
++// The PNGs (1080 x 2424) go to fastlane/metadata/android/pt-BR/images/phoneScreenshots.
++
++import 'dart:io';
++import 'dart:ui' as ui;
++
++import 'package:flutter/rendering.dart';
++import 'package:flutter/services.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:material_ui/material_ui.dart';
++import 'package:mockito/mockito.dart';
++import 'package:wger/core/network/network_provider.dart';
++import 'package:wger/features/care/models/access_grant.dart';
++import 'package:wger/features/care/models/appointment.dart';
++import 'package:wger/features/care/models/care_relationship.dart';
++import 'package:wger/features/care/models/message.dart';
++import 'package:wger/features/care/providers/care_repository.dart';
++import 'package:wger/features/care/screens/agenda_screen.dart';
++import 'package:wger/features/care/screens/conversation_screen.dart';
++import 'package:wger/features/care/screens/sharing_screen.dart';
++import 'package:wger/features/nutrition/models/nutrition_day.dart';
++import 'package:wger/features/nutrition/providers/nutrition_day_repository.dart';
++import 'package:wger/features/nutrition/screens/nutrition_today_screen.dart';
++import 'package:wger/features/physio/models/physio_day.dart';
++import 'package:wger/features/physio/providers/physio_repository.dart';
++import 'package:wger/features/physio/screens/physio_today_screen.dart';
++import 'package:wger/l10n/generated/app_localizations.dart';
++import 'package:wger/l10n/localizations_delegates.dart';
++import 'package:wger/theme/theme.dart';
++
++const _folder = 'fastlane/metadata/android/pt-BR/images/phoneScreenshots';
++
++const _paula = CareRelationship(
++  id: 'r1',
++  discipline: Discipline.physio,
++  status: 'active',
++  professionalName: 'Paula Martins',
++);
++const _bruno = CareRelationship(
++  id: 'r2',
++  discipline: Discipline.training,
++  status: 'active',
++  professionalName: 'Bruno Costa',
++);
++const _carla = CareRelationship(
++  id: 'r3',
++  discipline: Discipline.nutrition,
++  status: 'active',
++  professionalName: 'Carla Souza',
++);
++
++DateTime _day(int daysFromNow, int hour, int minute) {
++  final now = DateTime.now();
++  return DateTime(now.year, now.month, now.day + daysFromNow, hour, minute);
++}
++
++class _Care extends Mock implements CareRepository {
++  @override
++  Future<List<CareRelationship>> fetchMyProfessionals() async => [_paula, _bruno, _carla];
++
++  @override
++  Future<List<Message>> fetchMessages(String relationship) async => [
++    Message(
++      id: 'm1',
++      relationship: 'r1',
++      mine: false,
++      text: 'Bom dia! Como o joelho reagiu à ponte com a faixa vermelha?',
++      created: _day(0, 8, 12),
++    ),
++    Message(
++      id: 'm2',
++      relationship: 'r1',
++      mine: true,
++      text: 'Bem melhor! Senti só um incômodo leve na última série.',
++      created: _day(0, 8, 40),
++    ),
++    Message(
++      id: 'm3',
++      relationship: 'r1',
++      mine: false,
++      text: 'Ótimo sinal. Registre a dor depois dos exercícios que eu acompanho por aqui.',
++      created: _day(0, 8, 45),
++    ),
++    Message(
++      id: 'm4',
++      relationship: 'r1',
++      mine: true,
++      text: 'Combinado, até quinta!',
++      created: _day(0, 8, 47),
++    ),
++  ];
++
++  @override
++  Future<void> markRead(String relationship) async {}
++
++  @override
++  Future<List<Appointment>> fetchUpcomingAppointments(DateTime from) async => [
++    Appointment(
++      id: 'a1',
++      relationship: 'r1',
++      kind: 'follow_up',
++      start: _day(2, 14, 30),
++      durationMinutes: 50,
++      location: 'Clínica Movimento',
++      notes: 'Traga o exame de imagem',
++      status: 'scheduled',
++      discipline: Discipline.physio,
++      professional: 'Paula Martins',
++    ),
++    Appointment(
++      id: 'a2',
++      relationship: 'r2',
++      kind: 'session',
++      start: _day(3, 7, 0),
++      durationMinutes: 60,
++      location: 'Academia Central',
++      status: 'scheduled',
++      discipline: Discipline.training,
++      professional: 'Bruno Costa',
++    ),
++    Appointment(
++      id: 'a3',
++      relationship: 'r3',
++      kind: 'assessment',
++      start: _day(8, 18, 0),
++      durationMinutes: 40,
++      location: 'On-line',
++      status: 'scheduled',
++      discipline: Discipline.nutrition,
++      professional: 'Carla Souza',
++    ),
++  ];
++
++  @override
++  Future<List<AccessGrant>> fetchGrants() async => const [
++    AccessGrant(id: 'g1', relationship: 'r1', scope: 'training.schedule'),
++    AccessGrant(id: 'g2', relationship: 'r3', scope: 'body.measurements'),
++    AccessGrant(id: 'g3', relationship: 'r3', scope: 'training.schedule'),
++  ];
++}
++
++class _Physio extends Mock implements PhysioRepository {
++  @override
++  Future<PhysioDay> fetchToday() async => const PhysioDay(
++    protocols: [
++      PhysioProtocolDay(
++        id: 'p1',
++        name: 'Reabilitação do joelho direito',
++        painMoments: ['after'],
++        exercises: [
++          PhysioExercise(
++            id: 'e1',
++            name: 'Ponte com faixa',
++            sets: 3,
++            repetitions: 12,
++            load: 'faixa vermelha',
++            location: 'home',
++            instructions: 'Suba devagar e segure 2 segundos no alto.',
++            done: true,
++          ),
++          PhysioExercise(
++            id: 'e2',
++            name: 'Agachamento parcial',
++            sets: 3,
++            repetitions: 10,
++            location: 'home',
++            instructions: 'Desça até 45 graus, joelhos alinhados com os pés.',
++          ),
++          PhysioExercise(
++            id: 'e3',
++            name: 'Prancha lateral',
++            sets: 2,
++            durationSeconds: 30,
++            location: 'gym',
++          ),
++        ],
++      ),
++    ],
++  );
++}
++
++Map<String, dynamic> _item(String name, num grams, {String? unit, num? amount}) => {
++  'ingredient': name.hashCode,
++  'name': name,
++  'amount': amount ?? grams,
++  'weight_unit': unit == null ? null : 1,
++  'unit_name': unit,
++  'grams': grams,
++  'instructions': '',
++  'substitutions': 0,
++};
++
++class _Food extends Mock implements NutritionDayRepository {
++  @override
++  Future<NutritionDay> fetchToday() async => NutritionDay.fromDayJson({
++    'date': '2026-11-21',
++    'nutrition': {
++      'plan': {'id': 'p1', 'description': 'Plano de recomposição', 'author': 1},
++      'goals': {'energy': 1900, 'protein': 120, 'carbohydrates': 210, 'fat': 60, 'fiber': 28},
++      'logged': {'energy': 1120, 'protein': 78, 'carbohydrates': 118, 'fat': 34},
++      'remaining': {'energy': 780},
++      'water': {'total_ml': 1500, 'goal_ml': 2500},
++      'meals': [
++        {
++          'id': 'm1',
++          'name': 'Café da manhã',
++          'time': '07:30:00',
++          'instructions': '',
++          'planned': {'energy': 410, 'protein': 24, 'carbohydrates': 45, 'fat': 13},
++          'items': [
++            _item('Ovo de galinha, inteiro, cozido', 100),
++            _item('Pão de forma integral', 50, unit: 'fatia', amount: 2),
++            _item('Mamão papaia', 150),
++          ],
++          'adherence': 'full',
++        },
++        {
++          'id': 'm2',
++          'name': 'Almoço',
++          'time': '12:30:00',
++          'instructions': '',
++          'planned': {'energy': 710, 'protein': 54, 'carbohydrates': 73, 'fat': 21},
++          'items': [
++            _item('Arroz integral, cozido', 120),
++            _item('Feijão carioca, cozido', 100),
++            _item('Frango, peito, sem pele, grelhado', 140),
++            _item('Salada de folhas', 80),
++          ],
++          'adherence': 'partial',
++        },
++        {
++          'id': 'm3',
++          'name': 'Lanche da tarde',
++          'time': '16:00:00',
++          'instructions': '',
++          'planned': {'energy': 260, 'protein': 18, 'carbohydrates': 30, 'fat': 7},
++          'items': [
++            _item('Iogurte natural', 170),
++            _item('Aveia, flocos', 30),
++          ],
++          'adherence': null,
++        },
++      ],
++    },
++  });
++}
++
++Future<void> _loadFonts() async {
++  Future<void> load(String family, List<String> paths) async {
++    final loader = FontLoader(family);
++    for (final path in paths) {
++      loader.addFont(Future.value(ByteData.sublistView(File(path).readAsBytesSync())));
++    }
++    await loader.load();
++  }
++
++  final fonts = '${Platform.environment['FLUTTER_ROOT']}/bin/cache/artifacts/material_fonts';
++  await load('Roboto', [
++    for (final weight in ['Regular', 'Medium', 'Bold', 'Light']) '$fonts/Roboto-$weight.ttf',
++  ]);
++  await load('MaterialIcons', ['$fonts/MaterialIcons-Regular.otf']);
++  await load(wgerDisplayFont, ['assets/fonts/RobotoCondensed-VariableFont_wght.ttf']);
++}
++
++void main() {
++  final boundary = GlobalKey();
++
++  setUpAll(_loadFonts);
++
++  Future<void> shoot(WidgetTester tester, String name, Widget screen) async {
++    tester.view.physicalSize = const Size(1080, 2424);
++    tester.view.devicePixelRatio = 3;
++    addTearDown(tester.view.reset);
++
++    await tester.pumpWidget(
++      ProviderScope(
++        overrides: [
++          careRepositoryProvider.overrideWithValue(_Care()),
++          physioRepositoryProvider.overrideWithValue(_Physio()),
++          nutritionDayRepositoryProvider.overrideWithValue(_Food()),
++          networkStatusProvider.overrideWithValue(true),
++        ],
++        child: RepaintBoundary(
++          key: boundary,
++          child: MaterialApp(
++            debugShowCheckedModeBanner: false,
++            theme: wgerLightTheme,
++            locale: const Locale('pt', 'BR'),
++            localizationsDelegates: appLocalizationsDelegates,
++            supportedLocales: AppLocalizations.supportedLocales,
++            home: screen,
++          ),
++        ),
++      ),
++    );
++    await tester.pumpAndSettle();
++
++    await tester.runAsync(() async {
++      final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
++      final image = await render.toImage(pixelRatio: 3);
++      final png = await image.toByteData(format: ui.ImageByteFormat.png);
++      File('$_folder/$name.png')
++        ..createSync(recursive: true)
++        ..writeAsBytesSync(png!.buffer.asUint8List());
++    });
++  }
++
++  testWidgets('physiotherapy', (tester) async {
++    await shoot(tester, '01 - fisioterapia', const PhysioTodayScreen());
++  });
++
++  testWidgets('food', (tester) async {
++    await shoot(tester, '02 - alimentacao', const NutritionTodayScreen());
++  });
++
++  testWidgets('conversation', (tester) async {
++    await shoot(tester, '03 - conversa', const ConversationScreen(relationship: _paula));
++  });
++
++  testWidgets('agenda', (tester) async {
++    await shoot(tester, '04 - agenda', const AgendaScreen());
++  });
++
++  testWidgets('sharing', (tester) async {
++    await shoot(tester, '05 - compartilhamento', const SharingScreen());
++  });
++}
+-- 
+2.43.0
+

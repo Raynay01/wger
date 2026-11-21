@@ -64,8 +64,18 @@ regras de apps para crianças; dados de saúde de menores pedem o consentimento
 dos responsáveis, a combinar com o advogado).
 
 **Imagens exigidas:** ícone 512 × 512, imagem de destaque 1024 × 500 e pelo
-menos duas capturas de tela do celular. Precisam do logotipo oficial; com ele,
-eu gero as capturas a partir do app.
+menos duas capturas de tela do celular.
+
+- **Capturas de tela: prontas.** Cinco, em 1080 × 2424, com dados de exemplo
+  (fisioterapia, alimentação, conversa, agenda e compartilhamento), em
+  `extras/flutter-almova/play-store/`. Os textos desta seção já estão no app
+  (`fastlane/metadata/android/pt-BR`).
+- **Ícone e imagem de destaque:** dependem do logotipo oficial. Com ele, eu
+  gero os dois e refaço as capturas com as cores da marca.
+
+Só a página em pt-BR é do ALMOVA: as pastas dos outros idiomas em
+`fastlane/metadata/android` ainda têm os textos do wger e não devem ser
+enviadas.
 
 ## 4. Endereços exigidos
 
@@ -128,4 +138,5 @@ ferramenta de análise; os registros só saem quando o usuário os copia).
 - Chave de assinatura definitiva (o Google guarda uma cópia com o "Play App
   Signing"; a chave de envio fica com você, fora do repositório).
 - Construir o pacote `.aab` com o endereço definitivo do servidor e os dados
-  do Firebase.
+  do Firebase (a construção já foi conferida: 104 MB com todos os
+  processadores; cada celular baixa cerca de 38 MB).

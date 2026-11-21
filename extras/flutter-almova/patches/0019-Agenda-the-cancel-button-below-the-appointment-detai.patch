@@ -1,0 +1,197 @@
+From 571d917391831e8c756295c52068bf05db63d29b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 18:58:30 +0000
+Subject: [PATCH 19/20] Agenda: the cancel button below the appointment details
+
+Beside the details the button took half of a phone's width and squeezed
+the date, the professional and the place into a narrow column.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VRSTuUkoebWWM2DLbPZAvR
+---
+ .../sevenInchScreenshots/01 - dashboard.png   |  3 --
+ .../02 - workout detail.png                   |  3 --
+ .../sevenInchScreenshots/03 - gym mode.png    |  3 --
+ .../04 - measurements.png                     |  3 --
+ .../05 - nutritional plan.png                 |  3 --
+ .../tenInchScreenshots/01 - dashboard.png     |  3 --
+ .../02 - workout detail.png                   |  3 --
+ .../tenInchScreenshots/03 - gym mode.png      |  3 --
+ .../tenInchScreenshots/04 - measurements.png  |  3 --
+ .../05 - nutritional plan.png                 |  3 --
+ lib/features/care/screens/agenda_screen.dart  | 16 +++++++---
+ .../care/screens/agenda_screen_test.dart      | 31 +++++++++++++++++++
+ 12 files changed, 42 insertions(+), 35 deletions(-)
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/01 - dashboard.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/02 - workout detail.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/03 - gym mode.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/04 - measurements.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/05 - nutritional plan.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/tenInchScreenshots/01 - dashboard.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/tenInchScreenshots/02 - workout detail.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/tenInchScreenshots/03 - gym mode.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/tenInchScreenshots/04 - measurements.png
+ delete mode 100644 fastlane/metadata/android/pt-BR/images/tenInchScreenshots/05 - nutritional plan.png
+
+diff --git a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/01 - dashboard.png b/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/01 - dashboard.png
+deleted file mode 100644
+index 9ac2116..0000000
+--- a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/01 - dashboard.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:ffaeeac4f570f12b56ae6fb0500b5a42ad141fa240773bcf124116aae64cad70
+-size 192150
+diff --git a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/02 - workout detail.png b/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/02 - workout detail.png
+deleted file mode 100644
+index be97ca0..0000000
+--- a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/02 - workout detail.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:5f6fdecfa10d07718c132d4317d7cd2ce366014780b1da235e548d7f72e27ce9
+-size 204069
+diff --git a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/03 - gym mode.png b/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/03 - gym mode.png
+deleted file mode 100644
+index 90008bb..0000000
+--- a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/03 - gym mode.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:869f07719c90c4910f24ca63f8ae14cab56c0c2ebb42dd155ed85be5c401627f
+-size 95563
+diff --git a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/04 - measurements.png b/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/04 - measurements.png
+deleted file mode 100644
+index 442dd22..0000000
+--- a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/04 - measurements.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:0d79f85f072117e3f8891c3b27950cc98fd1ffb4e3fcdbb95d979e0ca23d6575
+-size 131103
+diff --git a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/05 - nutritional plan.png b/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/05 - nutritional plan.png
+deleted file mode 100644
+index aef6fc7..0000000
+--- a/fastlane/metadata/android/pt-BR/images/sevenInchScreenshots/05 - nutritional plan.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:5fc18a1929b4bdb010bcb97e47626309b54e7bddbd14a8b98a08d48335f4c078
+-size 129789
+diff --git a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/01 - dashboard.png b/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/01 - dashboard.png
+deleted file mode 100644
+index 9894f54..0000000
+--- a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/01 - dashboard.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:38a1a65f3ab7fd05f7b5f4e6432496d5402a41c4e4846c0a05f06794a8d24b89
+-size 270085
+diff --git a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/02 - workout detail.png b/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/02 - workout detail.png
+deleted file mode 100644
+index e2cbcfe..0000000
+--- a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/02 - workout detail.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:47df350af64d4b8bbdf8cb1bb2fd5692973982fe6d2b93e8e207a194876df420
+-size 211468
+diff --git a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/03 - gym mode.png b/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/03 - gym mode.png
+deleted file mode 100644
+index 401a3e3..0000000
+--- a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/03 - gym mode.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:500be50fe67385cd7c1bff39423bdd25cc583579706b488dba485d21cfc11391
+-size 101717
+diff --git a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/04 - measurements.png b/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/04 - measurements.png
+deleted file mode 100644
+index a91c2bc..0000000
+--- a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/04 - measurements.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:f3c5805de0c35d5eb51c87bcafe112169eb224f7ad01f66784894ffe06fbecc0
+-size 172049
+diff --git a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/05 - nutritional plan.png b/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/05 - nutritional plan.png
+deleted file mode 100644
+index 5a15b96..0000000
+--- a/fastlane/metadata/android/pt-BR/images/tenInchScreenshots/05 - nutritional plan.png	
++++ /dev/null
+@@ -1,3 +0,0 @@
+-version https://git-lfs.github.com/spec/v1
+-oid sha256:379c5f603b2c3050755b283267f1fe8411af13a70e01334c4dd0be23a0d0db9d
+-size 187502
+diff --git a/lib/features/care/screens/agenda_screen.dart b/lib/features/care/screens/agenda_screen.dart
+index a5f2067..b52fcc3 100644
+--- a/lib/features/care/screens/agenda_screen.dart
++++ b/lib/features/care/screens/agenda_screen.dart
+@@ -104,11 +104,17 @@ class AppointmentTile extends ConsumerWidget {
+     return ListTile(
+       leading: Icon(disciplineIcon(appointment.discipline)),
+       title: Text('$when · ${appointmentKindLabel(i18n, appointment.kind)}'),
+-      subtitle: Text(appointment.notes.isEmpty ? details : '$details\n${appointment.notes}'),
+-      isThreeLine: appointment.notes.isNotEmpty,
+-      trailing: TextButton(
+-        onPressed: () => _cancel(context, ref),
+-        child: Text(i18n.careCancelAppointment),
++      // The button goes below the details: beside them it takes half of a phone's width
++      subtitle: Column(
++        crossAxisAlignment: CrossAxisAlignment.start,
++        children: [
++          Text(appointment.notes.isEmpty ? details : '$details\n${appointment.notes}'),
++          TextButton(
++            style: TextButton.styleFrom(padding: EdgeInsets.zero),
++            onPressed: () => _cancel(context, ref),
++            child: Text(i18n.careCancelAppointment),
++          ),
++        ],
+       ),
+     );
+   }
+diff --git a/test/features/care/screens/agenda_screen_test.dart b/test/features/care/screens/agenda_screen_test.dart
+index 4855953..cc38d2a 100644
+--- a/test/features/care/screens/agenda_screen_test.dart
++++ b/test/features/care/screens/agenda_screen_test.dart
+@@ -62,6 +62,37 @@ void main() {
+     ),
+   );
+ 
++  testWidgets('on a phone the cancel button sits below the details, not beside them', (
++    tester,
++  ) async {
++    tester.view.physicalSize = const Size(1080, 2424);
++    tester.view.devicePixelRatio = 3;
++    addTearDown(tester.view.reset);
++    when(repository.fetchUpcomingAppointments(any)).thenAnswer(
++      (_) async => [
++        Appointment(
++          id: 'a1',
++          relationship: 'r1',
++          kind: 'assessment',
++          start: DateTime(2026, 11, 18, 14, 30),
++          durationMinutes: 50,
++          location: 'Clínica Movimento',
++          status: 'scheduled',
++          discipline: Discipline.physio,
++          professional: 'Paula',
++        ),
++      ],
++    );
++
++    await tester.pumpWidget(render());
++    await tester.pumpAndSettle();
++
++    final details = tester.getRect(find.textContaining('Paula · Fisioterapia'));
++    final button = tester.getRect(find.widgetWithText(TextButton, 'Cancelar atendimento'));
++    expect(button.top, greaterThanOrEqualTo(details.bottom));
++    expect(details.width, greaterThan(200));
++  });
++
+   testWidgets('lists the appointment and cancels it after confirming', (tester) async {
+     when(repository.fetchUpcomingAppointments(any)).thenAnswer(
+       (_) async => [
+-- 
+2.43.0
+
