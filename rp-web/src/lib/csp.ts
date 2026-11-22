@@ -17,6 +17,10 @@ export function contentSecurityPolicy(nonce: string, production: boolean): strin
     `connect-src 'self' ${google}${production ? '' : ' ws: wss:'}`,
     `frame-src ${google}`,
     "media-src 'self' blob:",
+    // The service worker of the installable app (public/sw.js); script-src's
+    // 'strict-dynamic' would otherwise decide for it
+    "worker-src 'self'",
+    "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

@@ -27,6 +27,17 @@ Configuração do Google:
 `KINUTRI_DEV_LOGIN=1` mostra também um formulário de usuário e senha, para desenvolvimento e testes. Não use em
 produção.
 
+## Instalar no celular (PWA)
+
+O site instala como app: no Android, o Chrome oferece "Instalar app" (e a área do paciente mostra o botão); no
+iPhone, Safari > Compartilhar > Adicionar à Tela de Início. Abre em tela cheia, com o ícone do ALMOVA.
+
+- `src/app/manifest.ts`: nome, cores e ícones; os ícones ficam em `public/` e saem de
+  `node scripts/gerar-icones.mjs` (troque a marca ali quando houver o logotipo oficial).
+- `public/sw.js`: sem internet, mostra `public/offline.html`. Guarda no celular só essa página e os arquivos dela,
+  nunca páginas com dados de saúde.
+- `src/components/InstallHint.tsx`: o aviso de instalação, que some depois de instalado ou de "Agora não".
+
 ## Convites por e-mail
 
 Criar um convite não envia nada. O profissional envia quando quiser, pelo botão "Enviar convite por e-mail"

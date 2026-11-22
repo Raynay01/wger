@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
             : []),
         ],
       },
+      {
+        // An update of the offline layer reaches the phones at their next visit
+        source: '/sw.js',
+        headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }],
+      },
     ];
   },
 };

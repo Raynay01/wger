@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from 'next';
 import { connection } from 'next/server';
+import { ServiceWorker } from '@/components/ServiceWorker';
 import { APP_NAME, APP_TAGLINE } from '@/lib/brand';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: { default: `${APP_NAME} · ${APP_TAGLINE}`, template: `%s · ${APP_NAME}` },
   description: `${APP_NAME}: treino, fisioterapia e nutrição no mesmo app, com os seus profissionais.`,
+  // Installed on the iPhone's home screen: full screen, with this name and icon
+  appleWebApp: { capable: true, title: APP_NAME, statusBarStyle: 'black-translucent' },
+  icons: { icon: '/icon-192.png', apple: '/apple-touch-icon.png' },
 };
 
 export const viewport: Viewport = {
@@ -19,7 +23,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   await connection();
   return (
     <html lang="pt-BR">
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <ServiceWorker />
+        {children}
+      </body>
     </html>
   );
 }

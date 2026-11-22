@@ -176,6 +176,50 @@ try {
     log('Política de privacidade, termos de uso e exclusão da conta abrem sem login, com link na entrada');
   }
 
+  // The site installs as an app and shows its own page without a connection
+  {
+    const phone = await browser.newContext({ ...playwright.devices['Pixel 7'], locale: 'pt-BR' });
+    const page = await phone.newPage();
+    watch(page, 'celular');
+    await page.goto(`${WEB}/entrar`);
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    // Chrome's own installability check answers "no errors" headless, even
+    // without a manifest: these are its criteria, checked one by one
+    const manifest = await page.evaluate(async () => {
+      const href = document.querySelector('link[rel="manifest"]')?.getAttribute('href');
+      if (!href) {
+        return null;
+      }
+      const data = await (await fetch(href)).json();
+      const icons = await Promise.all(
+        (data.icons ?? []).map(async icon => ({ ...icon, ok: (await fetch(icon.src)).ok })),
+      );
+      return { ...data, icons };
+    });
+    const icon = (sizes, purpose) => manifest?.icons.some(i => i.sizes === sizes && i.purpose === purpose && i.ok);
+    assert(
+      manifest?.name && manifest.display === 'standalone' && manifest.start_url === '/inicio' &&
+        icon('192x192', 'any') && icon('512x512', 'any') && icon('512x512', 'maskable'),
+      `manifesto para instalar: ${JSON.stringify(manifest)}`,
+    );
+    const cached = await page.evaluate(async () => {
+      const paths = [];
+      for (const key of await caches.keys()) {
+        for (const request of await (await caches.open(key)).keys()) paths.push(new URL(request.url).pathname);
+      }
+      return paths.sort();
+    });
+    assert(
+      JSON.stringify(cached) === JSON.stringify(['/icon-192.png', '/offline.css', '/offline.html']),
+      `só a página sem conexão fica no celular: ${cached}`,
+    );
+    await phone.setOffline(true);
+    await page.goto(`${WEB}/inicio`).catch(() => {});
+    await page.getByRole('heading', { name: 'Sem conexão' }).waitFor();
+    await phone.close();
+    log('O site instala como app no celular e, sem internet, mostra a página "Sem conexão" (nada pessoal guardado)');
+  }
+
   // Professionals set up their organization and council registrations
   const bruno = await session('bruno');
   await bruno.goto(`${WEB}/pro/configurar`);

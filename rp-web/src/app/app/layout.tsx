@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/AppShell';
+import { InstallHint } from '@/components/InstallHint';
 import { api } from '@/lib/api';
 import { professionalContext } from '@/lib/roles';
 
@@ -23,6 +24,7 @@ export default async function PatientLayout({ children }: { children: React.Reac
       ]}
       switchTo={isProfessional ? { href: '/pro', label: 'Área profissional' } : { href: '/pro/configurar', label: 'Sou profissional' }}
     >
+      <InstallHint />
       {children}
     </AppShell>
   );

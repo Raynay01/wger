@@ -198,6 +198,11 @@ an explicit consent, which is recorded (`/api/v2/consent/`).
   linked from the home and login pages. The company details come from
   `ALMOVA_LEGAL_NAME`, `ALMOVA_LEGAL_DOCUMENT`, `ALMOVA_PRIVACY_EMAIL` and
   `ALMOVA_LEGAL_COURT`; the texts show as a draft until `ALMOVA_LEGAL_APPROVED=1`.
+* The ALMOVA web app installs as an app on the phone (PWA): web manifest,
+  icons for Android and the iPhone, and a hint in the patient area (Android's
+  install dialog, or the steps of Safari's share menu). A service worker shows
+  a page of its own without a connection; it keeps only that page on the
+  device, never pages with health data. The web app image now ships `public/`.
 * Brazilian Portuguese (`pt-BR`) catalog with the trophy names and
   descriptions; every other string falls back to Portuguese (`pt`).
 * `/api/v2/measurement/` accepts a `metric_type` instead of a `category` id when

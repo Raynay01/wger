@@ -28,6 +28,8 @@ ENV NODE_ENV=production \
 COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/.next ./.next
+# Icons and service worker of the installable app
+COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/next.config.ts ./
 USER node
 EXPOSE 3000
