@@ -9,6 +9,11 @@ passo diz onde ele entra.
 
 ## Fase 1: homologação gratuita (testar no celular)
 
+**Sem CNPJ:** a Oracle não aceita o cadastro (no Brasil, só como empresa). Para
+testar já, de graça, siga `TESTE-CODESPACES.md` no lugar dos passos 2, 3 e 5;
+o passo 4 (Google) continua. Com CNPJ, os passos abaixo deixam o ALMOVA no ar o
+tempo todo.
+
 | # | O que fazer | Onde está explicado | O que me passar |
 |---|---|---|---|
 | 1 | Criar o fork do app: abra github.com/wger-project/flutter e clique em **Fork** (deixe o nome `flutter`) | | só avisar: eu passo o app para lá |

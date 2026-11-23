@@ -8,6 +8,10 @@ contas e cola dois comandos.
 Use só dados de teste nesta fase. Para pacientes de verdade: domínio próprio,
 documentos de LGPD e backups conferidos (veja `ROTEIRO-HOMOLOGACAO.md`).
 
+**No Brasil, o cadastro da Oracle pede CNPJ** (só oferece o tipo de cliente
+"Corporate"). Sem CNPJ, teste de graça no GitHub Codespaces:
+`TESTE-CODESPACES.md`. Não use CNPJ de outra pessoa ou empresa.
+
 ## 1. Conta na Oracle Cloud (gratuita)
 
 1. Acesse **cloud.oracle.com** e clique em **Start for free** (Comece

@@ -40,6 +40,12 @@ login do site (`NEXT_PUBLIC_GOOGLE_CLIENT_ID` no `.env`, para a construção do
 site, e `GOOGLE_CLIENT_ID` no `homolog.env`, para o servidor). Sem o ID ninguém
 entra pelo site; o script avisa no fim. Rodando de novo, nada é perguntado.
 
+Para testar sem servidor, no GitHub Codespaces (grátis, HTTPS do próprio
+GitHub, só dados de teste): `bash codespaces.sh` dentro do Codespace
+(`.devcontainer/` na raiz; passo a passo em
+`planning/rp-performance/TESTE-CODESPACES.md`). Ele roda o `instalar.sh` com
+`ALMOVA_NO_HTTPS=1`, sem o Caddy.
+
 Em servidores ARM (como os gratuitos da Oracle) o antivírus é construído desta
 pasta (`clamav/`, via `compose.arm64.yml`): a imagem oficial do ClamAV só
 existe para x86. O script detecta e configura (`COMPOSE_FILE` no `.env`).

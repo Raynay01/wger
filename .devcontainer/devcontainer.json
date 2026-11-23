@@ -1,0 +1,24 @@
+// ALMOVA for testing in GitHub Codespaces: the Docker stack of
+// extras/docker/almova behind the HTTPS address of the codespace. Test data
+// only: codespaces run outside Brazil and stop when idle.
+// After creating it, run once: bash extras/docker/almova/codespaces.sh
+{
+  "name": "ALMOVA (teste)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  // The smallest machine the stack fits in (antivirus, database, sync, web app)
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": { "label": "ALMOVA", "onAutoForward": "notify" }
+  },
+  // Back up after the codespace was stopped, once it has been installed
+  "postStartCommand": "cd extras/docker/almova && if [ -f .env ]; then sudo docker compose up -d; fi"
+}

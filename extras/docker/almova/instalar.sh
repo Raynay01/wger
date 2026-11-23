@@ -9,8 +9,10 @@
 # certificate and, optionally, the DuckDNS token. Run it again after an
 # update: the passwords and keys of homolog.env are kept.
 #
-# ALMOVA_SKIP_SYSTEM=1 skips the packages, firewall and DuckDNS, and
-# ALMOVA_SKIP_BUILD=1 uses the images already built (tests).
+# ALMOVA_SKIP_SYSTEM=1 skips the packages, firewall and DuckDNS,
+# ALMOVA_SKIP_BUILD=1 uses the images already built (tests), and
+# ALMOVA_NO_HTTPS=1 leaves out Caddy when a proxy in front already serves
+# HTTPS (GitHub Codespaces, see codespaces.sh).
 set -euo pipefail
 
 cd "$(dirname "$(readlink -f "$0")")"
@@ -28,7 +30,10 @@ fi
 if [ -z "${ALMOVA_DOMAIN:-}" ]; then
     read -rp "Endereço do ALMOVA (ex.: almova.duckdns.org): " ALMOVA_DOMAIN
 fi
-if [ -z "${ACME_EMAIL:-}" ]; then
+if [ "${ALMOVA_NO_HTTPS:-0}" = 1 ]; then
+    # No certificate of its own: the address is only checked for its form
+    ACME_EMAIL="${ACME_EMAIL:-sem-certificado@localhost.localdomain}"
+elif [ -z "${ACME_EMAIL:-}" ]; then
     read -rp "Seu e-mail (avisos do certificado HTTPS): " ACME_EMAIL
 fi
 [[ "$ALMOVA_DOMAIN" =~ ^[a-z0-9.-]+\.[a-z]{2,}$ ]] || fail "endereço inválido: $ALMOVA_DOMAIN"
@@ -148,7 +153,11 @@ if ! grep -q '^JWT_PRIVATE_KEY=.' homolog.env; then
 fi
 
 say "Subindo o ALMOVA"
-docker compose --profile https up -d
+if [ "${ALMOVA_NO_HTTPS:-0}" = 1 ]; then
+    docker compose up -d
+else
+    docker compose --profile https up -d
+fi
 
 say "Esperando o servidor ficar pronto"
 for _ in $(seq 1 90); do
