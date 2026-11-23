@@ -35,6 +35,11 @@ passo com servidor e endereço gratuitos:
 sudo bash instalar.sh
 ```
 
+Ele pede o endereço, um e-mail, o token do DuckDNS e o ID do cliente Google do
+login do site (`NEXT_PUBLIC_GOOGLE_CLIENT_ID` no `.env`, para a construção do
+site, e `GOOGLE_CLIENT_ID` no `homolog.env`, para o servidor). Sem o ID ninguém
+entra pelo site; o script avisa no fim. Rodando de novo, nada é perguntado.
+
 Em servidores ARM (como os gratuitos da Oracle) o antivírus é construído desta
 pasta (`clamav/`, via `compose.arm64.yml`): a imagem oficial do ClamAV só
 existe para x86. O script detecta e configura (`COMPOSE_FILE` no `.env`).

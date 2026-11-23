@@ -57,7 +57,30 @@ depois em **Security Lists > Default Security List > Add Ingress Rules**:
 
 O endereço fica `https://almova.duckdns.org` (ou o nome que você escolheu).
 
-## 4. Instalar (dois comandos)
+## 4. Login com Google (gratuito)
+
+O site entra com a conta Google das pessoas. Para isso o Google precisa
+conhecer o endereço do ALMOVA:
+
+1. Acesse **console.cloud.google.com** com a sua conta Google e crie um projeto
+   chamado `ALMOVA` (seletor de projetos no alto > **Novo projeto**).
+2. No menu, abra **APIs e serviços > Tela de consentimento OAuth** (em algumas
+   contas aparece como **Google Auth Platform**). Preencha:
+   - nome do app: `ALMOVA`; e-mail de suporte: o seu;
+   - público: **Externo**;
+   - e-mail de contato: o seu. Conclua.
+3. Ainda ali, em **Público**, clique em **Publicar app** (senão só as contas
+   cadastradas como teste conseguem entrar). O ALMOVA só pede nome e e-mail,
+   então o Google não exige verificação.
+4. Em **Clientes** (ou **Credenciais > Criar credenciais > ID do cliente
+   OAuth**): tipo **Aplicativo da Web**, nome `ALMOVA site`, e em **Origens
+   JavaScript autorizadas** adicione `https://almova.duckdns.org` (o seu
+   endereço). Não precisa de URI de redirecionamento. Clique em **Criar**.
+5. Copie o **ID do cliente** (termina em `.apps.googleusercontent.com`). Ele não
+   é senha: o script do passo 5 pede ele. A "chave secreta do cliente" não é
+   usada; não copie para lugar nenhum.
+
+## 5. Instalar (dois comandos)
 
 Entre no servidor pelo terminal. No Windows, abra o **PowerShell**, na pasta
 onde salvou a chave:
@@ -80,22 +103,41 @@ git clone -b claude/happy-goldberg-8nupoc https://github.com/Raynay01/wger.git a
 sudo bash almova/extras/docker/almova/instalar.sh
 ```
 
-O script pergunta o endereço (`almova.duckdns.org`), seu e-mail e o token do
-DuckDNS. Depois ele instala o Docker, abre as portas, gera as senhas e chaves,
-constrói e sobe tudo com HTTPS, e carrega exercícios e a tabela TACO. A primeira
-vez leva de 15 a 30 minutos. No fim ele mostra o endereço.
+O script pergunta o endereço (`almova.duckdns.org`), seu e-mail, o token do
+DuckDNS e o ID do cliente Google (passo 4). Depois ele instala o Docker, abre as
+portas, gera as senhas e chaves, constrói e sobe tudo com HTTPS, e carrega
+exercícios e a tabela TACO. A primeira vez leva de 15 a 30 minutos. No fim ele
+mostra o endereço.
 
-Para atualizar depois de mudanças no ALMOVA:
+Para atualizar depois de mudanças no ALMOVA (não pergunta nada de novo):
 
 ```bash
 cd almova && git pull && sudo bash extras/docker/almova/instalar.sh
 ```
 
-## 5. Depois de instalado
+## 6. Usar e instalar no celular
 
-- Abra o endereço no navegador e crie uma conta.
-- Me passe o endereço: eu gero o APK apontando para ele e você instala no
-  celular (sem Play Store nesta fase).
+1. No computador ou no celular, abra o endereço e toque em **Entrar com
+   Google**. A conta é criada na hora.
+2. Para ser profissional: **Sou profissional**, crie a organização e o registro
+   no conselho. Profissionais precisam da verificação em duas etapas: instale
+   no celular um app autenticador (Google Authenticator, por exemplo) e leia o
+   QR code que o site mostra. Guarde os códigos de recuperação.
+3. Instalar como app, pelo link, sem loja:
+   - **Android (Chrome):** na área do paciente aparece "Use o ALMOVA como app":
+     toque em **Instalar o app** (ou menu ⋮ > **Instalar app**).
+   - **iPhone (Safari):** **Compartilhar** > **Adicionar à Tela de Início** >
+     **Adicionar**.
+4. Teste: o ícone na tela inicial abre em tela cheia; com o modo avião, aparece
+   "Sem conexão".
+
+Para convidar um paciente de teste: na área profissional, **Convidar paciente**,
+e mande o link do convite (WhatsApp serve).
+
+## 7. Depois (opcional nesta fase)
+
+- O app Android completo (funciona sem internet): me passe o endereço e eu gero
+  o APK. Instala direto pelo arquivo, sem Play Store.
 - E-mails (convites, senha esquecida) ficam desligados até configurar um
   serviço de envio. Gratuito: **Brevo** (300 e-mails por dia). Com os dados
   dele, coloque no `homolog.env` do servidor `ENABLE_EMAIL=True`,
@@ -116,4 +158,6 @@ cd almova && git pull && sudo bash extras/docker/almova/instalar.sh
 - O DuckDNS é um endereço de teste. Para os pacientes, o domínio próprio
   (`almova.com.br`, cerca de R$ 40 por ano) passa mais confiança.
 - Na Play Store, a publicação exige a conta de desenvolvedor do Google
-  (US$ 25, uma vez só). Até lá, o app é instalado direto pelo arquivo APK.
+  (US$ 25, uma vez só). Até lá, o site é instalado como app pelo link (Android
+  e iPhone), e o app Android completo, direto pelo arquivo APK.
+- Use só dados de teste até a revisão jurídica (`O-QUE-FALTA.md`, fase 2).

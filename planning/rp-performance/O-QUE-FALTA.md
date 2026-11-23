@@ -14,25 +14,27 @@ passo diz onde ele entra.
 | 1 | Criar o fork do app: abra github.com/wger-project/flutter e clique em **Fork** (deixe o nome `flutter`) | | só avisar: eu passo o app para lá |
 | 2 | Conta na Oracle Cloud, servidor gratuito e portas 80/443 | `HOMOLOGACAO-GRATUITA.md`, seções 1 e 2 | nada |
 | 3 | Endereço gratuito no DuckDNS | `HOMOLOGACAO-GRATUITA.md`, seção 3 | nada |
-| 4 | Rodar o `instalar.sh` no servidor (dois comandos) | `HOMOLOGACAO-GRATUITA.md`, seção 4 | o endereço (ex.: `almova.duckdns.org`) |
-| 5 | Criar a sua conta no site e testar no navegador | | o que estranhar |
-| 6 | Projeto no Firebase (gratuito), app Android `br.com.almova.app` | `HOMOLOGACAO-GRATUITA.md`, seção 5 | os 4 identificadores do app (não são senhas) |
-| 7 | E-mail gratuito no Brevo, dados no `homolog.env` do servidor | `HOMOLOGACAO-GRATUITA.md`, seção 5 | nada |
+| 4 | ID do cliente Google para o login do site (gratuito) | `HOMOLOGACAO-GRATUITA.md`, seção 4 | nada: o script pede |
+| 5 | Rodar o `instalar.sh` no servidor (dois comandos) | `HOMOLOGACAO-GRATUITA.md`, seção 5 | o endereço (ex.: `almova.duckdns.org`) |
+| 6 | Entrar no site, instalar como app no celular e testar | `HOMOLOGACAO-GRATUITA.md`, seção 6 | o que estranhar |
+| 7 | Projeto no Firebase (gratuito), app Android `br.com.almova.app` | `HOMOLOGACAO-GRATUITA.md`, seção 7 | os 4 identificadores do app (não são senhas) |
+| 8 | E-mail gratuito no Brevo, dados no `homolog.env` do servidor | `HOMOLOGACAO-GRATUITA.md`, seção 7 | nada |
 
-Com o endereço (passo 4) e o Firebase (passo 6), eu gero o APK e você instala no
-celular. Roteiro de teste: `ROTEIRO-HOMOLOGACAO.md`, seção 6.
+O site instalado pelo link já serve no Android e no iPhone. Com o endereço
+(passo 5), eu gero também o APK do app Android completo. Roteiro de teste:
+`ROTEIRO-HOMOLOGACAO.md`, seção 6.
 
 ## Fase 2: antes de pacientes de verdade
 
 | # | O que fazer | Onde está explicado | O que me passar |
 |---|---|---|---|
-| 8 | Abrir a empresa (CNPJ) e criar um e-mail para assuntos de privacidade | | o nome, o CNPJ e o e-mail (são públicos nas páginas) |
-| 9 | Advogado revisa a política de privacidade, os termos e a página de exclusão (já no ar em `/privacidade`, `/termos` e `/excluir-conta`), e o texto de consentimento dos convites | | as mudanças que ele pedir: eu aplico |
-| 10 | Logotipo oficial (arquivo SVG ou PNG grande) | | o arquivo: eu troco no app, no site e na loja |
-| 11 | Domínio próprio, ex.: `almova.com.br` no registro.br (cerca de R$ 40/ano), conferindo a marca no INPI | `ROTEIRO-HOMOLOGACAO.md`, seção 2 | o domínio |
-| 12 | Chave do backup e teste de restauração | `extras/backup/README.md` | nada: a chave privada fica só com você |
+| 9 | Abrir a empresa (CNPJ) e criar um e-mail para assuntos de privacidade | | o nome, o CNPJ e o e-mail (são públicos nas páginas) |
+| 10 | Advogado revisa a política de privacidade, os termos e a página de exclusão (já no ar em `/privacidade`, `/termos` e `/excluir-conta`), e o texto de consentimento dos convites | | as mudanças que ele pedir: eu aplico |
+| 11 | Logotipo oficial (arquivo SVG ou PNG grande) | | o arquivo: eu troco no app, no site e na loja |
+| 12 | Domínio próprio, ex.: `almova.com.br` no registro.br (cerca de R$ 40/ano), conferindo a marca no INPI | `ROTEIRO-HOMOLOGACAO.md`, seção 2 | o domínio |
+| 13 | Chave do backup e teste de restauração | `extras/backup/README.md` | nada: a chave privada fica só com você |
 
-Depois do passo 9, no `homolog.env` do servidor: `ALMOVA_LEGAL_NAME`,
+Depois do passo 10, no `homolog.env` do servidor: `ALMOVA_LEGAL_NAME`,
 `ALMOVA_LEGAL_DOCUMENT`, `ALMOVA_PRIVACY_EMAIL`, `ALMOVA_LEGAL_COURT` e
 `ALMOVA_LEGAL_APPROVED=1` (README da pilha, "Política de privacidade e termos de
 uso").
@@ -41,12 +43,12 @@ uso").
 
 | # | O que fazer | Onde está explicado | O que me passar |
 |---|---|---|---|
-| 13 | Número D-U-N-S da empresa (gratuito, alguns dias) e conta de desenvolvedor do Google como organização (US$ 25) | `PLAY-STORE.md`, seção 1 | nada |
-| 14 | Chave de envio do app e os segredos no GitHub (abaixo) | esta página | só avisar |
-| 15 | Rodar a construção no GitHub e enviar o `.aab` no Play Console | esta página | nada |
-| 16 | Preencher os formulários do Play Console | `PLAY-STORE.md`, seções 3 a 6 (respostas prontas) | dúvidas |
+| 14 | Número D-U-N-S da empresa (gratuito, alguns dias) e conta de desenvolvedor do Google como organização (US$ 25) | `PLAY-STORE.md`, seção 1 | nada |
+| 15 | Chave de envio do app e os segredos no GitHub (abaixo) | esta página | só avisar |
+| 16 | Rodar a construção no GitHub e enviar o `.aab` no Play Console | esta página | nada |
+| 17 | Preencher os formulários do Play Console | `PLAY-STORE.md`, seções 3 a 6 (respostas prontas) | dúvidas |
 
-### Passo 14: chave de envio
+### Passo 15: chave de envio
 
 A chave assina o app que você envia ao Google; o Google guarda a chave final
 ("Play App Signing"). Gere a sua no servidor da Oracle, que já tem o Docker:
@@ -67,12 +69,12 @@ No fork do app no GitHub: **Settings > Secrets and variables > Actions**:
 - em *Secrets*: `ALMOVA_UPLOAD_KEYSTORE` (o texto do `base64`) e
   `ALMOVA_UPLOAD_PASSWORD` (a senha);
 - em *Variables*: `FCM_API_KEY`, `FCM_APP_ID`, `FCM_SENDER_ID` e
-  `FCM_PROJECT_ID` (os identificadores do Firebase, passo 6).
+  `FCM_PROJECT_ID` (os identificadores do Firebase, passo 7).
 
 Depois apague o arquivo do servidor (`rm ~/almova-upload.jks`), mantendo a
 cópia segura.
 
-### Passo 15: construir e enviar
+### Passo 16: construir e enviar
 
 No fork: **Actions > ALMOVA Android > Run workflow**, com o endereço do
 servidor. Em uns 15 minutos, a execução oferece para baixar `almova-play-store`

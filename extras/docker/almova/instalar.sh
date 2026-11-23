@@ -33,8 +33,19 @@ if [ -z "${ACME_EMAIL:-}" ]; then
 fi
 [[ "$ALMOVA_DOMAIN" =~ ^[a-z0-9.-]+\.[a-z]{2,}$ ]] || fail "endereço inválido: $ALMOVA_DOMAIN"
 [[ "$ACME_EMAIL" == *@* ]] || fail "e-mail inválido: $ACME_EMAIL"
-if [[ "$ALMOVA_DOMAIN" == *.duckdns.org && -z "${DUCKDNS_TOKEN:-}" ]]; then
+# Asked once: the cron entry of the first run keeps the address up to date
+if [[ "$ALMOVA_DOMAIN" == *.duckdns.org && -z "${DUCKDNS_TOKEN:-}" && ! -f /etc/cron.d/almova-duckdns ]]; then
     read -rp "Token do DuckDNS (Enter para pular): " DUCKDNS_TOKEN
+fi
+# The web app logs in with the Google account: without the client ID nobody can log in
+if [ -z "${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}" ]; then
+    echo "O login no site é com a conta Google. O ID do cliente é gratuito (guia HOMOLOGACAO-GRATUITA.md, passo 4)."
+    read -rp "ID do cliente Google (termina em .apps.googleusercontent.com; Enter para pular): " NEXT_PUBLIC_GOOGLE_CLIENT_ID
+fi
+NEXT_PUBLIC_GOOGLE_CLIENT_ID="${NEXT_PUBLIC_GOOGLE_CLIENT_ID// /}"
+if [ -n "$NEXT_PUBLIC_GOOGLE_CLIENT_ID" ]; then
+    [[ "$NEXT_PUBLIC_GOOGLE_CLIENT_ID" =~ ^[0-9a-z-]+\.apps\.googleusercontent\.com$ ]] \
+        || fail "ID do cliente Google inválido: $NEXT_PUBLIC_GOOGLE_CLIENT_ID"
 fi
 
 # --- System: Docker, firewall, DuckDNS -----------------------------------------
@@ -83,6 +94,7 @@ ALMOVA_DOMAIN=$ALMOVA_DOMAIN
 ACME_EMAIL=$ACME_EMAIL
 ALMOVA_HTTP_PORT=127.0.0.1:8080
 COMPOSE_FILE=$compose_file
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
 ${ACME_CA_OPTION:+ACME_CA_OPTION=$ACME_CA_OPTION}
 EOF
 chmod 600 .env
@@ -118,6 +130,8 @@ set_env CSRF_TRUSTED_ORIGINS "$url"
 set_env DJANGO_ALLOWED_HOSTS "$ALMOVA_DOMAIN,localhost,web"
 set_env X_FORWARDED_PROTO_HEADER_SET True
 set_env KINUTRI_DEV_LOGIN 0
+# The same client ID for the server, which checks the Google login (public, not a secret)
+set_env GOOGLE_CLIENT_ID "$NEXT_PUBLIC_GOOGLE_CLIENT_ID"
 
 # --- Build and start -----------------------------------------------------------
 if [ "${ALMOVA_SKIP_BUILD:-0}" != 1 ]; then
@@ -176,3 +190,6 @@ cat <<EOF
   - e-mail: ENABLE_EMAIL e os dados do serviço de envio em homolog.env,
     depois: sudo docker compose up -d
 EOF
+if [ -z "$NEXT_PUBLIC_GOOGLE_CLIENT_ID" ]; then
+    printf '\n\033[1;33m  Atenção: sem o ID do cliente Google ninguém entra pelo site.\n  Crie o ID (guia, passo 4) e rode o script de novo.\033[0m\n'
+fi
