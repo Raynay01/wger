@@ -16,15 +16,20 @@ Assim, quando a cota grátis do mês acaba, ele só para, sem cobrar.
 
 ## 1. Criar o Codespace (5 min)
 
-1. Entre no GitHub com a sua conta e abra:
+1. Entre no GitHub com a sua conta e abra o repositório
+   **github.com/Raynay01/wger**.
+2. No botão de branch (à esquerda, acima da lista de arquivos, mostra
+   `master`), escolha **`claude/happy-goldberg-8nupoc`**. Esse passo é
+   importante: o ALMOVA de teste só existe nesse branch.
+3. Clique no botão verde **Code** > aba **Codespaces** > **Create codespace on
+   claude/happy-goldberg-8nupoc**.
+4. Em alguns minutos abre um editor (VS Code) no navegador, com um
+   **Terminal** embaixo. No alto, ao lado do nome, ele deve mostrar
+   `claude/happy-goldberg-8nupoc`.
 
-   **https://codespaces.new/Raynay01/wger?ref=claude/happy-goldberg-8nupoc**
-
-   (Ou: no repositório `Raynay01/wger`, escolha o branch
-   `claude/happy-goldberg-8nupoc`, clique em **Code > Codespaces > Create
-   codespace on claude/happy-goldberg-8nupoc**.)
-2. Clique em **Create codespace**. Em alguns minutos abre um editor (VS Code) no
-   navegador, com um **Terminal** embaixo.
+Se o comando do passo 2 responder "No such file or directory", o Codespace foi
+criado no branch errado: apague (github.com/codespaces > **...** > **Delete**) e
+crie de novo escolhendo o branch.
 
 ## 2. Instalar o ALMOVA (1 comando, 20 a 30 min esperando)
 
